@@ -9,7 +9,7 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## How it works
 
-Currently does nothing, just to pass CI
+Currently does nothing, just to pass CI. It does however, now pass all CI tests!
 
 ## How to test
 
