@@ -4,8 +4,13 @@
  */
 
 `default_nettype none
+`timescale 1ns/1ps
 
+/* Assume TT needs this file to be called project.v but the module is called tt_um_gojimmypi - so disable warning: */ 
+/* verilator lint_off DECLFILENAME */
 module tt_um_gojimmypi (
+/* verilator lint_on DECLFILENAME */
+
 // Optional Analog
 //    input  wire       VGND,
 //    input  wire       VDPWR,    // 1.8v power supply
@@ -32,6 +37,24 @@ module tt_um_gojimmypi (
     assign uo_out = rst_n ? (ui_in + uio_in) : 8'h00;
     assign uio_out = 8'h00;
     assign uio_oe  = 8'h00;
+
+    `ifdef ULX3S
+        /*
+            ULX3S-only section.
+            Put any debug logic, alternate pin mapping assumptions,
+            local test features, counters, LEDs, UART helpers, etc. here.
+        */
+
+        //wire [7:0] ulx3s_debug_bus;
+        //assign ulx3s_debug_bus = uio_in;
+
+        always @(posedge clk) begin
+            if (rst_n) begin
+                $display("t=%0t ui_in=%h uio_in=%h uo_out=%h",
+                         $time, ui_in, uio_in, uo_out);
+            end
+        end
+    `endif /* ULX3S */
 
 endmodule
 
