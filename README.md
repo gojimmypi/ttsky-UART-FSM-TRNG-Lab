@@ -1,6 +1,6 @@
-![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg)
+![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
 
-# Tiny Tapeout Analog Project Template
+# Tiny Tapeout Analog Project Template (manually reverted to Verilog only)
 
 - [Read the documentation for project](docs/info.md)
 
