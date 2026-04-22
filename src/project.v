@@ -6,9 +6,11 @@
 `default_nettype none
 
 module tt_um_gojimmypi (
-    input  wire       VGND,
-    input  wire       VDPWR,    // 1.8v power supply
-//  input  wire       VAPWR,    // 3.3v power supply
+// Optional Analog
+//    input  wire       VGND,
+//    input  wire       VDPWR,    // 1.8v power supply
+//    input  wire       VAPWR,    // 3.3v power supply
+
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
     input  wire [7:0] uio_in,   // IOs: Input path
@@ -22,7 +24,10 @@ module tt_um_gojimmypi (
 
     wire unused_ok;
 
-    assign unused_ok = &{VGND, VDPWR, ena, clk, rst_n, uio_in, ua};
+ // Optional Analog
+ // assign unused_ok = &{VGND, VDPWR, ena, clk, rst_n, uio_in, ua};
+
+    assign unused_ok = &{ena, clk, rst_n, uio_in};
 
     assign uo_out  = rst_n ? ui_in : 8'h00;
     assign uio_out = 8'h00;

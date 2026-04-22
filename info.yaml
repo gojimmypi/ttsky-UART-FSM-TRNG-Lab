@@ -4,15 +4,15 @@ project:
   author:       "gojimmypi"      # Your name
   discord:      "gojimmypi"      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
   description:  "Universal Asynchronous Receiver/Transmitter Finite State Machine for Exploring ASIC Hardware Physically Unclonable Function True Random Number Generators"      # One line description of what your project does
-  language:     "Analog" # other examples include Verilog, Amaranth, VHDL, etc
+  language:     "Verilog" # other examples include Verilog, Amaranth, VHDL, etc
   clock_hz:     25000000       # Clock frequency in Hz (or 0 if not applicable)
 
   # How many tiles your design occupies? A single tile is about 167x108 uM.
-  tiles: "1x2"          # Valid values for analog projects: 1x2, 2x2
+  # tiles: "1x2"          # Valid values for analog projects: 1x2, 2x2
 
   # How many analog pins does your project use?
-  analog_pins: 0        # Valid values: 0 to 6
-  uses_3v3: false       # Set to true if your project uses 3.3V (VAPWR) in addition to 1.8V (VDPWR)
+  # analog_pins: 0        # Valid values: 0 to 6
+  # uses_3v3: false       # Set to true if your project uses 3.3V (VAPWR) in addition to 1.8V (VDPWR)
 
   # Your top module name must start with "tt_um_". Make it unique by including your github username:
   top_module:  "tt_um_gojimmypi"
@@ -36,7 +36,7 @@ pinout:
 
   # Outputs
   uo[0]: "output1"
-  uo[1]: "ouput2"
+  uo[1]: "output2"
   uo[2]: "output3"
   uo[3]: "output4"
   uo[4]: "output5"
