@@ -52,6 +52,7 @@ async def uart_recv_byte(dut) -> int:
 
     prev_tx = (int(dut.uo_out.value) >> UART_TX_BIT) & 0x1
 
+    # wait for falling edge (start bit)
     while True:
         await Timer(CLK_PERIOD_NS, unit="ns")
         tx_value = int(dut.uo_out.value)
@@ -62,12 +63,14 @@ async def uart_recv_byte(dut) -> int:
 
         prev_tx = curr_tx
 
+    # move to middle of start bit
     await Timer(half_bit_time_ns, unit="ns")
 
     tx_value = int(dut.uo_out.value)
     start_bit = (tx_value >> UART_TX_BIT) & 0x1
     assert start_bit == 0, f"Expected UART start bit 0, got {start_bit}"
 
+    # move to center of first data bit
     await Timer(bit_time_ns, unit="ns")
 
     result = 0
@@ -75,14 +78,16 @@ async def uart_recv_byte(dut) -> int:
         tx_value = int(dut.uo_out.value)
         bit_value = (tx_value >> UART_TX_BIT) & 0x1
         result |= (bit_value << bit_index)
+
         await Timer(bit_time_ns, unit="ns")
 
+    # sample stop bit in its center
     tx_value = int(dut.uo_out.value)
     stop_bit = (tx_value >> UART_TX_BIT) & 0x1
     assert stop_bit == 1, f"Expected UART stop bit 1, got {stop_bit}"
 
-    await Timer(bit_time_ns, unit="ns")
     return result
+
 async def uart_recv_until_timeout(dut, max_bytes: int = 64, idle_timeout_bits: int = 20) -> bytes:
     bit_time_ns = CLK_PERIOD_NS * CLKS_PER_BIT
     idle_timeout_ns = bit_time_ns * idle_timeout_bits
