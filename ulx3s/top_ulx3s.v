@@ -4,7 +4,9 @@
 module top_ulx3s (
     input  wire        clk_25mhz,
     input  wire [6:0]  btn,
-    output wire [7:0]  led
+    output wire [7:0]  led,
+    input  wire        uart_rx_pin,
+    output wire        uart_tx_pin
 );
 
     wire [7:0] ui_in;
@@ -16,28 +18,24 @@ module top_ulx3s (
     wire rst_n;
     wire ena;
 
-    /*
-        Simple ULX3S-to-TT mapping for bring-up:
-
-        btn[0] -> ui_in[0]
-        btn[1] -> ui_in[1]
-        ...
-        btn[6] -> ui_in[6]
-        ui_in[7] forced low
-
-        uio_in fixed for now.
-        rst_n forced high.
-        ena forced high.
-
-        LEDs show TT output bus.
-    */
-    assign ui_in = {1'b0, btn};
-    assign uio_in = 8'h55;
+    reg uart_rx_meta;
+    reg uart_rx_sync;
 
     assign rst_n = 1'b1;
     assign ena   = 1'b1;
 
-    tt_um_gojimmypi dut (
+    always @(posedge clk_25mhz) begin
+        uart_rx_meta <= uart_rx_pin;
+        uart_rx_sync <= uart_rx_meta;
+    end
+
+    // Map UART RX into TT input
+    assign ui_in = {4'b0000, uart_rx_sync, 3'b000};
+
+    assign uio_in = 8'h00;
+
+    tt_um_gojimmypi dut
+    (
         .ui_in(ui_in),
         .uo_out(uo_out),
         .uio_in(uio_in),
@@ -45,10 +43,23 @@ module top_ulx3s (
         .uio_oe(uio_oe),
         .ena(ena),
         .clk(clk_25mhz),
-        .rst_n(rst_n)
+        .rst_n(rst_n)  // TODO - add a reset button and connect it here instead of hardcoding rst_n=1
     );
 
+    `ifdef FORCE_LOOPBACK
+        // Loopback UART TX to RX for testing
+        initial $display("FORCE_LOOPBACK ENABLED");
+        assign uart_tx_pin = uart_rx_sync;  
+    `else
+        initial $display("FORCE_LOOPBACK DISABLED");
+        assign uart_tx_pin = uo_out[4];
+        // assign uart_tx_pin = 1'b0;
+        // assign uart_tx_pin = 1'b1;
+    `endif /* FORCE_LOOPBACK */
+
+    // Debug
     assign led = uo_out;
+    // assign led = 8'h00;
 
 endmodule
 

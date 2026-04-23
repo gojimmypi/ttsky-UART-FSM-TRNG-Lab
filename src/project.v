@@ -27,6 +27,18 @@ module tt_um_gojimmypi (
     input  wire       rst_n     // reset_n - low to reset
 );
 
+    tt_um_uart_trng_ascii u_core
+    (
+        .ui_in(ui_in),
+        .uo_out(uo_out),
+        .uio_in(uio_in),
+        .uio_out(uio_out),
+        .uio_oe(uio_oe),
+        .ena(ena),
+        .clk(clk),
+        .rst_n(rst_n)
+    );
+
     wire unused_ok;
 
  // Optional Analog
@@ -34,9 +46,6 @@ module tt_um_gojimmypi (
 
     assign unused_ok = &{ena, clk, rst_n, uio_in};
 
-    assign uo_out = rst_n ? (ui_in + uio_in) : 8'h00;
-    assign uio_out = 8'h00;
-    assign uio_oe  = 8'h00;
 
     `ifdef ULX3S
         /*
@@ -54,6 +63,10 @@ module tt_um_gojimmypi (
                          $time, ui_in, uio_in, uo_out);
             end
         end
+    `else
+        assign uo_out = rst_n ? (ui_in + uio_in) : 8'h00;
+        assign uio_out = 8'h00;
+        assign uio_oe  = 8'h00;
     `endif /* ULX3S */
 
 endmodule

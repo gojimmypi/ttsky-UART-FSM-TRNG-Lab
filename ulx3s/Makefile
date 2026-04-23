@@ -16,9 +16,16 @@ PACKAGE := CABGA381
 
 # 85F
 DEVICE ?= 85k
-  
 
 FREQ := 25
+
+# Optionally force a loopback
+FORCE_LOOPBACK ?= 0
+YOSYS_DEFS :=
+
+ifeq ($(FORCE_LOOPBACK),1)
+    YOSYS_DEFS += -DFORCE_LOOPBACK
+endif
 
 ROOT     := ..
 SRC_DIR  := $(ROOT)/src
@@ -29,7 +36,7 @@ TEST_DIR := $(ROOT)/test
 RTL_TOP  := top_ulx3s
 TB_TOP   := tb
 
-RTL_SRCS := $(SRC_DIR)/project.v ./top_ulx3s.v
+RTL_SRCS := $(SRC_DIR)/*.v ./top_ulx3s.v
 TB_SRCS  := $(TEST_DIR)/tb.v
 
 # -----------------------------
@@ -76,7 +83,7 @@ $(VDIR)/$(SIMEXE): $(RTL_SRCS) $(TB_SRCS)
 bit: $(BITFILE)
 
 $(JSON): $(RTL_SRCS)
-	$(YOSYS) -p "read_verilog -DULX3S $(RTL_SRCS); synth_ecp5 -top $(RTL_TOP) -json $(JSON)"
+	$(YOSYS) $(YOSYS_DEFS) -p "read_verilog -DULX3S $(RTL_SRCS); synth_ecp5 -top $(RTL_TOP) -json $(JSON)"
 
 $(CONFIG): $(JSON)
 	$(NEXTPNR) \
