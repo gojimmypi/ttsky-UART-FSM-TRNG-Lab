@@ -64,6 +64,7 @@ module tt_um_gojimmypi (
             end
         end
     `else
+        // TODO
         assign uo_out = rst_n ? (ui_in + uio_in) : 8'h00;
         assign uio_out = 8'h00;
         assign uio_oe  = 8'h00;

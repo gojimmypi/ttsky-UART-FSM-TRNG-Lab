@@ -2,64 +2,66 @@
 `timescale 1ns/1ps
 
 module top_ulx3s (
-    input  wire        clk_25mhz,
-    input  wire [6:0]  btn,
-    output wire [7:0]  led,
-    input  wire        uart_rx_pin,
-    output wire        uart_tx_pin
+    input  wire       clk_25mhz,
+    input  wire [6:0] btn,
+    output wire [7:0] led,
+    input  wire       uart_rx_pin,
+    output wire       uart_tx_pin
 );
 
-    wire [7:0] ui_in;
-    wire [7:0] uio_in;
-    wire [7:0] uo_out;
-    wire [7:0] uio_out;
-    wire [7:0] uio_oe;
-
     wire rst_n;
-    wire ena;
+
+    wire [7:0] reg_ctrl_o;
+    wire [7:0] reg_src_o;
+    wire [7:0] reg_div_o;
+    wire [7:0] reg_mode_o;
+    wire [7:0] reg_oscen_o;
+    wire [7:0] reg_status_o;
+    wire [7:0] reg_rawlo_o;
+    wire [7:0] reg_rawhi_o;
+    wire       trng_bit_o;
 
     reg uart_rx_meta;
     reg uart_rx_sync;
 
-    assign rst_n = 1'b1;
-    assign ena   = 1'b1;
+    assign rst_n = btn[0];
 
     always @(posedge clk_25mhz) begin
         uart_rx_meta <= uart_rx_pin;
         uart_rx_sync <= uart_rx_meta;
     end
 
-    // Map UART RX into TT input
-    assign ui_in = {4'b0000, uart_rx_sync, 3'b000};
-
-    assign uio_in = 8'h00;
-
-    tt_um_gojimmypi dut
+    uart_trng_ascii_core
+    #(
+        .CLKS_PER_BIT(217)
+    )
+    u_core
     (
-        .ui_in(ui_in),
-        .uo_out(uo_out),
-        .uio_in(uio_in),
-        .uio_out(uio_out),
-        .uio_oe(uio_oe),
-        .ena(ena),
         .clk(clk_25mhz),
-        .rst_n(rst_n)  // TODO - add a reset button and connect it here instead of hardcoding rst_n=1
+        .rst_n(rst_n),
+        .uart_rx_i(uart_rx_sync),
+        .uart_tx_o(uart_tx_pin),
+
+        .reg_ctrl_o(reg_ctrl_o),
+        .reg_src_o(reg_src_o),
+        .reg_div_o(reg_div_o),
+        .reg_mode_o(reg_mode_o),
+        .reg_oscen_o(reg_oscen_o),
+
+        .reg_status_o(reg_status_o),
+        .reg_rawlo_o(reg_rawlo_o),
+        .reg_rawhi_o(reg_rawhi_o),
+        .trng_bit_o(trng_bit_o)
     );
 
-    `ifdef FORCE_LOOPBACK
-        // Loopback UART TX to RX for testing
-        initial $display("FORCE_LOOPBACK ENABLED");
-        assign uart_tx_pin = uart_rx_sync;  
-    `else
-        initial $display("FORCE_LOOPBACK DISABLED");
-        assign uart_tx_pin = uo_out[4];
-        // assign uart_tx_pin = 1'b0;
-        // assign uart_tx_pin = 1'b1;
-    `endif /* FORCE_LOOPBACK */
-
-    // Debug
-    assign led = uo_out;
-    // assign led = 8'h00;
+//    assign led[0] = uart_rx_sync;
+//    assign led[1] = uart_tx_pin;
+//    assign led[2] = reg_status_o[1];
+//    assign led[3] = reg_status_o[2];
+//    assign led[4] = reg_status_o[3];
+//    assign led[5] = reg_rawlo_o[0];
+//    assign led[6] = reg_rawlo_o[1];
+//    assign led[7] = reg_rawlo_o[2];
 
 endmodule
 
