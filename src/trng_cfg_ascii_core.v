@@ -37,6 +37,8 @@ module trng_cfg_ascii_core
     localparam [4:0] ST_WAIT_SEND  = 5'd13;
 
     reg [4:0] state;
+    reg [4:0] next_state_after_send;
+
     reg [7:0] cmd;
     reg [3:0] hex1;
     reg [3:0] hex2;
@@ -128,24 +130,25 @@ module trng_cfg_ascii_core
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            state           <= ST_IDLE;
-            cmd             <= 8'h00;
-            hex1            <= 4'h0;
-            hex2            <= 4'h0;
-            need_two_digits <= 1'b0;
-            read_addr       <= 3'd0;
-            reply_value     <= 8'h00;
+            state                 <= ST_IDLE;
+            next_state_after_send <= ST_IDLE;
+            cmd                   <= 8'h00;
+            hex1                  <= 4'h0;
+            hex2                  <= 4'h0;
+            need_two_digits       <= 1'b0;
+            read_addr             <= 3'd0;
+            reply_value           <= 8'h00;
 
-            queued_tx_byte  <= 8'h00;
-            queued_tx_valid <= 1'b0;
-            tx_byte         <= 8'h00;
-            tx_start        <= 1'b0;
+            queued_tx_byte        <= 8'h00;
+            queued_tx_valid       <= 1'b0;
+            tx_byte               <= 8'h00;
+            tx_start              <= 1'b0;
 
-            reg_ctrl        <= 8'h00;
-            reg_src         <= 8'h00;
-            reg_div         <= 8'h10;
-            reg_mode        <= 8'h00;
-            reg_oscen       <= 8'h01;
+            reg_ctrl              <= 8'h00;
+            reg_src               <= 8'h00;
+            reg_div               <= 8'h10;
+            reg_mode              <= 8'h00;
+            reg_oscen             <= 8'h01;
         end else begin
             tx_start <= 1'b0;
 
@@ -189,8 +192,12 @@ module trng_cfg_ascii_core
                             hex1 <= hex_value(rx_byte);
 
                             if (cmd == "R") begin
-                                read_addr <= hex_value(rx_byte);
-                                state <= ST_WAIT_CR;
+                                if (hex_value(rx_byte) < 4'd8) begin
+                                    read_addr <= hex_value(rx_byte);
+                                    state <= ST_WAIT_CR;
+                                end else begin
+                                    state <= ST_Q_ERR;
+                                end
                             end else if (need_two_digits) begin
                                 state <= ST_ARG2;
                             end else begin
@@ -238,6 +245,7 @@ module trng_cfg_ascii_core
                 ST_Q_R: begin
                     if (!queued_tx_valid) begin
                         queue_tx("R");
+                        next_state_after_send <= ST_Q_N;
                         state <= ST_WAIT_SEND;
                     end
                 end
@@ -245,6 +253,7 @@ module trng_cfg_ascii_core
                 ST_Q_N: begin
                     if (!queued_tx_valid) begin
                         queue_tx(to_hex_ascii({1'b0, read_addr}));
+                        next_state_after_send <= ST_Q_EQ;
                         state <= ST_WAIT_SEND;
                     end
                 end
@@ -252,6 +261,7 @@ module trng_cfg_ascii_core
                 ST_Q_EQ: begin
                     if (!queued_tx_valid) begin
                         queue_tx("=");
+                        next_state_after_send <= ST_Q_HI;
                         state <= ST_WAIT_SEND;
                     end
                 end
@@ -259,6 +269,7 @@ module trng_cfg_ascii_core
                 ST_Q_HI: begin
                     if (!queued_tx_valid) begin
                         queue_tx(to_hex_ascii(reply_value[7:4]));
+                        next_state_after_send <= ST_Q_LO;
                         state <= ST_WAIT_SEND;
                     end
                 end
@@ -266,6 +277,7 @@ module trng_cfg_ascii_core
                 ST_Q_LO: begin
                     if (!queued_tx_valid) begin
                         queue_tx(to_hex_ascii(reply_value[3:0]));
+                        next_state_after_send <= ST_Q_CR;
                         state <= ST_WAIT_SEND;
                     end
                 end
@@ -273,6 +285,7 @@ module trng_cfg_ascii_core
                 ST_Q_CR: begin
                     if (!queued_tx_valid) begin
                         queue_tx(8'h0D);
+                        next_state_after_send <= ST_IDLE;
                         state <= ST_WAIT_SEND;
                     end
                 end
@@ -280,6 +293,7 @@ module trng_cfg_ascii_core
                 ST_Q_O: begin
                     if (!queued_tx_valid) begin
                         queue_tx("O");
+                        next_state_after_send <= ST_Q_K;
                         state <= ST_WAIT_SEND;
                     end
                 end
@@ -287,6 +301,7 @@ module trng_cfg_ascii_core
                 ST_Q_K: begin
                     if (!queued_tx_valid) begin
                         queue_tx("K");
+                        next_state_after_send <= ST_Q_CR;
                         state <= ST_WAIT_SEND;
                     end
                 end
@@ -294,44 +309,14 @@ module trng_cfg_ascii_core
                 ST_Q_ERR: begin
                     if (!queued_tx_valid) begin
                         queue_tx("?");
+                        next_state_after_send <= ST_Q_CR;
                         state <= ST_WAIT_SEND;
                     end
                 end
 
                 ST_WAIT_SEND: begin
                     if (!queued_tx_valid && !tx_busy) begin
-                        case (state)
-                            default: begin
-                            end
-                        endcase
-                    end
-
-                    if (!queued_tx_valid && !tx_busy) begin
-                        if (cmd == "R") begin
-                            if (tx_byte == "R") begin
-                                state <= ST_Q_N;
-                            end else if (tx_byte == to_hex_ascii({1'b0, read_addr})) begin
-                                state <= ST_Q_EQ;
-                            end else if (tx_byte == "=") begin
-                                state <= ST_Q_HI;
-                            end else if (tx_byte == to_hex_ascii(reply_value[7:4])) begin
-                                state <= ST_Q_LO;
-                            end else if (tx_byte == to_hex_ascii(reply_value[3:0])) begin
-                                state <= ST_Q_CR;
-                            end else begin
-                                state <= ST_IDLE;
-                            end
-                        end else begin
-                            if (tx_byte == "O") begin
-                                state <= ST_Q_K;
-                            end else if (tx_byte == "K") begin
-                                state <= ST_Q_CR;
-                            end else if (tx_byte == "?") begin
-                                state <= ST_Q_CR;
-                            end else begin
-                                state <= ST_IDLE;
-                            end
-                        end
+                        state <= next_state_after_send;
                     end
                 end
 
@@ -339,10 +324,6 @@ module trng_cfg_ascii_core
                     state <= ST_IDLE;
                 end
             endcase
-
-            if (state == ST_Q_CR && !queued_tx_valid && !tx_busy && tx_byte == 8'h0D) begin
-                state <= ST_IDLE;
-            end
         end
     end
 
