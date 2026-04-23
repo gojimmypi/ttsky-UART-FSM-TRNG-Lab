@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2026 gojimmypi
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Core integration block for the UART/TRNG ASCII design.
+ *
+ * Purpose:
+ * - Connects the minimal UART RX and TX blocks.
+ * - In normal mode, connects the ASCII command parser to the TRNG stub.
+ * - In DEEP_FORCE_LOOPBACK mode, bypasses the parser/TRNG path and performs an
+ *   internal byte echo so RX/TX can be isolated and validated.
+ *
+ * Why this block matters:
+ * - It is the main point where the same functional core can be reused under
+ *   both the Tiny Tapeout wrapper and the ULX3S wrapper.
+ */
 module uart_trng_ascii_core
 #(
     parameter integer CLKS_PER_BIT = 217
@@ -20,9 +36,11 @@ module uart_trng_ascii_core
     output wire       trng_bit_o
 );
 
+    /* UART receive side: decoded byte plus one-cycle valid pulse. */
     wire [7:0] rx_byte;
     wire       rx_valid;
 
+    /* UART transmit side: byte, launch pulse, and busy indication. */
     wire [7:0] tx_byte;
     wire       tx_start;
     wire       tx_busy;
@@ -55,10 +73,19 @@ module uart_trng_ascii_core
     );
 
 `ifdef DEEP_FORCE_LOOPBACK
-    /* Check to ensure we do not also have FORCE_LOOPBACK, as result would be misleading */
+    /*
+     * Deep internal loopback mode:
+     * - Meant to validate uart_rx_min and uart_tx_min in isolation.
+     * - A received byte is sent straight back out when TX is idle.
+     * - The register outputs become simple debug/status placeholders.
+     *
+     * This should not be combined with top-level FORCE_LOOPBACK, because then
+     * the observed behavior would no longer reflect the internal echo path.
+     */
     `ifdef FORCE_LOOPBACK
         MODULE_FORCE_LOOPBACK_MUST_NOT_BE_ENABLED_WITH_DEEP_FORCE_LOOPBACK u_stop ();
     `endif
+
     reg  [7:0] tx_byte_r;
     reg        tx_start_r;
     reg        rx_valid_d;
@@ -68,14 +95,17 @@ module uart_trng_ascii_core
     reg  [7:0] reg_rawhi_r;
     reg        trng_bit_r;
 
+    /* Pulse detect so a received byte is echoed exactly once. */
     wire       rx_valid_pulse;
 
+    /* Placeholder config outputs in loopback mode. */
     wire [7:0] reg_ctrl;
     wire [7:0] reg_src;
     wire [7:0] reg_div;
     wire [7:0] reg_mode;
     wire [7:0] reg_oscen;
 
+    /* Debug/status outputs in loopback mode. */
     wire [7:0] reg_status;
     wire [7:0] reg_rawlo;
     wire [7:0] reg_rawhi;
@@ -110,6 +140,13 @@ module uart_trng_ascii_core
             rx_valid_d <= rx_valid;
             tx_start_r <= 1'b0;
 
+            /*
+             * Pack a few useful live debug indicators:
+             * bit0 = raw UART RX input level at this clock
+             * bit1 = decoded receive-byte pulse
+             * bit2 = local TX start pulse
+             * bit3 = TX busy
+             */
             reg_status_r[0]   <= uart_rx_i;
             reg_status_r[1]   <= rx_valid;
             reg_status_r[2]   <= tx_start_r;
@@ -128,6 +165,11 @@ module uart_trng_ascii_core
 
 `else
 
+    /*
+     * Normal system mode:
+     * - trng_cfg_ascii_core interprets UART command bytes.
+     * - trng_stub supplies readable status and sample bytes.
+     */
     wire [7:0] reg_ctrl;
     wire [7:0] reg_src;
     wire [7:0] reg_div;
@@ -179,6 +221,7 @@ module uart_trng_ascii_core
 
 `endif
 
+    /* Re-export selected internals to the outer wrappers for debug/visibility. */
     assign reg_ctrl_o   = reg_ctrl;
     assign reg_src_o    = reg_src;
     assign reg_div_o    = reg_div;

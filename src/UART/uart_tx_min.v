@@ -1,3 +1,24 @@
+/*
+ * Copyright (c) 2026 gojimmypi
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Minimal UART transmitter.
+ *
+ * Purpose:
+ * - Sends one 8-bit byte over a UART TX line in 8N1 format.
+ * - Asserts busy while a transfer is in progress.
+ *
+ * UART format:
+ * - idle line high
+ * - 1 start bit low
+ * - 8 data bits, LSB first
+ * - 1 stop bit high
+ *
+ * Handshake:
+ * - start is sampled in ST_IDLE.
+ * - data_in is captured only when a new transfer begins.
+ * - busy stays high from start-bit launch until the stop bit completes.
+ */
 module uart_tx_min
 #(
     parameter integer CLKS_PER_BIT = 217
@@ -17,6 +38,11 @@ module uart_tx_min
     localparam [1:0] ST_STOP  = 2'd3;
 
     reg [1:0]  state;
+
+    /*
+     * shift_reg holds remaining bits to transmit.
+     * The LSB is always the next data bit sent.
+     */
     reg [7:0]  shift_reg;
     reg [3:0]  bit_index;
     reg [15:0] clk_count;
@@ -32,12 +58,18 @@ module uart_tx_min
         end else begin
             case (state)
                 ST_IDLE: begin
+                    /* Line is idle-high when not transmitting. */
                     tx        <= 1'b1;
                     busy      <= 1'b0;
                     clk_count <= 16'd0;
                     bit_index <= 3'd0;
 
                     if (start) begin
+                        /*
+                         * Capture the byte and immediately drive the start bit.
+                         * The first data bit will be launched after one full bit
+                         * period in ST_START.
+                         */
                         shift_reg <= data_in;
                         busy      <= 1'b1;
                         tx        <= 1'b0;
@@ -50,6 +82,8 @@ module uart_tx_min
 
                     if (clk_count == CLKS_PER_BIT - 1) begin
                         clk_count <= 16'd0;
+
+                        /* Put the first payload bit on the line. */
                         tx        <= shift_reg[0];
                         shift_reg <= {1'b0, shift_reg[7:1]};
                         bit_index <= 3'd1;
@@ -66,10 +100,12 @@ module uart_tx_min
                         clk_count <= 16'd0;
 
                         if (bit_index < 4'd8) begin
+                            /* Continue shifting out remaining data bits. */
                             tx        <= shift_reg[0];
                             shift_reg <= {1'b0, shift_reg[7:1]};
                             bit_index <= bit_index + 1'b1;
                         end else begin
+                            /* After the eighth bit, drive the stop bit high. */
                             tx    <= 1'b1;
                             state <= ST_STOP;
                         end

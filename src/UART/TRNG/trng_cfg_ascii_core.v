@@ -1,3 +1,30 @@
+/*
+ * Copyright (c) 2026 gojimmypi
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * ASCII command parser and register front-end for the UART/TRNG experiment.
+ *
+ * Purpose:
+ * - Receives decoded UART bytes from uart_rx_min.
+ * - Interprets a very small ASCII command set.
+ * - Updates configuration registers or reads them back.
+ * - Generates ASCII replies using uart_tx_min.
+ *
+ * High-level command format:
+ * - Single-nibble write commands: Ex, Sx, Vx, Wx followed by CR
+ * - Two-nibble write commands: Dxxy, Mxy, Oxy followed by CR
+ * - Register reads: Rx followed by CR, where x is 0..7
+ *
+ * Example transactions:
+ * - E1<CR>     : set enable bit
+ * - D10<CR>    : set divider register to 0x10
+ * - R6<CR>     : read register 6, replies R6=hh<CR>
+ *
+ * Reply format:
+ * - Successful write: OK<CR>
+ * - Successful read : Rn=HH<CR>
+ * - Parse/error     : ?<CR>
+ */
 module trng_cfg_ascii_core
 (
     input  wire       clk,
@@ -21,6 +48,11 @@ module trng_cfg_ascii_core
     input  wire [7:0] reg_rawhi
 );
 
+    /*
+     * Parser / reply state machine.
+     * Separate states are used for command collection and for multi-character
+     * response generation so the logic can serialize through one UART TX path.
+     */
     localparam [4:0] ST_IDLE       = 5'd0;
     localparam [4:0] ST_ARG1       = 5'd1;
     localparam [4:0] ST_ARG2       = 5'd2;
@@ -39,6 +71,10 @@ module trng_cfg_ascii_core
     reg [4:0] state;
     reg [4:0] next_state_after_send;
 
+    /*
+     * cmd records the operation letter.
+     * hex1/hex2 hold parsed ASCII hex nibbles until CR arrives.
+     */
     reg [7:0] cmd;
     reg [3:0] hex1;
     reg [3:0] hex2;
@@ -46,6 +82,11 @@ module trng_cfg_ascii_core
     reg [2:0] read_addr;
     reg [7:0] reply_value;
 
+    /*
+     * One-byte transmit queue.
+     * The parser loads queued_tx_byte, and the front-end launches it only when
+     * the downstream UART TX is idle.
+     */
     reg [7:0] queued_tx_byte;
     reg       queued_tx_valid;
 
@@ -75,6 +116,11 @@ module trng_cfg_ascii_core
         end
     endfunction
 
+    /*
+     * Address map used by the Rn read command.
+     * 0..4 are writable configuration registers.
+     * 5..7 are read-only status/data registers coming back from the TRNG side.
+     */
     function [7:0] read_reg;
         input [2:0] addr;
         begin
@@ -92,6 +138,7 @@ module trng_cfg_ascii_core
         end
     endfunction
 
+    /* Convert a nibble to ASCII hex for readback replies. */
     function [7:0] to_hex_ascii;
         input [3:0] nib;
         begin
@@ -103,6 +150,10 @@ module trng_cfg_ascii_core
         end
     endfunction
 
+    /*
+     * Write decoded values into specific register fields.
+     * Some commands write only selected bits while others write a full byte.
+     */
     task do_write;
         input [7:0] c;
         input [7:0] value;
@@ -120,6 +171,7 @@ module trng_cfg_ascii_core
         end
     endtask
 
+    /* Queue one reply character. */
     task queue_tx;
         input [7:0] c;
         begin
@@ -144,14 +196,20 @@ module trng_cfg_ascii_core
             tx_byte               <= 8'h00;
             tx_start              <= 1'b0;
 
+            /* Default power-on register values for bring-up. */
             reg_ctrl              <= 8'h00;
             reg_src               <= 8'h00;
             reg_div               <= 8'h10;
             reg_mode              <= 8'h00;
             reg_oscen             <= 8'h01;
         end else begin
+            /* tx_start is a one-clock pulse into uart_tx_min. */
             tx_start <= 1'b0;
 
+            /*
+             * Launch a queued reply byte only when the UART transmitter is free.
+             * This decouples parser sequencing from the transmit bit timing.
+             */
             if (queued_tx_valid && !tx_busy) begin
                 tx_byte         <= queued_tx_byte;
                 tx_start        <= 1'b1;
@@ -161,6 +219,7 @@ module trng_cfg_ascii_core
             case (state)
                 ST_IDLE: begin
                     if (rx_valid) begin
+                        /* Ignore LF so terminals sending CRLF still work. */
                         if (rx_byte == 8'h0A) begin
                             state <= ST_IDLE;
                         end else if ((rx_byte == "E") ||
@@ -192,6 +251,7 @@ module trng_cfg_ascii_core
                             hex1 <= hex_value(rx_byte);
 
                             if (cmd == "R") begin
+                                /* Only registers 0..7 are addressable. */
                                 if (hex_value(rx_byte) < 4'd8) begin
                                     read_addr <= hex_value(rx_byte);
                                     state <= ST_WAIT_CR;
@@ -222,6 +282,7 @@ module trng_cfg_ascii_core
 
                 ST_WAIT_CR: begin
                     if (rx_valid) begin
+                        /* Again ignore LF so CRLF is accepted. */
                         if (rx_byte == 8'h0A) begin
                             state <= ST_WAIT_CR;
                         end else if (rx_byte == 8'h0D) begin
@@ -242,6 +303,7 @@ module trng_cfg_ascii_core
                     end
                 end
 
+                /* Read reply is serialized as: R n = H H CR */
                 ST_Q_R: begin
                     if (!queued_tx_valid) begin
                         queue_tx("R");
@@ -290,6 +352,7 @@ module trng_cfg_ascii_core
                     end
                 end
 
+                /* Write reply is serialized as: O K CR */
                 ST_Q_O: begin
                     if (!queued_tx_valid) begin
                         queue_tx("O");
@@ -306,6 +369,7 @@ module trng_cfg_ascii_core
                     end
                 end
 
+                /* Generic parser error reply. */
                 ST_Q_ERR: begin
                     if (!queued_tx_valid) begin
                         queue_tx("?");
@@ -314,6 +378,11 @@ module trng_cfg_ascii_core
                     end
                 end
 
+                /*
+                 * Stay here until the queued byte has been accepted and the UART
+                 * transmitter is no longer busy. Then continue with the next
+                 * response character.
+                 */
                 ST_WAIT_SEND: begin
                     if (!queued_tx_valid && !tx_busy) begin
                         state <= next_state_after_send;

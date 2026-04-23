@@ -1,3 +1,25 @@
+/*
+ * Copyright (c) 2026 gojimmypi
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Minimal UART receiver.
+ *
+ * Purpose:
+ * - Samples an asynchronous RX line.
+ * - Produces one-cycle data_valid when a full 8N1 byte has been received.
+ *
+ * UART format assumed:
+ * - 1 start bit (low)
+ * - 8 data bits, LSB first
+ * - 1 stop bit (high)
+ * - No parity
+ *
+ * Timing:
+ * - CLKS_PER_BIT is the system-clock count for one UART bit period.
+ * - The receiver first waits half a bit after detecting a falling edge so it
+ *   can validate the center of the start bit.
+ * - It then samples once per bit period for each data bit and stop bit.
+ */
 module uart_rx_min
 #(
     parameter integer CLKS_PER_BIT = 217
@@ -8,7 +30,7 @@ module uart_rx_min
     input  wire       rx,
     output reg [7:0]  data_out,
     output reg        data_valid
-); 
+);
 
     localparam [1:0] ST_IDLE  = 2'd0;
     localparam [1:0] ST_START = 2'd1;
@@ -16,10 +38,19 @@ module uart_rx_min
     localparam [1:0] ST_STOP  = 2'd3;
 
     reg [1:0]  state;
+
+    /*
+     * Two-flop synchronizer for the asynchronous UART input.
+     * This reduces metastability risk before the state machine samples bits.
+     */
     reg        rx_meta;
     reg        rx_sync;
+
+    /* Bit-period counter and current-bit index. */
     reg [15:0] clk_count;
     reg [3:0]  bit_index;
+
+    /* Shift register receives the byte LSB first. */
     reg [7:0]  shift_reg;
 
     always @(posedge clk or negedge rst_n) begin
@@ -41,10 +72,15 @@ module uart_rx_min
             data_out   <= 8'h00;
             data_valid <= 1'b0;
         end else begin
+            /* data_valid is a pulse, not a level. */
             data_valid <= 1'b0;
 
             case (state)
                 ST_IDLE: begin
+                    /*
+                     * Wait for the line to go low, which may indicate a start
+                     * bit. Reset counters so the next state starts cleanly.
+                     */
                     clk_count <= 16'd0;
                     bit_index <= 3'd0;
 
@@ -55,6 +91,10 @@ module uart_rx_min
                 end
 
                 ST_START: begin
+                    /*
+                     * Sample in the middle of the start bit. If the line has
+                     * returned high, it was likely just noise or a glitch.
+                     */
                     if (clk_count == ((CLKS_PER_BIT - 1) >> 1)) begin
                         if (rx_sync == 1'b0) begin
                             clk_count <= 16'd0;
@@ -69,6 +109,11 @@ module uart_rx_min
                 end
 
                 ST_DATA: begin
+                    /*
+                     * Sample one data bit every full bit period.
+                     * Because UART is LSB-first, bit_index maps directly to the
+                     * destination bit position.
+                     */
                     if (clk_count == CLKS_PER_BIT - 1) begin
                         clk_count <= 16'd0;
                         shift_reg[bit_index] <= rx_sync;
@@ -84,6 +129,10 @@ module uart_rx_min
                 end
 
                 ST_STOP: begin
+                    /*
+                     * Check for a valid stop bit. Only then is the received byte
+                     * presented and data_valid pulsed for one clock.
+                     */
                     if (clk_count == CLKS_PER_BIT - 1) begin
                         clk_count <= 16'd0;
 

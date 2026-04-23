@@ -1,3 +1,18 @@
+/*
+ * Copyright (c) 2026 gojimmypi
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * ULX3S board wrapper for the UART/TRNG ASCII core.
+ *
+ * Purpose:
+ * - Lets the same core used for Tiny Tapeout also be exercised directly on the
+ *   ULX3S FPGA board.
+ * - Connects board-level UART pins and a simple LED bus.
+ *
+ * Why this is useful:
+ * - It gives a fast hardware-debug path before worrying about Tiny Tapeout pin
+ *   packing, wrapper behavior, or demoboard details.
+ */
 module ulx3s_uart_trng_ascii_top
 #(
     parameter integer CLKS_PER_BIT = 217
@@ -10,6 +25,7 @@ module ulx3s_uart_trng_ascii_top
     output wire [7:0] led
 );
 
+    /* Internal debug/configuration signals exported by the core. */
     wire [7:0] reg_ctrl;
     wire [7:0] reg_src;
     wire [7:0] reg_div;
@@ -41,6 +57,10 @@ module ulx3s_uart_trng_ascii_top
         .trng_bit_o(trng_bit)
     );
 
+    /*
+     * For simple visual feedback, show the low data byte on LEDs.
+     * This is convenient when confirming that the stub is changing state.
+     */
     assign led = reg_rawlo;
 
 endmodule

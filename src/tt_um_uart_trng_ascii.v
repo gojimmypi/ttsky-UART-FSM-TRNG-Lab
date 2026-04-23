@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2026 gojimmypi
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Tiny Tapeout wrapper for the UART/TRNG ASCII core.
+ *
+ * Purpose:
+ * - Exposes the project through the standard Tiny Tapeout pin interface.
+ * - Adapts one TT input pin to UART RX and one TT output pin to UART TX.
+ * - Surfaces a few internal status bits on GPIOs for simple board-level debug.
+ *
+ * Pin usage in this wrapper:
+ * - ui_in[3]  : UART RX input to the core
+ * - uo_out[4] : UART TX output from the core
+ * - uo_out[0] : trng_bit
+ * - uo_out[3:1] : selected status bits
+ * - uo_out[7:5] : selected low raw-data bits
+ * - uio_out[7:0] : full reg_rawhi byte
+ * - uio_oe[7:0] : all forced as outputs
+ *
+ * This module contains almost no behavior of its own. It is mostly a pin-map
+ * and visibility wrapper around uart_trng_ascii_core.
+ */
 module tt_um_uart_trng_ascii
 (
     input  wire [7:0] ui_in,
@@ -10,8 +33,14 @@ module tt_um_uart_trng_ascii
     input  wire       rst_n
 );
 
+    /*
+     * Fixed local baud divider for this TT wrapper.
+     * The underlying core is parameterized, but this wrapper locks the value to
+     * the known bring-up setting used in the recent ULX3S/TT work.
+     */
     localparam integer CLKS_PER_BIT = 217;
 
+    /* Internal debug/configuration buses exported by the core. */
     wire [7:0] reg_ctrl;
     wire [7:0] reg_src;
     wire [7:0] reg_div;
@@ -23,6 +52,11 @@ module tt_um_uart_trng_ascii
     wire       trng_bit;
     wire       uart_tx;
 
+    /*
+     * Keep unused TT inputs referenced so synthesis does not warn.
+     * ena is mandatory in the TT interface but not functionally used here.
+     * uio_in is reserved for future use.
+     */
     wire unused_ok;
     assign unused_ok = &{ena, uio_in};
 
@@ -47,6 +81,11 @@ module tt_um_uart_trng_ascii
         .trng_bit_o(trng_bit)
     );
 
+    /*
+     * Export one UART pin plus a few convenient status/data bits.
+     * This is handy during bring-up because it gives visual/logic-analyzer
+     * access to internal state without changing the core.
+     */
     assign uo_out[4] = uart_tx;
     assign uo_out[0] = trng_bit;
     assign uo_out[1] = reg_status[0];
@@ -56,6 +95,7 @@ module tt_um_uart_trng_ascii
     assign uo_out[6] = reg_rawlo[1];
     assign uo_out[7] = reg_rawlo[2];
 
+    /* Drive all UIO pins as outputs and show the high raw-data byte there. */
     assign uio_out = reg_rawhi;
     assign uio_oe  = 8'hFF;
 
