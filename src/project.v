@@ -3,6 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+`ifdef ULX3S
+    /* Makefile includes references to needed files */
+`else
+    /* Tiny Tapeout needs to include all the files directly since it doesn't support Makefiles. */
+    `include "tt_um_uart_trng_ascii.v"
+    `include "UART/uart_rx_min.v"
+    `include "UART/uart_tx_min.v"
+    `include "UART/uart_trng_ascii_core.v"
+    `include "UART/TRNG/trng_cfg_ascii_core.v"
+    `include "UART/TRNG/trng_stub.v"
+`endif /* ULX3S */
+
 `default_nettype none
 `timescale 1ns/1ps
 
