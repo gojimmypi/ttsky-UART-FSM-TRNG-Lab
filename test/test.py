@@ -46,13 +46,13 @@ async def uart_send_bytes(dut, data: bytes) -> None:
     for byte_value in data:
         await uart_send_byte(dut, byte_value)
 
-async def uart_recv_byte(dut) -> int:
+async def uart_recv_byte(dut, idle_timeout_ns: int | None = None) -> int:
     bit_time_ns = CLK_PERIOD_NS * CLKS_PER_BIT
     half_bit_time_ns = bit_time_ns // 2
 
     prev_tx = (int(dut.uo_out.value) >> UART_TX_BIT) & 0x1
+    waited_ns = 0
 
-    # wait for falling edge (start bit)
     while True:
         await Timer(CLK_PERIOD_NS, unit="ns")
         tx_value = int(dut.uo_out.value)
@@ -62,15 +62,16 @@ async def uart_recv_byte(dut) -> int:
             break
 
         prev_tx = curr_tx
+        waited_ns += CLK_PERIOD_NS
+        if idle_timeout_ns is not None and waited_ns >= idle_timeout_ns:
+            raise TimeoutError("UART receive timeout waiting for start bit")
 
-    # move to middle of start bit
     await Timer(half_bit_time_ns, unit="ns")
 
     tx_value = int(dut.uo_out.value)
     start_bit = (tx_value >> UART_TX_BIT) & 0x1
     assert start_bit == 0, f"Expected UART start bit 0, got {start_bit}"
 
-    # move to center of first data bit
     await Timer(bit_time_ns, unit="ns")
 
     result = 0
@@ -78,15 +79,14 @@ async def uart_recv_byte(dut) -> int:
         tx_value = int(dut.uo_out.value)
         bit_value = (tx_value >> UART_TX_BIT) & 0x1
         result |= (bit_value << bit_index)
-
         await Timer(bit_time_ns, unit="ns")
 
-    # sample stop bit in its center
     tx_value = int(dut.uo_out.value)
     stop_bit = (tx_value >> UART_TX_BIT) & 0x1
     assert stop_bit == 1, f"Expected UART stop bit 1, got {stop_bit}"
 
     return result
+
 
 async def uart_recv_until_timeout(dut, max_bytes: int = 64, idle_timeout_bits: int = 20) -> bytes:
     bit_time_ns = CLK_PERIOD_NS * CLKS_PER_BIT
@@ -95,16 +95,13 @@ async def uart_recv_until_timeout(dut, max_bytes: int = 64, idle_timeout_bits: i
     data = bytearray()
 
     for _ in range(max_bytes):
-        waited_ns = 0
-        while int(dut.uo_out.value) & (1 << UART_TX_BIT):
-            await Timer(CLK_PERIOD_NS, unit="ns")
-            waited_ns += CLK_PERIOD_NS
-            if waited_ns >= idle_timeout_ns:
-                return bytes(data)
-
-        data.append(await uart_recv_byte(dut))
+        try:
+            data.append(await uart_recv_byte(dut, idle_timeout_ns=idle_timeout_ns))
+        except TimeoutError:
+            return bytes(data)
 
     return bytes(data)
+
 
 @cocotb.test()
 async def test_version_command(dut):
