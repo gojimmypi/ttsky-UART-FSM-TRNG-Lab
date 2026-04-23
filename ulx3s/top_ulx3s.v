@@ -50,7 +50,9 @@ module top_ulx3s (
         // Loopback UART TX to RX for testing
         initial $display("FORCE_LOOPBACK ENABLED");
         assign uart_tx_pin = uart_rx_sync;  
-        error - we do not want loopback here!
+
+        MODULE_FORCE_LOOPBACK_MUST_NOT_BE_ENABLED u_stop ();
+
     `else
         initial $display("FORCE_LOOPBACK DISABLED");
         assign uart_tx_pin = uo_out[4];
