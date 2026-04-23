@@ -10,11 +10,11 @@ module tb ();
   end
 
   // Dump the signals to a FST file. You can view it with gtkwave or surfer.
-  initial begin
-    $dumpfile("tb.fst");
-    $dumpvars(0, tb);
-    #1;
-  end
+//  initial begin
+//    $dumpfile("tb.fst");
+//    $dumpvars(0, tb);
+//    #1;
+//  end
 
   // Wire up the inputs and outputs:
   reg clk;
@@ -78,7 +78,7 @@ module tb ();
         #20;
         uio_in = 8'h55;
 
-        #100;
+        #100000000;
 
         $finish;
     end
