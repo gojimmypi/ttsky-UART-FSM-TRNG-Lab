@@ -14,15 +14,18 @@
  * - Single-nibble write commands: Ex, Sx, Vx, Wx followed by CR
  * - Two-nibble write commands: Dxxy, Mxy, Oxy followed by CR
  * - Register reads: Rx followed by CR, where x is 0..7
+ * - Version query: V followed by CR
  *
  * Example transactions:
  * - E1<CR>     : set enable bit
  * - D10<CR>    : set divider register to 0x10
  * - R6<CR>     : read register 6, replies R6=hh<CR>
+ * - V<CR>      : replies Version 1.2.0 4/23/2026<CR>
  *
  * Reply format:
  * - Successful write: OK<CR>
  * - Successful read : Rn=HH<CR>
+ * - Version query   : Version 1.2.0 4/23/2026<CR>
  * - Parse/error     : ?<CR>
  */
 module trng_cfg_ascii_core
@@ -67,6 +70,10 @@ module trng_cfg_ascii_core
     localparam [4:0] ST_Q_K        = 5'd11;
     localparam [4:0] ST_Q_ERR      = 5'd12;
     localparam [4:0] ST_WAIT_SEND  = 5'd13;
+    localparam [4:0] ST_Q_STR      = 5'd14;
+
+    localparam integer VERSION_LEN = 23;
+    localparam [8*VERSION_LEN-1:0] VERSION_STR = "Version 1.2.0 4/23/2026";
 
     reg [4:0] state;
     reg [4:0] next_state_after_send;
@@ -89,6 +96,16 @@ module trng_cfg_ascii_core
      */
     reg [7:0] queued_tx_byte;
     reg       queued_tx_valid;
+
+    /*
+     * Generic string send support for multi-character replies such as version.
+     * active_str holds the current packed ASCII string, str_len is the number
+     * of valid characters, and str_index walks through the string one byte at
+     * a time.
+     */
+    reg [8*VERSION_LEN-1:0] active_str;
+    reg [5:0] str_index;
+    reg [5:0] str_len;
 
     function is_hex;
         input [7:0] c;
@@ -151,6 +168,20 @@ module trng_cfg_ascii_core
     endfunction
 
     /*
+     * Return one ASCII character from a packed string.
+     * Index 0 returns the leftmost character in the packed constant.
+     */
+    function [7:0] str_get;
+        input [8*VERSION_LEN-1:0] str;
+        input [5:0] idx;
+        reg [8*VERSION_LEN-1:0] shifted;
+        begin
+            shifted = str >> ((VERSION_LEN - 1 - idx) * 8);
+            str_get = shifted[7:0];
+        end
+    endfunction
+
+    /*
      * Write decoded values into specific register fields.
      * Some commands write only selected bits while others write a full byte.
      */
@@ -180,6 +211,21 @@ module trng_cfg_ascii_core
         end
     endtask
 
+    /*
+     * Start sending a packed ASCII string using the generic string serializer.
+     * The actual characters are launched through the normal one-byte queue.
+     */
+    task start_string;
+        input [((8 * VERSION_LEN) - 1):0] str;
+        input [5:0] len;
+        begin
+            active_str <= str;
+            str_len    <= len;
+            str_index  <= 6'd0;
+            state      <= ST_Q_STR;
+        end
+    endtask
+
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state                 <= ST_IDLE;
@@ -195,6 +241,10 @@ module trng_cfg_ascii_core
             queued_tx_valid       <= 1'b0;
             tx_byte               <= 8'h00;
             tx_start              <= 1'b0;
+
+            active_str            <= {(8 * VERSION_LEN){1'b0}};
+            str_index             <= 6'd0;
+            str_len               <= 6'd0;
 
             /* Default power-on register values for bring-up. */
             reg_ctrl              <= 8'h00;
@@ -247,7 +297,16 @@ module trng_cfg_ascii_core
 
                 ST_ARG1: begin
                     if (rx_valid) begin
-                        if (is_hex(rx_byte)) begin
+                        /*
+                         * Bare V<CR> is treated as a version query.
+                         * Vx<CR> still retains its original single-nibble write
+                         * behavior for reg_ctrl[1].
+                         */
+                        if ((cmd == "V") && (rx_byte == 8'h0A)) begin
+                            state <= ST_ARG1;
+                        end else if ((cmd == "V") && (rx_byte == 8'h0D)) begin
+                            start_string(VERSION_STR, VERSION_LEN[5:0]);
+                        end else if (is_hex(rx_byte)) begin
                             hex1 <= hex_value(rx_byte);
 
                             if (cmd == "R") begin
@@ -375,6 +434,26 @@ module trng_cfg_ascii_core
                         queue_tx("?");
                         next_state_after_send <= ST_Q_CR;
                         state <= ST_WAIT_SEND;
+                    end
+                end
+
+                /*
+                 * Generic packed-string sender.
+                 * Characters are emitted one at a time through the normal queue
+                 * and ST_WAIT_SEND handshake path.
+                 */
+                ST_Q_STR: begin
+                    if (!queued_tx_valid) begin
+                        if (str_index < str_len) begin
+                            queue_tx(str_get(active_str, str_index));
+                            str_index <= str_index + 1'b1;
+                            next_state_after_send <= ST_Q_STR;
+                            state <= ST_WAIT_SEND;
+                        end else begin
+                            queue_tx(8'h0D);
+                            next_state_after_send <= ST_IDLE;
+                            state <= ST_WAIT_SEND;
+                        end
                     end
                 end
 
