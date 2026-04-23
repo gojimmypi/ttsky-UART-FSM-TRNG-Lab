@@ -8,7 +8,7 @@ module uart_rx_min
     input  wire       rx,
     output reg [7:0]  data_out,
     output reg        data_valid
-);
+); 
 
     localparam [1:0] ST_IDLE  = 2'd0;
     localparam [1:0] ST_START = 2'd1;
