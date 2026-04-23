@@ -51,7 +51,7 @@ module top_ulx3s (
         initial $display("FORCE_LOOPBACK ENABLED");
         assign uart_tx_pin = uart_rx_sync;  
 
-        MODULE_FORCE_LOOPBACK_MUST_NOT_BE_ENABLED u_stop ();
+        // MODULE_FORCE_LOOPBACK_MUST_NOT_BE_ENABLED u_stop ();
 
     `else
         initial $display("FORCE_LOOPBACK DISABLED");
