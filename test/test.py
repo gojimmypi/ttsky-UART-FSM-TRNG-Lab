@@ -121,7 +121,7 @@ async def test_version_command(dut):
     assert tx_idle == 1, f"UART TX should idle high after reset, got {tx_idle}"
 
     recv_task = cocotb.start_soon(
-        uart_recv_until_timeout(dut, max_bytes=64)
+        uart_recv_until_timeout(dut, max_bytes=64, idle_timeout_bits=200)
     )
 
     await uart_send_bytes(dut, b"V\r")
