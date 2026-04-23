@@ -120,8 +120,12 @@ async def test_version_command(dut):
     tx_idle = (int(dut.uo_out.value) >> UART_TX_BIT) & 0x1
     assert tx_idle == 1, f"UART TX should idle high after reset, got {tx_idle}"
 
+    recv_task = cocotb.start_soon(
+        uart_recv_until_timeout(dut, max_bytes=64)
+    )
+
     await uart_send_bytes(dut, b"V\r")
-    response = await uart_recv_until_timeout(dut, max_bytes=64)
+    response = await recv_task
 
     assert response, "No UART response received for V command"
     assert EXPECTED_VERSION_PREFIX in response, (
