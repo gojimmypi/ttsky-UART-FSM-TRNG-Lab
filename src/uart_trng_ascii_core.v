@@ -55,7 +55,10 @@ module uart_trng_ascii_core
     );
 
 `ifdef DEEP_FORCE_LOOPBACK
-
+    /* Check to ensure we do not also have FORCE_LOOPBACK, as result would be misleading */
+    `ifdef FORCE_LOOPBACK
+        MODULE_FORCE_LOOPBACK_MUST_NOT_BE_ENABLED_WITH_DEEP_FORCE_LOOPBACK u_stop ();
+    `endif
     reg  [7:0] tx_byte_r;
     reg        tx_start_r;
     reg        rx_valid_d;
