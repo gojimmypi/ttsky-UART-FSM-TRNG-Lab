@@ -29,9 +29,13 @@
 
 /* Assume TT needs this file to be called project.v but the module is called tt_um_gojimmypi - so disable warning: */
 /* verilator lint_off DECLFILENAME */
-module tt_um_gojimmypi (
+module tt_um_gojimmypi
 /* verilator lint_on DECLFILENAME */
-
+#(
+    parameter [31:0] CLOCK_HZ  = 32'd25000000,
+    parameter [31:0] UART_BAUD = 32'd115200
+)
+(
     // Optional Analog
     //    input  wire       VGND,
     //    input  wire       VDPWR,    // 1.8v power supply
