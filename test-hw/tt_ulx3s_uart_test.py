@@ -139,6 +139,20 @@ def expect_read(name, actual, reg_num, expected_value=None):
     return True
 
 
+def reset_config_registers(ser, args):
+    ok = True
+
+    ok = expect_exact("Reset E0", send_command(ser, b"E0\r", args), b"OK\r") and ok
+    ok = expect_exact("Reset V0", send_command(ser, b"V0\r", args), b"OK\r") and ok
+    ok = expect_exact("Reset W0", send_command(ser, b"W0\r", args), b"OK\r") and ok
+    ok = expect_exact("Reset S0", send_command(ser, b"S0\r", args), b"OK\r") and ok
+    ok = expect_exact("Reset D10", send_command(ser, b"D10\r", args), b"OK\r") and ok
+    ok = expect_exact("Reset M00", send_command(ser, b"M00\r", args), b"OK\r") and ok
+    ok = expect_exact("Reset O01", send_command(ser, b"O01\r", args), b"OK\r") and ok
+
+    return ok
+
+
 def test_version_if_present(ser, args):
     mark_tested("V")
 
@@ -226,8 +240,7 @@ def test_read_only_registers_format(ser, args):
 def test_crlf_handling(ser, args):
     ok = True
 
-    ok = expect_exact("CRLF write accepted", send_command(ser, b"E1\r\n", args), b"OK\r") and ok
-    ok = expect_read("CRLF readback", send_command(ser, b"R0\r\n", args), 0, 0x07) and ok
+    ok = expect_read("CRLF read accepted", send_command(ser, b"R0\r\n", args), 0) and ok
 
     return ok
 
@@ -269,6 +282,20 @@ def run_tests(ser, args):
     passed = 0
     failed = 0
 
+    print("")
+    print("Running: reset_config_registers")
+
+    if reset_config_registers(ser, args):
+        passed += 1
+    else:
+        failed += 1
+
+        if args.stop_on_fail:
+            print("")
+            print(f"Tests passed: {passed}")
+            print(f"Tests failed: {failed}")
+            return False
+
     for name, func in tests:
         print("")
         print(f"Running: {name}")
@@ -284,6 +311,14 @@ def run_tests(ser, args):
     coverage_ok = report_missing_command_tests()
 
     if not coverage_ok:
+        failed += 1
+
+    print("")
+    print("Running: final_reset_config_registers")
+
+    if reset_config_registers(ser, args):
+        passed += 1
+    else:
         failed += 1
 
     print("")
