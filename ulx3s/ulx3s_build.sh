@@ -12,6 +12,9 @@
 # ./ulx3s_build.sh
 # ./ulx3s_build.sh --loopback
 # ./ulx3s_build.sh --deep-loopback
+#
+set -e
+set -o pipefail
 
 # Run shell check to ensure this a good script.
 # Specify the executable shell checker you want to use:
@@ -60,11 +63,39 @@ for arg in "$@"; do
     fi 
 done
 
-make clean
+make clean || exit 1
+MAKE_ARGS_ARRAY=()
 
-make $MAKE_ARGS 2>&1 | tee error.log
+if [ -n "${MAKE_ARGS:-}" ]; then
+    # shellcheck disable=SC2206
+    MAKE_ARGS_ARRAY=($MAKE_ARGS)
+fi
 
-grep -i error error.log
+make "${MAKE_ARGS_ARRAY[@]}" 2>&1 | tee error.log
+make_status=${PIPESTATUS[0]}
+
+if [ "$make_status" -ne 0 ]; then
+    echo "make failed with status $make_status"
+    exit "$make_status"
+fi
+
+echo ""
+echo "Scanning build log..."
+
+# Show the ABC warning (non-fatal) and pause
+if grep -i "ABC: Warning: The network is combinational" error.log; then
+    echo ""
+    echo "NOTE: ABC combinational network warning (ignored)"
+    read -r -p "Press Enter to continue..."
+fi
+
+# Now check everything else (excluding that warning)
+if grep -Ei "error|warning" error.log | grep -vi "ABC: Warning: The network is combinational"; then
+    echo ""
+    echo "Build FAILED: warnings or errors detected"
+    exit 1
+fi
+echo "Build PASSED"
 
 for arg in "$@"; do
     if [ "$arg" = "--loopback" ]; then

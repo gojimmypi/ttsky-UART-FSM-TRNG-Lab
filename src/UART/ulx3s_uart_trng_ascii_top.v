@@ -15,9 +15,12 @@
  * - It gives a fast hardware-debug path before worrying about Tiny Tapeout pin
  *   packing, wrapper behavior, or demoboard details.
  */
+`default_nettype none
+
 module ulx3s_uart_trng_ascii_top
 #(
-    parameter integer CLKS_PER_BIT = 217
+    parameter [31:0] CLOCK_HZ  = 32'd25000000,
+    parameter [31:0] UART_BAUD = 32'd115200
 )
 (
     input  wire       clk,
@@ -40,7 +43,8 @@ module ulx3s_uart_trng_ascii_top
 
     uart_trng_ascii_core
     #(
-        .CLKS_PER_BIT(CLKS_PER_BIT)
+        .CLOCK_HZ(CLOCK_HZ),
+        .UART_BAUD(UART_BAUD)
     )
     u_core
     (
@@ -66,3 +70,5 @@ module ulx3s_uart_trng_ascii_top
     assign led = reg_rawlo;
 
 endmodule
+
+`default_nettype wire

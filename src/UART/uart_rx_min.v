@@ -22,9 +22,12 @@
  *   can validate the center of the start bit.
  * - It then samples once per bit period for each data bit and stop bit.
  */
+`default_nettype none
+
 module uart_rx_min
 #(
-    parameter integer CLKS_PER_BIT = 217
+    parameter [31:0] CLOCK_HZ  = 32'd25000000,
+    parameter [31:0] UART_BAUD = 32'd115200
 )
 (
     input  wire       clk,
@@ -33,6 +36,7 @@ module uart_rx_min
     output reg [7:0]  data_out,
     output reg        data_valid
 );
+    localparam integer CLKS_PER_BIT = CLOCK_HZ / UART_BAUD;
 
     localparam [1:0] ST_IDLE  = 2'd0;
     localparam [1:0] ST_START = 2'd1;
@@ -69,7 +73,7 @@ module uart_rx_min
         if (!rst_n) begin
             state      <= ST_IDLE;
             clk_count  <= 16'd0;
-            bit_index  <= 3'd0;
+            bit_index  <= 4'd0;
             shift_reg  <= 8'h00;
             data_out   <= 8'h00;
             data_valid <= 1'b0;
@@ -84,7 +88,7 @@ module uart_rx_min
                      * bit. Reset counters so the next state starts cleanly.
                      */
                     clk_count <= 16'd0;
-                    bit_index <= 3'd0;
+                    bit_index <= 4'd0;
 
                     if (rx_sync == 1'b0) begin
                         state     <= ST_START;
@@ -100,7 +104,7 @@ module uart_rx_min
                     if (clk_count == ((CLKS_PER_BIT - 1) >> 1)) begin
                         if (rx_sync == 1'b0) begin
                             clk_count <= 16'd0;
-                            bit_index <= 3'd0;
+                            bit_index <= 4'd0;
                             state     <= ST_DATA;
                         end else begin
                             state <= ST_IDLE;
@@ -120,7 +124,7 @@ module uart_rx_min
                         clk_count <= 16'd0;
                         shift_reg[bit_index] <= rx_sync;
 
-                        if (bit_index == 3'd7) begin
+                        if (bit_index == 4'd7) begin
                             state <= ST_STOP;
                         end else begin
                             bit_index <= bit_index + 1'b1;
@@ -157,3 +161,5 @@ module uart_rx_min
     end
 
 endmodule
+
+`default_nettype wire

@@ -53,7 +53,9 @@ done
 if [ "$WITH_BUILD" -eq 1 ]; then
     pushd "$(dirname "$0")" || exit 1
     cd ../ulx3s             || exit 1
+    echo "Build..."
     ./ulx3s_build.sh        || exit 1
+    echo "Flash..."
     ./ulx3s_flash.sh        || exit 1
     popd                    || exit 1
 fi

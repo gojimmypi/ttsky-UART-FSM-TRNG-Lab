@@ -16,9 +16,12 @@
  * - It is the main point where the same functional core can be reused under
  *   both the Tiny Tapeout wrapper and the ULX3S wrapper.
  */
+`default_nettype none
+
 module uart_trng_ascii_core
 #(
-    parameter integer CLKS_PER_BIT = 217
+    parameter [31:0] CLOCK_HZ  = 32'd25000000,
+    parameter [31:0] UART_BAUD = 32'd115200
 )
 (
     input  wire       clk,
@@ -49,7 +52,8 @@ module uart_trng_ascii_core
 
     uart_rx_min
     #(
-        .CLKS_PER_BIT(CLKS_PER_BIT)
+        .CLOCK_HZ(CLOCK_HZ),
+        .UART_BAUD(UART_BAUD)
     )
     u_rx
     (
@@ -62,7 +66,8 @@ module uart_trng_ascii_core
 
     uart_tx_min
     #(
-        .CLKS_PER_BIT(CLKS_PER_BIT)
+        .CLOCK_HZ(CLOCK_HZ),
+        .UART_BAUD(UART_BAUD)
     )
     u_tx
     (
@@ -236,3 +241,5 @@ module uart_trng_ascii_core
     assign trng_bit_o   = trng_bit;
 
 endmodule
+
+`default_nettype wire

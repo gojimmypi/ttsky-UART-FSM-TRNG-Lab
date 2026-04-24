@@ -56,7 +56,12 @@ module tt_um_gojimmypi
 
     wire unused_ok;
 
-    tt_um_uart_trng_ascii u_core
+    tt_um_uart_trng_ascii 
+    #(
+        .CLOCK_HZ(CLOCK_HZ),
+        .UART_BAUD(UART_BAUD)
+    )
+    u_core
     (
         .ui_in(ui_in),
         .uo_out(uo_out),

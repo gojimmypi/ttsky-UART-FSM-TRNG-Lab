@@ -16,6 +16,8 @@
  * - This is not true random data.
  * - It is an LFSR-based pseudo-random source controlled by a simple divider.
  */
+`default_nettype none
+
 module trng_stub
 (
     input  wire       clk,
@@ -87,3 +89,5 @@ module trng_stub
     end
 
 endmodule
+
+`default_nettype wire
