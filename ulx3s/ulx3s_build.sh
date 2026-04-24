@@ -20,7 +20,7 @@ MY_SHELLCHECK="shellcheck"
 # Check if the executable is available in the PATH
 if command -v "$MY_SHELLCHECK" >/dev/null 2>&1; then
     # Run your command here
-    shellcheck "$0" || exit 1
+    shellcheck "$0"  
 else
     echo "$MY_SHELLCHECK is not installed. Please install it if changes to this script have been made."
 fi

@@ -5,6 +5,9 @@
 #
 # file: run_tests.sh
 #
+# usage: run_tests.sh [--with-build]
+
+#
 # Windows: PORT=COM8
 # Linux:   PORT=/dev/ttyUSB0
 # macOS:   PORT=/dev/tty.usbserial-0001
@@ -24,10 +27,41 @@ else
     echo "$MY_SHELLCHECK is not installed. Please install it if changes to this script have been made."
 fi
 
+# Default: no build/flash
+WITH_BUILD=0
+FOUND_KNOWN_ARG=0
+
+for arg in "$@"; do
+    # A basic loopback that tests high level tx/rx communication
+    if [ "$arg" = "--with-build" ]; then
+        FOUND_KNOWN_ARG=1
+        WITH_BUILD=1
+        echo "Enabling build/flash mode"
+    fi
+
+    if [ "$FOUND_KNOWN_ARG" -eq 0 ]; then
+        echo ""
+        echo "Unknown argument: $arg"
+        echo ""
+        echo "Usage: $0 [--loopback] [--deep-loopback]"
+        echo "  --loopback: Enable basic loopback mode for build"
+        echo "  --deep-loopback: Enable deeper loopback mode for build"
+        exit 1
+    fi 
+done
+
+if [ "$WITH_BUILD" -eq 1 ]; then
+    pushd "$(dirname "$0")" || exit 1
+    cd ../ulx3s             || exit 1
+    ./ulx3s_build.sh        || exit 1
+    ./ulx3s_flash.sh        || exit 1
+    popd                    || exit 1
+fi
+
 # usage: tt_ulx3s_uart_test.py [-h] --port PORT [--baud BAUD] [--timeout TIMEOUT] [--idle-time IDLE_TIME]
 #                              [--repeat REPEAT] [--stop-on-fail]
 #                              [--reset-registers]
 
-python tt_ulx3s_uart_test.py --port $PORT  
+python tt_ulx3s_uart_test.py --port $PORT                   || exit 1
 
-python tt_ulx3s_uart_test.py --port $PORT --reset-registers
+python tt_ulx3s_uart_test.py --port $PORT --reset-registers || exit 1
