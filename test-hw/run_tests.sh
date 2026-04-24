@@ -7,4 +7,7 @@
 
 PORT=/dev/ttyS8
 
-python tt_ulx3s_uart_test.py --port $PORT --expect-version "Version 1.2.0 4/23/2026"
+# usage: tt_ulx3s_uart_test.py [-h] --port PORT [--baud BAUD] [--timeout TIMEOUT] [--idle-time IDLE_TIME]
+#                              [--repeat REPEAT] [--stop-on-fail]
+
+python tt_ulx3s_uart_test.py --port $PORT  
