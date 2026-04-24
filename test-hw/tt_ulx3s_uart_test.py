@@ -10,6 +10,55 @@ EXPECTED_VERSION_PREFIX = b"Version "
 READ_RE = re.compile(rb"R([0-7])=([0-9A-F]{2})\r")
 
 
+COMMANDS_IMPLEMENTED = {
+    "E": "Write enable bit",
+    "S": "Write source select",
+    "V": "Write ctrl bit 1 or version command depending on build",
+    "W": "Write ctrl bit 2",
+    "D": "Write divider",
+    "M": "Write mode",
+    "O": "Write oscillator enable",
+    "R0": "Read reg_ctrl",
+    "R1": "Read reg_src",
+    "R2": "Read reg_div",
+    "R3": "Read reg_mode",
+    "R4": "Read reg_oscen",
+    "R5": "Read reg_status",
+    "R6": "Read reg_rawlo",
+    "R7": "Read reg_rawhi",
+}
+
+COMMANDS_TESTED = set()
+
+
+
+def mark_tested(*commands):
+    for command in commands:
+        COMMANDS_TESTED.add(command)
+
+
+def report_missing_command_tests():
+    missing = []
+
+    for command in sorted(COMMANDS_IMPLEMENTED):
+        if command not in COMMANDS_TESTED:
+            missing.append(command)
+
+    print("")
+    print("Command test coverage:")
+
+    if not missing:
+        print("PASS: all known commands have tests")
+        return True
+
+    print("FAIL: missing tests for these known commands:")
+
+    for command in missing:
+        print(f"  {command}: {COMMANDS_IMPLEMENTED[command]}")
+
+    return False
+
+
 def read_until_idle(ser, idle_time, max_time):
     data = bytearray()
     start_time = time.monotonic()
@@ -91,6 +140,8 @@ def expect_read(name, actual, reg_num, expected_value=None):
 
 
 def test_version_if_present(ser, args):
+    mark_tested("V")
+
     response = send_command(ser, b"V\r", args)
 
     print(f"Version probe response: {response!r}")
@@ -104,6 +155,8 @@ def test_version_if_present(ser, args):
 
 
 def test_power_on_defaults(ser, args):
+    mark_tested("R0", "R1", "R2", "R3", "R4")
+
     ok = True
 
     ok = expect_read("R0 default reg_ctrl", send_command(ser, b"R0\r", args), 0, 0x00) and ok
@@ -116,6 +169,8 @@ def test_power_on_defaults(ser, args):
 
 
 def test_single_nibble_writes(ser, args):
+    mark_tested("E", "S", "V", "W")
+
     ok = True
 
     ok = expect_exact("E1 write enable", send_command(ser, b"E1\r", args), b"OK\r") and ok
@@ -140,6 +195,8 @@ def test_single_nibble_writes(ser, args):
 
 
 def test_two_nibble_writes(ser, args):
+    mark_tested("D", "M", "O")
+
     ok = True
 
     ok = expect_exact("D2A write divider", send_command(ser, b"D2A\r", args), b"OK\r") and ok
@@ -155,6 +212,8 @@ def test_two_nibble_writes(ser, args):
 
 
 def test_read_only_registers_format(ser, args):
+    mark_tested("R5", "R6", "R7")
+
     ok = True
 
     ok = expect_read("R5 status format", send_command(ser, b"R5\r", args), 5) and ok
@@ -221,6 +280,11 @@ def run_tests(ser, args):
 
             if args.stop_on_fail:
                 break
+
+    coverage_ok = report_missing_command_tests()
+
+    if not coverage_ok:
+        failed += 1
 
     print("")
     print(f"Tests passed: {passed}")
