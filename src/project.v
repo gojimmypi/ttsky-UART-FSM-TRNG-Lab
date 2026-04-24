@@ -20,7 +20,12 @@
 `endif /* ULX3S */
 
 `default_nettype none
-`timescale 1ns/1ps
+
+`ifdef ULX3S
+    `timescale 1ns/1ps
+`else
+    /* Tiny Tapeout doesn't support timescale directives, so we can ignore it. */
+`endif /* ULX3S */
 
 /* Assume TT needs this file to be called project.v but the module is called tt_um_gojimmypi - so disable warning: */
 /* verilator lint_off DECLFILENAME */
