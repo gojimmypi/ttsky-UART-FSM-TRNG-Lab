@@ -1,3 +1,19 @@
+#
+# Copyright (c) 2026 gojimmypi
+# SPDX-License-Identifier: Apache-2.0
+#
+# file: tt_ulx3s_uart_test.py
+#
+# usage: tt_ulx3s_uart_test.py [-h] --port PORT [--baud BAUD] [--timeout TIMEOUT] [--idle-time IDLE_TIME]
+#                              [--repeat REPEAT] [--stop-on-fail]
+#                              [--reset-registers]
+#
+# example:
+#
+# python tt_ulx3s_uart_test.py --port $PORT  
+# 
+# python tt_ulx3s_uart_test.py --port $PORT --reset-registers
+
 import argparse
 import re
 import sys

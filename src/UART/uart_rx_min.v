@@ -2,6 +2,8 @@
  * Copyright (c) 2026 gojimmypi
  * SPDX-License-Identifier: Apache-2.0
  *
+ * file: uart_rx_min.v
+ *
  * Minimal UART receiver.
  *
  * Purpose:

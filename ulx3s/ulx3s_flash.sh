@@ -3,14 +3,11 @@
 # Copyright (c) 2026 gojimmypi
 # SPDX-License-Identifier: Apache-2.0
 #
-# file: run_tests.sh
+# file: ulx3s_flash.sh
 #
-# Windows: PORT=COM8
-# Linux:   PORT=/dev/ttyUSB0
-# macOS:   PORT=/dev/tty.usbserial-0001
-# WSL:     PORT=/dev/ttyS8
-
-PORT=/dev/ttyS8
+# This script is used to program the ULX3S FPGA board using the fujprog tool. 
+# Optional WSL should be auto-detected
+#
 
 # Run shell check to ensure this a good script.
 # Specify the executable shell checker you want to use:
@@ -24,10 +21,10 @@ else
     echo "$MY_SHELLCHECK is not installed. Please install it if changes to this script have been made."
 fi
 
-# usage: tt_ulx3s_uart_test.py [-h] --port PORT [--baud BAUD] [--timeout TIMEOUT] [--idle-time IDLE_TIME]
-#                              [--repeat REPEAT] [--stop-on-fail]
-#                              [--reset-registers]
-
-python tt_ulx3s_uart_test.py --port $PORT  
-
-python tt_ulx3s_uart_test.py --port $PORT --reset-registers
+if [ -n "$WSL_DISTRO_NAME" ]; then
+    # we found a non-blank WSL environment distro name
+    # This script is intended to be run inside WSL (Windows Subsystem for Linux) to program the ULX3S FPGA board using the fujprog tool.
+    ./fujprog-v48-win64.exe ulx3s.bit
+else
+    ./fujprog ulx3s.bit
+fi

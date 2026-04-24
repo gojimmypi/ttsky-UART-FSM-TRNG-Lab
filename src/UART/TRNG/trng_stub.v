@@ -2,6 +2,8 @@
  * Copyright (c) 2026 gojimmypi
  * SPDX-License-Identifier: Apache-2.0
  *
+ * file: trng_stub.v
+ ^
  * Deterministic stand-in for a future real TRNG.
  *
  * Purpose:

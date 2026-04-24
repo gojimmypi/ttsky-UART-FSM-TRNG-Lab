@@ -2,6 +2,8 @@
  * Copyright (c) 2026 gojimmypi
  * SPDX-License-Identifier: Apache-2.0
  *
+ * file: uart_trng_ascii_core.v
+ *
  * Core integration block for the UART/TRNG ASCII design.
  *
  * Purpose:

@@ -2,6 +2,8 @@
  * Copyright (c) 2026 gojimmypi
  * SPDX-License-Identifier: Apache-2.0
  *
+ * file: trng_cfg_ascii_core.v
+ *
  * ASCII command parser and register front-end for the UART/TRNG experiment.
  *
  * Purpose:

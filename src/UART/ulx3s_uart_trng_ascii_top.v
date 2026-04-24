@@ -2,6 +2,8 @@
  * Copyright (c) 2026 gojimmypi
  * SPDX-License-Identifier: Apache-2.0
  *
+ * file: ulx3s_uart_trng_ascii_top.v
+ *
  * ULX3S board wrapper for the UART/TRNG ASCII core.
  *
  * Purpose:

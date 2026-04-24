@@ -1,6 +1,10 @@
 /*
  * Copyright (c) 2026 gojimmypi
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * file: project.v
+ *
+ * Top-level wrapper for the Tiny Tapeout project.
  */
 
 `ifdef ULX3S
@@ -36,7 +40,7 @@ module tt_um_gojimmypi (
 
     //    inout  wire [7:0] ua,       // Analog pins, only ua[5:0] can be used
 
-    input  wire       ena,      // always 1 when the design is powered
+    input  wire       ena,      // always 1 when the design is powered, so you can ignore it
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );

@@ -13,3 +13,11 @@ Included are scripts to build the project for the ULX3S and flash it to the boar
 
 - `./ulx3s_build.sh --loopback` basic loopback test, which should work on the first try.
 - `./ulx3s_build.sh --deep-loopback` a more complex FSM loopback test, which may require some debugging.
+
+## Build Tools
+
+Windows users have a pre-compiled `fujprog-v48-win64.exe` included for programming the board from WSL. Linux users can build `fujprog` from source.
+
+See
+
+- <https://github.com/kost/fujprog>
