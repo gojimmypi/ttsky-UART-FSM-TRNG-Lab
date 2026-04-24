@@ -282,19 +282,23 @@ def run_tests(ser, args):
     passed = 0
     failed = 0
 
-    print("")
-    print("Running: reset_config_registers")
+    if args.reset_registers:
+        print("")
+        print("Running: reset_config_registers")
 
-    if reset_config_registers(ser, args):
-        passed += 1
+        if reset_config_registers(ser, args):
+            passed += 1
+        else:
+            failed += 1
+
+            if args.stop_on_fail:
+                print("")
+                print(f"Tests passed: {passed}")
+                print(f"Tests failed: {failed}")
+                return False
     else:
-        failed += 1
-
-        if args.stop_on_fail:
-            print("")
-            print(f"Tests passed: {passed}")
-            print(f"Tests failed: {failed}")
-            return False
+        print("")
+        print("Skipping register reset. Use --reset-registers to start from configured defaults.")
 
     for name, func in tests:
         print("")
@@ -313,13 +317,14 @@ def run_tests(ser, args):
     if not coverage_ok:
         failed += 1
 
-    print("")
-    print("Running: final_reset_config_registers")
+    if args.reset_registers:
+        print("")
+        print("Running: final_reset_config_registers")
 
-    if reset_config_registers(ser, args):
-        passed += 1
-    else:
-        failed += 1
+        if reset_config_registers(ser, args):
+            passed += 1
+        else:
+            failed += 1
 
     print("")
     print(f"Tests passed: {passed}")
@@ -336,6 +341,11 @@ def main():
     parser.add_argument("--idle-time", type=float, default=0.05)
     parser.add_argument("--repeat", type=int, default=5)
     parser.add_argument("--stop-on-fail", action="store_true")
+    parser.add_argument(
+        "--reset-registers",
+        action="store_true",
+        help="Write default register values before and after tests",
+    )
 
     args = parser.parse_args()
 
