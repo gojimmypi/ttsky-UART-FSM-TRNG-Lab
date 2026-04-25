@@ -7,6 +7,10 @@
  * Top-level wrapper for the Tiny Tapeout project.
  */
 
+/* There's about a 5% (~ 100 cells) increase in the number of cells when using long strings.
+ * Currently only the version string is implemented. */
+`define USE_LONG_STRINGS
+
 `ifdef ULX3S
     /* Makefile includes references to needed files */
 `else
