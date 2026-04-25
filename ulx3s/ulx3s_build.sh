@@ -33,9 +33,13 @@ fi
 # Default: no loopback
 MAKE_ARGS=""
 FOUND_KNOWN_ARG=0
+IGNORE_COMBINATIONAL_WARNING=0
+NO_WARNING_PAUSE=0
 REMINDER_COMPLETE=1
 
 for arg in "$@"; do
+    FOUND_KNOWN_ARG=0
+
     # A basic loopback that tests high level tx/rx communication
     if [ "$arg" = "--loopback" ]; then
         FOUND_KNOWN_ARG=1
@@ -52,6 +56,18 @@ for arg in "$@"; do
         MAKE_ARGS="$MAKE_ARGS FORCE_DEEP_LOOPBACK=1"
     fi
 
+    if [ "$arg" = "--ignore-combinational-warning" ]; then
+        FOUND_KNOWN_ARG=1
+        IGNORE_COMBINATIONAL_WARNING=1
+        echo "Ignoring combinational network message for build"
+    fi
+    
+    if [ "$arg" = "--no-warning-pause" ]; then
+        FOUND_KNOWN_ARG=1
+        NO_WARNING_PAUSE=1
+        echo "Will not pause to review warnings"
+    fi
+
     if [ "$FOUND_KNOWN_ARG" -eq 0 ]; then
         echo "Unknown argument: $arg"
         exit 1
@@ -61,6 +77,7 @@ for arg in "$@"; do
         echo "Usage: $0 [--loopback] [--deep-loopback]"
         echo "  --loopback: Enable basic loopback mode for build"
         echo "  --deep-loopback: Enable deeper loopback mode for build"
+        echo "  --ignore-combinational-warning: Ignore ABC combinational network warning (not recommended)"
         exit 1
     fi 
 done
@@ -91,20 +108,36 @@ fi
 
 echo ""
 echo "Scanning build log..."
+echo "IGNORE_COMBINATIONAL_WARNING=$IGNORE_COMBINATIONAL_WARNING"
 
-# Show the ABC warning (non-fatal) and pause
-if grep -i "ABC: Warning: The network is combinational" $OUTPUT_LOG; then
-    echo ""
-    echo "NOTE: ABC combinational network warning (ignored)"
-    read -r -p "Press Enter to continue..."
+if [ "$IGNORE_COMBINATIONAL_WARNING" -eq "0" ]; then
+    echo "Checking for warnings or errors..."
+    # Check for any warnings or errors in the build log
+    if grep -Ei "error|warning" $OUTPUT_LOG ; then
+        echo ""
+        echo "Build FAILED: warnings or errors detected"
+        exit 1
+    fi
+else
+    echo "NOTE: Ignoring ABC combinational network warning as requested"
+
+    if [ "$NO_WARNING_PAUSE" -eq "0" ]; then
+        # Show the ABC warning (non-fatal) and pause
+        if grep -i "ABC: Warning: The network is combinational" $OUTPUT_LOG; then
+            echo ""
+            echo "NOTE: ABC combinational network warning (ignored)"
+            read -r -p "Press Enter to continue..."
+         fi
+    fi
+
+    # Now check everything else (excluding that warning)
+    if grep -Ei "error|warning" $OUTPUT_LOG | grep -vi "ABC: Warning: The network is combinational"; then
+        echo ""
+        echo "Build FAILED: warnings or errors detected"
+        exit 1
+    fi
 fi
 
-# Now check everything else (excluding that warning)
-if grep -Ei "error|warning" $OUTPUT_LOG | grep -vi "ABC: Warning: The network is combinational"; then
-    echo ""
-    echo "Build FAILED: warnings or errors detected"
-    exit 1
-fi
 echo "Build PASSED"
 
 for arg in "$@"; do
