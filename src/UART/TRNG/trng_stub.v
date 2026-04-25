@@ -41,6 +41,13 @@ module trng_stub
     reg [15:0] lfsr;
     wire trng_enable;
 
+    /* These are 8-bit UART-visible registers. The stub currently uses only
+     * selected low bits. Upper bits are reserved for future TRNG controls.
+     */
+    wire _unused_reg_ctrl  = &reg_ctrl[7:3];
+    wire _unused_reg_src   = &reg_src[7:2];
+    wire _unused_reg_mode  = &reg_mode[7:3];
+
     /* Enable bit comes from reg_ctrl[0], matching the ASCII register front-end. */
     assign trng_enable = reg_ctrl[0];
 
