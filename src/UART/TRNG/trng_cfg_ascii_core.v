@@ -93,6 +93,11 @@ module trng_cfg_ascii_core
     reg [2:0] read_addr;
     reg [7:0] reply_value;
 
+    /* This is a GDC linting hack */
+    reg [3:0] decoded_hex;
+    assign decoded_hex = hex_value(rx_byte);
+    wire _unused_decoded_hex = decoded_hex[3];
+
     /*
      * One-byte transmit queue.
      * The parser loads queued_tx_byte, and the front-end launches it only when
@@ -324,7 +329,11 @@ endfunction
                             if (cmd == "R") begin
                                 /* Only registers 0..7 are addressable. */
                                 if (hex_value(rx_byte) < 4'd8) begin
-                                    read_addr <= hex_value(rx_byte)[2:0];
+                                    // Passes Verilator, not GDS:
+                                    // read_addr <= hex_value(rx_byte)[2:0];
+                                    // So:
+                                    read_addr <= decoded_hex[2:0];
+                                    
                                     state <= ST_WAIT_CR;
                                 end else begin
                                     state <= ST_Q_ERR;
