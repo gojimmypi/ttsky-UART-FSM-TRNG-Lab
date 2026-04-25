@@ -16,6 +16,8 @@
 set -e
 set -o pipefail
 
+OUTPUT_LOG="build_output.log"
+
 # Run shell check to ensure this a good script.
 # Specify the executable shell checker you want to use:
 MY_SHELLCHECK="shellcheck"
@@ -71,7 +73,15 @@ if [ -n "${MAKE_ARGS:-}" ]; then
     MAKE_ARGS_ARRAY=($MAKE_ARGS)
 fi
 
-make "${MAKE_ARGS_ARRAY[@]}" 2>&1 | tee error.log
+# Save the prior output for comparison
+if [ -f "$OUTPUT_LOG" ]; then 
+    mv "$OUTPUT_LOG" "$OUTPUT_LOG".old || exit 1
+fi
+
+#********************************************************
+# Run make and capture output
+#********************************************************
+make "${MAKE_ARGS_ARRAY[@]}" 2>&1 | tee $OUTPUT_LOG
 make_status=${PIPESTATUS[0]}
 
 if [ "$make_status" -ne 0 ]; then
@@ -83,14 +93,14 @@ echo ""
 echo "Scanning build log..."
 
 # Show the ABC warning (non-fatal) and pause
-if grep -i "ABC: Warning: The network is combinational" error.log; then
+if grep -i "ABC: Warning: The network is combinational" $OUTPUT_LOG; then
     echo ""
     echo "NOTE: ABC combinational network warning (ignored)"
     read -r -p "Press Enter to continue..."
 fi
 
 # Now check everything else (excluding that warning)
-if grep -Ei "error|warning" error.log | grep -vi "ABC: Warning: The network is combinational"; then
+if grep -Ei "error|warning" $OUTPUT_LOG | grep -vi "ABC: Warning: The network is combinational"; then
     echo ""
     echo "Build FAILED: warnings or errors detected"
     exit 1

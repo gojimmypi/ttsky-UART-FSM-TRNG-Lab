@@ -15,7 +15,7 @@ test/results.xml
 test/gate_level_netlist.v
 
 # Visual Studio debris
-/.vs
+**/.vs
 
 # ULX3S specific build and other files
 /ulx3s/obj_dir
@@ -26,6 +26,14 @@ test/gate_level_netlist.v
 /README.zip
 /ulx3s/Makefile.12F
 /ulx3s/Makefile.85f
+
+# Junk files from development
 /src/uart_trng_ascii_core - Copy.v.old
 /src/uart_trng_ascii_core - Copy.v.old2
 /src/uart_trng_ascii_core - Copy.v.old3
+/src/uart_trng_ascii_core - Copy.v.bak
+
+**/*.bak
+/ulx3s/putty.log
+/ulx3s/build_output.log
+/ulx3s/build_output.log.old
