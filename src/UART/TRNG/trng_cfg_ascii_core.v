@@ -168,9 +168,11 @@ function [7:0] to_hex_ascii;
     input [3:0] nib;
     begin
         if (nib < 4'd10) begin
-            to_hex_ascii = 8'd48 + nib;        // '0' + nib
+            //           =  8'd48  + nib;           // '0' + nib
+            to_hex_ascii = {4'b0011, nib};          // '0'..'9'
         end else begin
-            to_hex_ascii = 8'd55 + nib;        // 'A' - 10 + nib  (65 - 10 = 55)
+            //           =  8'd55  + nib;           // 'A' - 10 + nib  (65 - 10 = 55)
+            to_hex_ascii = {4'b0100, nib} + 8'd7;   // 'A'..'F'
         end
     end
 endfunction
