@@ -94,7 +94,7 @@ module trng_cfg_ascii_core
     reg [7:0] reply_value;
 
     /* This is a GDC linting hack */
-    reg [3:0] decoded_hex;
+    wire [3:0] decoded_hex;
     assign decoded_hex = hex_value(rx_byte);
     wire _unused_decoded_hex = decoded_hex[3];
 
@@ -177,7 +177,7 @@ function [7:0] to_hex_ascii;
             to_hex_ascii = {4'b0011, nib};          // '0'..'9'
         end else begin
             //           =  8'd55  + nib;           // 'A' - 10 + nib  (65 - 10 = 55)
-            to_hex_ascii = {4'b0100, nib} + 8'd7;   // 'A'..'F'
+            to_hex_ascii = {4'b0011, nib} + 8'd7;   // 'A'..'F'
         end
     end
 endfunction
@@ -195,7 +195,7 @@ endfunction
             shift_amt = (VERSION_LEN[7:0] - 8'd1 - {2'd0, idx}) << 3;
             shifted = str >> shift_amt;
             str_get = shifted[7:0];
-        end
+       end
     endfunction
 
     /*
