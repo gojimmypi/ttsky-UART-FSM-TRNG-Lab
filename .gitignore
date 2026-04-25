@@ -18,8 +18,12 @@ test/gate_level_netlist.v
 **/.vs
 
 # ULX3S specific build and other files
-/ulx3s/obj_dir
 /ulx3s/error.log
+/ulx3s/putty.log
+/ulx3s/build_output.log
+/ulx3s/build_output.log.old
+
+/ulx3s/obj_dir
 /ulx3s/project.json
 /ulx3s/ulx3s_out.config
 /ulx3s/ulx3s.bit
@@ -34,6 +38,3 @@ test/gate_level_netlist.v
 /src/uart_trng_ascii_core - Copy.v.bak
 
 **/*.bak
-/ulx3s/putty.log
-/ulx3s/build_output.log
-/ulx3s/build_output.log.old
