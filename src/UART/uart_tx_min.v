@@ -36,7 +36,7 @@ module uart_tx_min
     output reg        tx,
     output reg        busy
 );
-    localparam [15:0] CLKS_PER_BIT     = CLOCK_HZ / UART_BAUD;
+    localparam integer CLKS_PER_BIT = CLOCK_HZ / UART_BAUD;
     localparam [15:0] CLKS_PER_BIT_M1  = CLKS_PER_BIT - 16'd1;
     localparam [15:0] CLKS_PER_HALF_M1 = (CLKS_PER_BIT >> 1) - 16'd1;
 
