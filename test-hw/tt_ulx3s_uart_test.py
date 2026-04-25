@@ -181,7 +181,7 @@ def test_version_if_present(ser, args):
         return True
 
     print("SKIP: Version command not present in this bitstream")
-    return True
+    return None
 
 
 def test_power_on_defaults(ser, args):
@@ -297,6 +297,7 @@ def run_tests(ser, args):
 
     passed = 0
     failed = 0
+    skipped = 0
 
     if args.reset_registers:
         print("")
@@ -310,6 +311,7 @@ def run_tests(ser, args):
             if args.stop_on_fail:
                 print("")
                 print(f"Tests passed: {passed}")
+                print(f"Tests skipped: {skipped}")
                 print(f"Tests failed: {failed}")
                 return False
     else:
@@ -320,8 +322,12 @@ def run_tests(ser, args):
         print("")
         print(f"Running: {name}")
 
-        if func(ser, args):
+        result = func(ser, args)
+
+        if result is True:
             passed += 1
+        elif result is None:
+            skipped += 1
         else:
             failed += 1
 
@@ -344,6 +350,7 @@ def run_tests(ser, args):
 
     print("")
     print(f"Tests passed: {passed}")
+    print(f"Tests skipped: {skipped}")
     print(f"Tests failed: {failed}")
 
     return failed == 0

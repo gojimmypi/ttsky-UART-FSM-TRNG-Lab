@@ -74,10 +74,13 @@ module trng_cfg_ascii_core
     localparam [4:0] ST_Q_K        = 5'd11;
     localparam [4:0] ST_Q_ERR      = 5'd12;
     localparam [4:0] ST_WAIT_SEND  = 5'd13;
-    localparam [4:0] ST_Q_STR      = 5'd14;
 
+`ifdef USE_LONG_STRINGS
+    localparam [4:0] ST_Q_STR      = 5'd14;
     localparam integer VERSION_LEN = 23;
     localparam [8*VERSION_LEN-1:0] VERSION_STR = "Version 1.2.0 4/23/2026";
+`else
+`endif
 
     reg [4:0] state;
     reg [4:0] next_state_after_send;
@@ -106,6 +109,7 @@ module trng_cfg_ascii_core
     reg [7:0] queued_tx_byte;
     reg       queued_tx_valid;
 
+`ifdef USE_LONG_STRINGS
     /*
      * Generic string send support for multi-character replies such as version.
      * active_str holds the current packed ASCII string, str_len is the number
@@ -115,6 +119,8 @@ module trng_cfg_ascii_core
     reg [8*VERSION_LEN-1:0] active_str;
     reg [5:0] str_index;
     reg [5:0] str_len;
+`else
+`endif
 
     function is_hex;
         input [7:0] c;
@@ -169,19 +175,20 @@ module trng_cfg_ascii_core
     endfunction
 
     /* Convert a nibble to ASCII hex for readback replies. */
-function [7:0] to_hex_ascii;
-    input [3:0] nib;
-    begin
-        if (nib < 4'd10) begin
-            //           =  8'd48  + nib;           // '0' + nib
-            to_hex_ascii = {4'b0011, nib};          // '0'..'9'
-        end else begin
-            //           =  8'd55  + nib;           // 'A' - 10 + nib  (65 - 10 = 55)
-            to_hex_ascii = {4'b0011, nib} + 8'd7;   // 'A'..'F'
+    function [7:0] to_hex_ascii;
+        input [3:0] nib;
+        begin
+            if (nib < 4'd10) begin
+                //           =  8'd48  + nib;           // '0' + nib
+                to_hex_ascii = {4'b0011, nib};          // '0'..'9'
+            end else begin
+                //           =  8'd55  + nib;           // 'A' - 10 + nib  (65 - 10 = 55)
+                to_hex_ascii = {4'b0011, nib} + 8'd7;   // 'A'..'F'
+            end
         end
-    end
-endfunction
+    endfunction
 
+`ifdef USE_LONG_STRINGS
     /*
      * Return one ASCII character from a packed string.
      * Index 0 returns the leftmost character in the packed constant.
@@ -199,6 +206,8 @@ endfunction
             str_get = str[shift_amt +: 8];
         end
     endfunction
+`else
+`endif
 
     /*
      * Write decoded values into specific register fields.
@@ -230,6 +239,7 @@ endfunction
         end
     endtask
 
+`ifdef USE_LONG_STRINGS
     /*
      * Start sending a packed ASCII string using the generic string serializer.
      * The actual characters are launched through the normal one-byte queue.
@@ -244,6 +254,8 @@ endfunction
             state      <= ST_Q_STR;
         end
     endtask
+`else
+`endif
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -261,9 +273,12 @@ endfunction
             tx_byte               <= 8'h00;
             tx_start              <= 1'b0;
 
+`ifdef USE_LONG_STRINGS
             active_str            <= {(8 * VERSION_LEN){1'b0}};
             str_index             <= 6'd0;
             str_len               <= 6'd0;
+`else
+`endif
 
             /* Default power-on register values for bring-up. */
             reg_ctrl              <= 8'h00;
@@ -324,7 +339,11 @@ endfunction
                         if ((cmd == "V") && (rx_byte == 8'h0A)) begin
                             state <= ST_ARG1;
                         end else if ((cmd == "V") && (rx_byte == 8'h0D)) begin
+`ifdef USE_LONG_STRINGS
                             start_string(VERSION_STR, VERSION_LEN[5:0]);
+`else
+    state <= ST_Q_ERR;/* */
+`endif
                         end else if (is_hex(rx_byte)) begin
                             hex1 <= hex_value(rx_byte);
 
@@ -460,6 +479,7 @@ endfunction
                     end
                 end
 
+`ifdef USE_LONG_STRINGS
                 /*
                  * Generic packed-string sender.
                  * Characters are emitted one at a time through the normal queue
@@ -479,6 +499,8 @@ endfunction
                         end
                     end
                 end
+`else
+`endif
 
                 /*
                  * Stay here until the queued byte has been accepted and the UART
