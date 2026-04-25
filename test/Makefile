@@ -7,7 +7,6 @@ FST ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
 PROJECT_SOURCES = project.v
-# VFLAGS := -Wall --trace --timing -Wno-fatal -DULX3S
 
 ifneq ($(GATES),yes)
 

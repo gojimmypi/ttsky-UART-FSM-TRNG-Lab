@@ -13,9 +13,22 @@ test/sim_build
 test/__pycache__/
 test/results.xml
 test/gate_level_netlist.v
-/.vs
-/ulx3s/obj_dir
+
+# Visual Studio debris
+**/.vs
+
+# ULX3S specific build and other files
 /ulx3s/error.log
+/ulx3s/putty.log
+/ulx3s/build_output.log
+/ulx3s/build_output.log.old
+
+/ulx3s/obj_dir
 /ulx3s/project.json
 /ulx3s/ulx3s_out.config
 /ulx3s/ulx3s.bit
+/README.zip
+/ulx3s/Makefile.12F
+/ulx3s/Makefile.85f
+
+**/*.bak

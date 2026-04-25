@@ -2,6 +2,8 @@
 
 # Tiny Tapeout Analog Project Template (manually reverted to Verilog only)
 
+It was fairly difficult to do the conversion, not recommended. See [ttsky-analog-template/issues/2](https://github.com/TinyTapeout/ttsky-analog-template/issues/2)
+
 - [Read the documentation for project](docs/info.md)
 
 ## What is Tiny Tapeout?

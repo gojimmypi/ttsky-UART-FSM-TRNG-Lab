@@ -7,6 +7,7 @@ You can also include images in this folder and reference them in the markdown. E
 512 kb in size, and the combined size of all images must be less than 1 MB.
 -->
 
+
 ## How it works
 
 Currently does nothing, just to pass CI. It does however, now pass all CI tests!
@@ -16,6 +17,17 @@ Currently does nothing, just to pass CI. It does however, now pass all CI tests!
 Commit changes. This edit to resolve [viewer failure](https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/24773767679/job/72487081832). 
 See [My GitHub action is failing on the ‘pages’ part.](https://tinytapeout.com/faq/#my-github-action-is-failing-on-the-pages-part) and cannot manually re-run.
 
+### Test on ULX3S FPGA
+
+See the [ulx3s](../ulx3s/) directory.
+
+Build and flash the bitstream to the FPGA, then run the test script. The test script will print the output of the FSM and TRNG.
+
+```
+cd uls3s
+./ulx3s_build.sh
+./ulx3s_flash.sh
+```
 ## External hardware
 
 So far, none.
