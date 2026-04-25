@@ -189,13 +189,15 @@ endfunction
     function [7:0] str_get;
         input [8*VERSION_LEN-1:0] str;
         input [5:0] idx;
-        reg [8*VERSION_LEN-1:0] shifted;
         reg [7:0] shift_amt;
         begin
             shift_amt = (VERSION_LEN[7:0] - 8'd1 - {2'd0, idx}) << 3;
-            shifted = str >> shift_amt;
-            str_get = shifted[7:0];
-       end
+
+            // Extract one byte from packed string "str".
+            // shift_amt is a byte-aligned bit index (0, 8, 16, ...).
+            // [shift_amt +: 8] means take 8 bits starting at shift_amt (i.e., str[shift_amt+7 : shift_amt]).
+            str_get = str[shift_amt +: 8];
+        end
     endfunction
 
     /*
