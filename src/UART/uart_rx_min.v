@@ -56,7 +56,7 @@ module uart_rx_min
 
     /* Bit-period counter and current-bit index. */
     reg [15:0] clk_count;
-    reg [3:0]  bit_index;
+    reg [2:0]  bit_index;
 
     /* Shift register receives the byte LSB first. */
     reg [7:0]  shift_reg;
@@ -75,7 +75,7 @@ module uart_rx_min
         if (!rst_n) begin
             state      <= ST_IDLE;
             clk_count  <= 16'd0;
-            bit_index  <= 4'd0;
+            bit_index  <= 3'd0;
             shift_reg  <= 8'h00;
             data_out   <= 8'h00;
             data_valid <= 1'b0;
@@ -90,7 +90,7 @@ module uart_rx_min
                      * bit. Reset counters so the next state starts cleanly.
                      */
                     clk_count <= 16'd0;
-                    bit_index <= 4'd0;
+                    bit_index <= 3'd0;
 
                     if (rx_sync == 1'b0) begin
                         state     <= ST_START;
@@ -106,7 +106,7 @@ module uart_rx_min
                     if (clk_count == CLKS_PER_HALF_M1) begin
                         if (rx_sync == 1'b0) begin
                             clk_count <= 16'd0;
-                            bit_index <= 4'd0;
+                            bit_index <= 3'd0;
                             state     <= ST_DATA;
                         end else begin
                             state <= ST_IDLE;
@@ -126,7 +126,7 @@ module uart_rx_min
                         clk_count <= 16'd0;
                         shift_reg[bit_index] <= rx_sync;
 
-                        if (bit_index == 4'd7) begin
+                        if (bit_index == 3'd7) begin
                             state <= ST_STOP;
                         end else begin
                             bit_index <= bit_index + 1'b1;
