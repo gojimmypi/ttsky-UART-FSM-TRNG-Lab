@@ -53,6 +53,16 @@ module tt_um_uart_trng_ascii
     wire       trng_bit;
     wire       uart_tx;
 
+    wire _unused_debug_regs = &{
+        reg_ctrl,
+        reg_src,
+        reg_div,
+        reg_mode,
+        reg_oscen,
+        reg_status[7:3],
+        reg_rawlo[7:3]
+    };
+
     /*
      * Keep unused TT inputs referenced so synthesis does not warn.
      * ena is mandatory in the TT interface but not functionally used here.
