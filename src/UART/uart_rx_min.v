@@ -37,8 +37,11 @@ module uart_rx_min
     output reg        data_valid
 );
     localparam integer CLKS_PER_BIT = CLOCK_HZ / UART_BAUD;
-    localparam [15:0] CLKS_PER_BIT_M1  = CLKS_PER_BIT - 16'd1;
-    localparam [15:0] CLKS_PER_HALF_M1 = (CLKS_PER_BIT >> 1) - 16'd1;
+    localparam integer CLKS_PER_BIT_M1  = CLKS_PER_BIT - 1;
+    localparam integer CLKS_PER_HALF_M1 = (CLKS_PER_BIT >> 1) - 1;
+ // localparam [15:0] CLKS_PER_BIT_16    = CLKS_PER_BIT[15:0];
+    localparam [15:0] CLKS_PER_BIT_M1_16 = CLKS_PER_BIT_M1[15:0];
+    localparam [15:0] CLKS_PER_HALF_M1_16 = CLKS_PER_HALF_M1[15:0];
 
     localparam [1:0] ST_IDLE  = 2'd0;
     localparam [1:0] ST_START = 2'd1;
@@ -103,7 +106,7 @@ module uart_rx_min
                      * Sample in the middle of the start bit. If the line has
                      * returned high, it was likely just noise or a glitch.
                      */
-                    if (clk_count == CLKS_PER_HALF_M1) begin
+                    if (clk_count == CLKS_PER_HALF_M1_16) begin
                         if (rx_sync == 1'b0) begin
                             clk_count <= 16'd0;
                             bit_index <= 3'd0;
@@ -122,7 +125,7 @@ module uart_rx_min
                      * Because UART is LSB-first, bit_index maps directly to the
                      * destination bit position.
                      */
-                    if (clk_count == CLKS_PER_BIT_M1) begin
+                    if (clk_count == CLKS_PER_BIT_M1_16) begin
                         clk_count <= 16'd0;
                         shift_reg[bit_index] <= rx_sync;
 
@@ -141,7 +144,7 @@ module uart_rx_min
                      * Check for a valid stop bit. Only then is the received byte
                      * presented and data_valid pulsed for one clock.
                      */
-                    if (clk_count == CLKS_PER_BIT_M1) begin
+                    if (clk_count == CLKS_PER_BIT_M1_16) begin
                         clk_count <= 16'd0;
 
                         if (rx_sync == 1'b1) begin
