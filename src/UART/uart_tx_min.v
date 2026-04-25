@@ -36,7 +36,9 @@ module uart_tx_min
     output reg        tx,
     output reg        busy
 );
-    localparam integer CLKS_PER_BIT = CLOCK_HZ / UART_BAUD;
+    localparam [15:0] CLKS_PER_BIT     = CLOCK_HZ / UART_BAUD;
+    localparam [15:0] CLKS_PER_BIT_M1  = CLKS_PER_BIT - 16'd1;
+    localparam [15:0] CLKS_PER_HALF_M1 = (CLKS_PER_BIT >> 1) - 16'd1;
 
     localparam [1:0] ST_IDLE  = 2'd0;
     localparam [1:0] ST_START = 2'd1;
@@ -86,7 +88,7 @@ module uart_tx_min
                 ST_START: begin
                     busy <= 1'b1;
 
-                    if (clk_count == CLKS_PER_BIT - 1) begin
+                    if (clk_count == CLKS_PER_BIT_M1) begin
                         clk_count <= 16'd0;
 
                         /* Put the first payload bit on the line. */
@@ -102,7 +104,7 @@ module uart_tx_min
                 ST_DATA: begin
                     busy <= 1'b1;
 
-                    if (clk_count == CLKS_PER_BIT - 1) begin
+                    if (clk_count == CLKS_PER_BIT_M1) begin
                         clk_count <= 16'd0;
 
                         if (bit_index < 4'd8) begin
@@ -123,7 +125,7 @@ module uart_tx_min
                 ST_STOP: begin
                     busy <= 1'b1;
 
-                    if (clk_count == CLKS_PER_BIT - 1) begin
+                    if (clk_count == CLKS_PER_BIT_M1) begin
                         clk_count <= 16'd0;
                         state     <= ST_IDLE;
                     end else begin

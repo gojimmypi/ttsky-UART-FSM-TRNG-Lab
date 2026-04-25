@@ -129,10 +129,12 @@ module trng_cfg_ascii_core
         begin
             if ((c >= "0") && (c <= "9")) begin
                 /* hex_value = c - "0"; 2 each 8-bit literals to avoid Verilog treating the result as a full byte instead of a nibble. */
-                hex_value = (c - 8'd48) & 8'h0F;  // "0" = 48
+                // hex_value = (c - 8'd48) & 8'h0F;  // "0" = 48
+                hex_value = c[3:0];
             end else if ((c >= "A") && (c <= "F")) begin
                 // hex_value = c - "A" + 4'd10;
-                hex_value = (c - 8'd65 + 4'd10) & 8'h0F;  // "A" = 65
+                // hex_value = (c - 8'd65 + 4'd10) & 8'h0F;  // "A" = 65
+                hex_value = c[3:0] + 4'd9;
             end else begin
                 hex_value = 4'h0;
             end
@@ -162,18 +164,16 @@ module trng_cfg_ascii_core
     endfunction
 
     /* Convert a nibble to ASCII hex for readback replies. */
-    function [7:0] to_hex_ascii;
-        input [3:0] nib;
-        begin
-            if (nib < 10) begin
-                /* to_hex_ascii = "0" + nib;  8-bit + 4-bit, instead: */
-                to_hex_ascii = 8'd48 + {4'd0, nib};
-            end else begin
-                /* to_hex_ascii = "A" + (nib - 10);  8-bit + 4-bit, instead: */
-                to_hex_ascii = 8'd65 + ({4'd0, nib} - 8'd10);
-            end
+function [7:0] to_hex_ascii;
+    input [3:0] nib;
+    begin
+        if (nib < 4'd10) begin
+            to_hex_ascii = 8'd48 + nib;        // '0' + nib
+        end else begin
+            to_hex_ascii = 8'd55 + nib;        // 'A' - 10 + nib  (65 - 10 = 55)
         end
-    endfunction
+    end
+endfunction
 
     /*
      * Return one ASCII character from a packed string.
