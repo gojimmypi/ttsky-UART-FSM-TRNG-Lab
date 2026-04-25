@@ -324,7 +324,7 @@ endfunction
                             if (cmd == "R") begin
                                 /* Only registers 0..7 are addressable. */
                                 if (hex_value(rx_byte) < 4'd8) begin
-                                    read_addr <= hex_value(rx_byte);
+                                    read_addr <= hex_value(rx_byte)[2:0];
                                     state <= ST_WAIT_CR;
                                 end else begin
                                     state <= ST_Q_ERR;
