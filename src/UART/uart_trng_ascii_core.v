@@ -219,7 +219,7 @@ module uart_trng_ascii_core
         .reg_src(reg_src),
         .reg_div(reg_div),
         .reg_mode(reg_mode),
-        .reg_oscen(reg_oscen),
+        .reg_oscen(reg_oscen[0]),
         .reg_status(reg_status),
         .reg_rawlo(reg_rawlo),
         .reg_rawhi(reg_rawhi),
