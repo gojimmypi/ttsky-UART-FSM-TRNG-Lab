@@ -183,8 +183,10 @@ endfunction
         input [8*VERSION_LEN-1:0] str;
         input [5:0] idx;
         reg [8*VERSION_LEN-1:0] shifted;
+        reg [7:0] shift_amt;
         begin
-            shifted = str >> ((VERSION_LEN - 1 - idx) * 8);
+            shift_amt = (VERSION_LEN[7:0] - 8'd1 - {2'd0, idx}) << 3;
+            shifted = str >> shift_amt;
             str_get = shifted[7:0];
         end
     endfunction
