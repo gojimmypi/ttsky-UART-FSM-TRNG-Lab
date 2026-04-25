@@ -12,13 +12,18 @@
  * - Surfaces a few internal status bits on GPIOs for simple board-level debug.
  *
  * Pin usage in this wrapper:
- * - ui_in[3]  : UART RX input to the core
- * - uo_out[4] : UART TX output from the core
- * - uo_out[0] : trng_bit
- * - uo_out[3:1] : selected status bits
- * - uo_out[7:5] : selected low raw-data bits
+ * - ui_in[7:4]   : reserved for future use, currently ignored
+ * - ui_in[3]     : UART RX input to the core
+ * - ui_in[2:0]   : reserved for future use, currently ignored
+ *
+ * - uo_out[7:5]  : selected low raw-data bits
+ * - uo_out[4]    : UART TX output from the core
+ * - uo_out[3:1]  : selected status bits
+ * - uo_out[0]    : trng_bit
+ *
  * - uio_out[7:0] : full reg_rawhi byte
- * - uio_oe[7:0] : all forced as outputs
+ *
+ * - uio_oe[7:0]  : all forced as outputs
  *
  * This module contains almost no behavior of its own. It is mostly a pin-map
  * and visibility wrapper around uart_trng_ascii_core.
@@ -52,6 +57,8 @@ module tt_um_uart_trng_ascii
     wire [7:0] reg_rawhi;
     wire       trng_bit;
     wire       uart_tx;
+
+    wire _unused_ui_in = &{ui_in[7:4], ui_in[2:0]};
 
     wire _unused_debug_regs = &{
         reg_ctrl,
