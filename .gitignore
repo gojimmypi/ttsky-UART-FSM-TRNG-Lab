@@ -31,10 +31,4 @@ test/gate_level_netlist.v
 /ulx3s/Makefile.12F
 /ulx3s/Makefile.85f
 
-# Junk files from development
-/src/uart_trng_ascii_core - Copy.v.old
-/src/uart_trng_ascii_core - Copy.v.old2
-/src/uart_trng_ascii_core - Copy.v.old3
-/src/uart_trng_ascii_core - Copy.v.bak
-
 **/*.bak
