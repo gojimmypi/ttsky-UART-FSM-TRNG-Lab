@@ -19,6 +19,8 @@
  */
 `default_nettype none
 
+/* This file is only intended to be used on the ULX3S board */
+`ifdef ULX3S
 module ulx3s_uart_trng_ascii_top
 #(
     parameter [31:0] CLOCK_HZ  = 32'd25000000,
@@ -72,5 +74,9 @@ module ulx3s_uart_trng_ascii_top
     assign led = reg_rawlo;
 
 endmodule
+
+`else
+    MODULE_FOR_ULX3S_ONLY u_stop ();
+`endif
 
 `default_nettype wire

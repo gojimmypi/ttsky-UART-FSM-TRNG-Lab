@@ -16,9 +16,10 @@
 `define USE_LONG_STRINGS
 
 `ifdef ULX3S
-    /* Makefile includes references to needed files */
+    /* /ulx3s/Makefile includes references to needed files */
 `else
-    /* Tiny Tapeout needs to include all the files directly since it doesn't support Makefiles. */
+    /* Tiny Tapeout needs to include all the files directly since it doesn't support Makefiles.
+     * or list them in /info.yaml file (pick one, don't mix) */
     `include "tt_um_uart_trng_ascii.v"
     `include "UART/uart_rx_min.v"
     `include "UART/uart_tx_min.v"
