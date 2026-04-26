@@ -31,8 +31,8 @@ ROOT     := ..
 SRC_DIR  := $(ROOT)/src
 TEST_DIR := $(ROOT)/test
 
-# TT uses tt_um_gojimmypi, but we need a ulx3s wrapper for that in ./top_ulx3s.v
-# RTL_TOP  := tt_um_gojimmypi
+# TT uses tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab, but we need a ulx3s wrapper for that in ./top_ulx3s.v
+# RTL_TOP  := tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
 RTL_TOP  := top_ulx3s
 TB_TOP   := tb
 
