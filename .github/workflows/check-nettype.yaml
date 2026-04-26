@@ -1,0 +1,66 @@
+name: Check Verilog default_nettype
+
+on:
+    push:
+    pull_request:
+
+jobs:
+    check-nettype:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Check .v files for default_nettype rules
+              run: |
+                  set -e
+
+                  FAIL=0
+
+                  echo "Checking Verilog files..."
+
+                  # Find all .v files
+                  while IFS= read -r file; do
+                      echo ""
+                      echo "Checking: $file"
+
+                      # Get first non-blank, non-comment line
+                      first_line=$(awk '
+                          {
+                              line=$0
+                              sub(/^[ \t]+/, "", line)
+
+                              if (line == "") next
+                              if (line ~ /^\/\//) next
+
+                              print line
+                              exit
+                          }
+                      ' "$file")
+
+                      if [ "$first_line" != "\`default_nettype none" ]; then
+                          echo "ERROR: First meaningful line is not \`default_nettype none"
+                          echo "  Found: $first_line"
+                          FAIL=1
+                      fi
+
+                      # Get last line of file
+                      last_line=$(tail -n 1 "$file" | sed 's/[ \t]*$//')
+
+                      if [ "$last_line" != "\`default_nettype wire" ]; then
+                          echo "ERROR: Last line is not \`default_nettype wire"
+                          echo "  Found: $last_line"
+                          FAIL=1
+                      fi
+
+                  done < <(find . -type f -name "*.v")
+
+                  echo ""
+
+                  if [ "$FAIL" -ne 0 ]; then
+                      echo "FAILED: default_nettype checks did not pass"
+                      exit 1
+                  fi
+
+                  echo "SUCCESS: All Verilog files passed default_nettype checks"
