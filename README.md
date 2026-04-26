@@ -7,6 +7,18 @@ See companions projects:
 - https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab (Global Foundry 180)
 - https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab (Sky130)
 
+## Files
+
+ - `.devcontainer` TT VS Code devcontainer configuration for easy setup and development. Edit with caution.
+ - `docs` documentation for the project, which is used to generate the project page on the Tiny Tapeout website. 
+ - `info.yaml` metadata for the project, which is used to generate the project page on the Tiny Tapeout website.
+ - `scripts` scripts for building, testing, and flashing the project.
+ - `src` the main source files for the project, including the Verilog code for the design and any necessary configuration files.
+ - `test` testbenches and scripts for testing the project using simulation.  
+ - `test-hw` test scripts and files for testing the project on hardware. Only the ULX3S FPGA board at this time.
+ - `ulx3s` files for testing the project on the ULX3S FPGA board, including a wrapper module and scripts for building and flashing the board.
+ - `.github/workflows` see the CI [workflows](.github/workflows)
+
 ## Tiny Tapeout Analog Project Template (manually reverted to Verilog only)
 
 It was fairly difficult to do the conversion, not recommended. See [ttsky-analog-template/issues/2](https://github.com/TinyTapeout/ttsky-analog-template/issues/2)
