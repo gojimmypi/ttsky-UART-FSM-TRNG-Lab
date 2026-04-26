@@ -15,8 +15,8 @@ jobs:
             - name: Check .v files for default_nettype rules
               shell: bash
               run: |
-                echo "Running check_nettype.sh to verify default_nettype rules in .v files..."
+                echo "Running check-nettype.sh to verify default_nettype rules in .v files..."
 
-                chmod +x scripts/check_nettype.sh
+                chmod +x scripts/check-nettype.sh
 
                 scripts/check-nettype.sh
