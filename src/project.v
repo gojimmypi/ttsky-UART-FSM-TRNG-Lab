@@ -2,6 +2,8 @@
  * Copyright (c) 2026 gojimmypi
  * SPDX-License-Identifier: Apache-2.0
  *
+ * See ATTRIBUTION.md for third-party sources and credits.
+ *
  * file: project.v
  *
  * Top-level wrapper for the Tiny Tapeout project.
@@ -31,9 +33,13 @@
     /* Tiny Tapeout doesn't support timescale directives, so we can ignore it. */
 `endif /* ULX3S */
 
-/* Assume TT needs this file to be called project.v but the module is called tt_um_gojimmypi - so disable warning: */
+/* See companion prject: SKY130 (ChipFoundry) tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
+
+/* Assume TT needs this file to be called project.v 
+ * but the module is called tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab - so disable warning: */
+
 /* verilator lint_off DECLFILENAME */
-module tt_um_gojimmypi
+module tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
 /* verilator lint_on DECLFILENAME */
 #(
     parameter [31:0] CLOCK_HZ  = 32'd25000000,

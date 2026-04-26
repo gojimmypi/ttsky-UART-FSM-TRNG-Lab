@@ -2,6 +2,13 @@
  * Copyright (c) 2026 gojimmypi
  * SPDX-License-Identifier: Apache-2.0
  *
+ * See ATTRIBUTION.md for third-party sources and credits.
+ * 
+ * The minimal UART RX and TX modules in this repository are original implementations
+ * inspired by common FPGA UART examples, including:
+ *
+ *  https://nandland.com/uart-serial-port-module/
+ *
  * file: uart_rx_min.v
  *
  * Minimal UART receiver.

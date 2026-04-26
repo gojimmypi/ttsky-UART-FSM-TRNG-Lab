@@ -3,6 +3,8 @@
 # Copyright (c) 2026 gojimmypi
 # SPDX-License-Identifier: Apache-2.0
 #
+# See ATTRIBUTION.md for third-party sources and credits.
+#
 # file: ulx3s_build.sh
 #
 # This script is used to build the ULX3S FPGA project using the make tool. 

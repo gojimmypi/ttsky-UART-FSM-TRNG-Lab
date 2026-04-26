@@ -32,3 +32,4 @@ test/gate_level_netlist.v
 /ulx3s/Makefile.85f
 
 **/*.bak
+/src.zip

@@ -2,6 +2,8 @@
  * Copyright (c) 2026 gojimmypi
  * SPDX-License-Identifier: Apache-2.0
  *
+ * See ATTRIBUTION.md for third-party sources and credits.
+ *
  * file: tt_um_uart_trng_ascii.v
  *
  * Tiny Tapeout wrapper for the UART/TRNG ASCII core.

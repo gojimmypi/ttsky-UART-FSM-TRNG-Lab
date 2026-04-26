@@ -1,5 +1,9 @@
 # SPDX-FileCopyrightText: © 2024 Tiny Tapeout
 # SPDX-License-Identifier: Apache-2.0
+#
+# See ATTRIBUTION.md for third-party sources and credits.
+#
+# file: test/test.py
 
 import cocotb
 from cocotb.triggers import Timer

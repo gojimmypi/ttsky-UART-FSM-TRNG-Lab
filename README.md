@@ -1,6 +1,13 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
 
-# Tiny Tapeout Analog Project Template (manually reverted to Verilog only)
+# Tiny Tapeout Project: ttsky-UART-FSM-TRNG-Lab
+
+See companions projects:
+
+- https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab (Global Foundry 180)
+- https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab (Sky130)
+
+## Tiny Tapeout Analog Project Template (manually reverted to Verilog only)
 
 It was fairly difficult to do the conversion, not recommended. See [ttsky-analog-template/issues/2](https://github.com/TinyTapeout/ttsky-analog-template/issues/2)
 
