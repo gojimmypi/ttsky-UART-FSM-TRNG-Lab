@@ -19,4 +19,4 @@ jobs:
 
                 chmod +x scripts/check_nettype.sh
 
-                scripts/check_nettype.sh
+                scripts/check-nettype.sh
