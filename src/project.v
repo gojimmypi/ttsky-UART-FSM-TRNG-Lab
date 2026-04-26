@@ -33,7 +33,7 @@
     /* Tiny Tapeout doesn't support timescale directives, so we can ignore it. */
 `endif /* ULX3S */
 
-/* See companion prject: SKY130 (ChipFoundry) tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
+/* See companion prject: SKY130 (ChipFoundry) tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab */
 
 /* Assume TT needs this file to be called project.v 
  * but the module is called tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab - so disable warning: */
