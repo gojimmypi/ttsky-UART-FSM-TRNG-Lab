@@ -5,6 +5,11 @@
  * See ATTRIBUTION.md for third-party sources and credits.
  *
  * file: top_ulx3s.v
+ *
+ * This is a ULX3S-specific wrapper for the TT module defined in /project.v
+ * It maps the standard TT pin interface to the actual pins on the ULX3S board, 
+ * and includes some simple logic to synchronize the UART RX signal and 
+ * optionally loop back the UART TX for testing.
  */
 `default_nettype none
 `timescale 1ns/1ps
@@ -29,7 +34,10 @@ module top_ulx3s (
     reg uart_rx_meta;
     reg uart_rx_sync;
 
+    /* The BTN0 "PWR" on the ULX3S is used for reset. 
+     * It is active-low, so we can connect it directly to rst_n. */
     assign rst_n = btn[0];
+
     assign ena   = 1'b1;
 
     always @(posedge clk_25mhz) begin
@@ -42,6 +50,7 @@ module top_ulx3s (
 
     assign uio_in = 8'h00;
 
+    /* instantiate the main DUT from TT module in /project.v */
     tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab dut
     (
         .ui_in(ui_in),
