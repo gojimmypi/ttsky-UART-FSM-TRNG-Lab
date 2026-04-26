@@ -42,7 +42,7 @@ module top_ulx3s (
 
     assign uio_in = 8'h00;
 
-    tt_um_gojimmypi dut
+    tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab dut
     (
         .ui_in(ui_in),
         .uo_out(uo_out),
