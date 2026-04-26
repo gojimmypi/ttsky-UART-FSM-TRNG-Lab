@@ -8,6 +8,8 @@
  *
  * Top-level wrapper for the Tiny Tapeout project.
  */
+`default_nettype none
+
 
 /* There's about a 5% (~ 100 cells) increase in the number of cells when using long strings.
  * Currently only the version string is implemented. */
@@ -24,8 +26,6 @@
     `include "UART/TRNG/trng_cfg_ascii_core.v"
     `include "UART/TRNG/trng_stub.v"
 `endif /* ULX3S */
-
-`default_nettype none
 
 `ifdef ULX3S
     `timescale 1ns/1ps

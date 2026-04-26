@@ -13,52 +13,139 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Check .v files for default_nettype rules
+              shell: bash
               run: |
                   set -e
 
-                  FAIL=0
+                  fail=0
+                  expected_first='`default_nettype none'
+                  expected_last='`default_nettype wire'
 
                   echo "Checking Verilog files..."
 
-                  # Find all .v files
                   while IFS= read -r file; do
                       echo ""
                       echo "Checking: $file"
 
-                      # Get first non-blank, non-comment line
                       first_line=$(awk '
-                          {
-                              line=$0
-                              sub(/^[ \t]+/, "", line)
+                          BEGIN {
+                              in_block = 0
+                          }
 
-                              if (line == "") next
-                              if (line ~ /^\/\//) next
+                          {
+                              line = $0
+                              gsub(/\r/, "", line)
+
+                              while (1) {
+                                  if (in_block) {
+                                      if (match(line, /\*\//)) {
+                                          line = substr(line, RSTART + RLENGTH)
+                                          in_block = 0
+                                      } else {
+                                          line = ""
+                                          break
+                                      }
+                                  } else if (match(line, /\/\*/)) {
+                                      before = substr(line, 1, RSTART - 1)
+                                      after = substr(line, RSTART + RLENGTH)
+
+                                      if (match(after, /\*\//)) {
+                                          after = substr(after, RSTART + RLENGTH)
+                                          line = before after
+                                      } else {
+                                          line = before
+                                          in_block = 1
+                                      }
+                                  } else {
+                                      break
+                                  }
+                              }
+
+                              sub(/^[ \t]+/, "", line)
+                              sub(/[ \t]+$/, "", line)
+
+                              if (line == "") {
+                                  next
+                              }
+
+                              if (line ~ /^\/\//) {
+                                  next
+                              }
 
                               print line
                               exit
                           }
                       ' "$file")
 
-                      if [ "$first_line" != "\`default_nettype none" ]; then
-                          echo "ERROR: First meaningful line is not \`default_nettype none"
+                      last_line=$(awk '
+                          BEGIN {
+                              in_block = 0
+                          }
+
+                          {
+                              line = $0
+                              gsub(/\r/, "", line)
+
+                              while (1) {
+                                  if (in_block) {
+                                      if (match(line, /\*\//)) {
+                                          line = substr(line, RSTART + RLENGTH)
+                                          in_block = 0
+                                      } else {
+                                          line = ""
+                                          break
+                                      }
+                                  } else if (match(line, /\/\*/)) {
+                                      before = substr(line, 1, RSTART - 1)
+                                      after = substr(line, RSTART + RLENGTH)
+
+                                      if (match(after, /\*\//)) {
+                                          after = substr(after, RSTART + RLENGTH)
+                                          line = before after
+                                      } else {
+                                          line = before
+                                          in_block = 1
+                                      }
+                                  } else {
+                                      break
+                                  }
+                              }
+
+                              sub(/^[ \t]+/, "", line)
+                              sub(/[ \t]+$/, "", line)
+
+                              if (line == "") {
+                                  next
+                              }
+
+                              if (line ~ /^\/\//) {
+                                  next
+                              }
+
+                              last = line
+                          }
+
+                          END {
+                              print last
+                          }
+                      ' "$file")
+
+                      if [ "$first_line" != "$expected_first" ]; then
+                          echo "ERROR: First meaningful line is not $expected_first"
                           echo "  Found: $first_line"
-                          FAIL=1
+                          fail=1
                       fi
 
-                      # Get last line of file
-                      last_line=$(tail -n 1 "$file" | sed 's/[ \t]*$//')
-
-                      if [ "$last_line" != "\`default_nettype wire" ]; then
-                          echo "ERROR: Last line is not \`default_nettype wire"
+                      if [ "$last_line" != "$expected_last" ]; then
+                          echo "ERROR: Last meaningful line is not $expected_last"
                           echo "  Found: $last_line"
-                          FAIL=1
+                          fail=1
                       fi
-
-                  done < <(find . -type f -name "*.v")
+                  done < <(find . -type f -name "*.v" | sort)
 
                   echo ""
 
-                  if [ "$FAIL" -ne 0 ]; then
+                  if [ "$fail" -ne 0 ]; then
                       echo "FAILED: default_nettype checks did not pass"
                       exit 1
                   fi

@@ -55,3 +55,5 @@ module tb ();
   );
 
 endmodule
+
+`default_nettype wire
