@@ -21,41 +21,42 @@ project:
   # List your project's source files here.
   # Source files must be in ./src and you must list each source file separately, one per line.
   # Don't forget to also update `PROJECT_SOURCES` in test/Makefile.
+  # Files for this project are included explicitly in project.v for TT builds.
   source_files:
     - "project.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
 pinout:
-  # Inputs
-  ui[0]: "inputa"
-  ui[1]: "inputb"
-  ui[2]: "inputc"
-  ui[3]: "inputd"
-  ui[4]: "inpute"
-  ui[5]: "inputf"
-  ui[6]: "inputg"
-  ui[7]: "inputh"
+# Inputs
+  ui[0]: "clk_ext_enable"      # unused_tied_low proposed: Optional external enable (gate core activity)
+  ui[1]: "rst_n"               # Active-low reset
+  ui[2]: "uart_rx"             # UART receive input
+  ui[3]: "mode_sel0"           # unused_tied_low proposed: Mode select bit 0
+  ui[4]: "mode_sel1"           # unused_tied_low proposed: Mode select bit 1
+  ui[5]: "mode_sel2"           # unused_tied_low proposed: Mode select bit 2
+  ui[6]: "trng_enable"         # unused_tied_low proposed: Enable TRNG / ring oscillator block
+  ui[7]: "reserved_in"         # unused_tied_low proposed: Future use (keep flexible)
 
   # Outputs
-  uo[0]: "output1"
-  uo[1]: "output2"
-  uo[2]: "output3"
-  uo[3]: "output4"
-  uo[4]: "output5"
-  uo[5]: "output6"
-  uo[6]: "output7"
-  uo[7]: "output8"
+  uo[0]: "heartbeat"           # Slow toggle (alive indicator)
+  uo[1]: "trng_bit"            # Raw TRNG bit
+  uo[2]: "trng_valid"          # TRNG valid strobe
+  uo[3]: "ro_out0"             # Ring oscillator 0 (divided or sampled)
+  uo[4]: "ro_out1"             # Ring oscillator 1 (divided or sampled)
+  uo[5]: "uart_tx"             # UART transmit output
+  uo[6]: "fsm_state0"          # FSM debug bit 0
+  uo[7]: "fsm_state1"          # FSM debug bit 1
 
   # Bidirectional pins
-  uio[0]: ""
-  uio[1]: ""
-  uio[2]: ""
-  uio[3]: ""
-  uio[4]: ""
-  uio[5]: ""
-  uio[6]: ""
-  uio[7]: ""
+  uio[0]: "cfg_data0"          # Config / register interface bit 0
+  uio[1]: "cfg_data1"          # Config / register interface bit 1
+  uio[2]: "cfg_data2"          # Config / register interface bit 2
+  uio[3]: "cfg_data3"          # Config / register interface bit 3
+  uio[4]: "debug_out0"         # Optional debug output
+  uio[5]: "debug_out1"         # Optional debug output
+  uio[6]: "ext_entropy_in"     # External entropy injection (future)
+  uio[7]: "reserved_io"        # Keep free for later
 
   # Analog pins - make sure to also set "analog_pins" above, else the pins won't be connected
   # ua[0]: ""
