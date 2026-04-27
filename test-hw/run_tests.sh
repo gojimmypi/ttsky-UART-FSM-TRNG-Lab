@@ -104,22 +104,30 @@ fi
 
 
 if [ "$IS_LOOPBACK" -eq 1 ]; then
+    echo ""
+    echo "Begin loopback tests..."
     # loopback_test.py [-h] [-b BAUD] [-t TIMEOUT] [-m MESSAGE] [-n REPEAT] port
 
     # The safest test to start (default write_with_delay when --bulk not specified)
+    echo "Test default params"
     python ./loopback_test.py --port $PORT -b 115200                  || exit 1
+    printf "Test default params - complete.\n\n"
 
     echo "Test non-bulk mode, delay = 0.005"
     python ./loopback_test.py --port $PORT -b 115200 --tx-delay 0.005 || exit 1
+    printf "Test non-bulk mode, delay = 0.005 - complete.\n\n"
 
     echo "Test non-bulk mode, delay = 0.001"
     python ./loopback_test.py --port $PORT -b 115200 --tx-delay 0.001 || exit 1
+    printf "Test non-bulk mode, delay = 0.001 - complete.\n\n"
 
     echo "Test non-bulk mode, delay = 0.000"
     python ./loopback_test.py --port $PORT -b 115200 --tx-delay 0.000 || exit 1
+    printf "Test non-bulk mode, delay = 0.000 - complete.\n\n"
 
-    echo "Test non-bulk mode, delay = 0.000"
+    echo "Test bulk mode most challenging"
     python ./loopback_test.py --port $PORT -b 115200 --bulk           || exit 1
+    printf "Test bulk mode most challenging - complete.\n\n"
 else
     # usage: tt_ulx3s_uart_test.py [-h] --port PORT [--baud BAUD] [--timeout TIMEOUT] [--idle-time IDLE_TIME]
     #                              [--repeat REPEAT] [--stop-on-fail]

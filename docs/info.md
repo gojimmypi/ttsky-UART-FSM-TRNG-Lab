@@ -116,6 +116,34 @@ Sample loopback build defines `FORCE_LOOPBACK=1` macro in `ulx3s_build.sh`:
 ./ulx3s_flash.sh
 ```
 
+### Extensive loopback tests
+
+Additional loopback tests:
+
+```
+    # The safest test to start (default write_with_delay when --bulk not specified)
+    python ./loopback_test.py --port $PORT -b 115200                  || exit 1
+
+    echo "Test non-bulk mode, delay = 0.005"
+    python ./loopback_test.py --port $PORT -b 115200 --tx-delay 0.005 || exit 1
+
+    echo "Test non-bulk mode, delay = 0.001"
+    python ./loopback_test.py --port $PORT -b 115200 --tx-delay 0.001 || exit 1
+
+    echo "Test non-bulk mode, delay = 0.000"
+    python ./loopback_test.py --port $PORT -b 115200 --tx-delay 0.000 || exit 1
+
+    echo "Test bulk mode most challenging"
+    python ./loopback_test.py --port $PORT -b 115200 --bulk           || exit 1
+```
+
+The `run_tests.sh` can be used to run the loopback tests with the appropriate flags:
+
+```
+./run_tests.sh --with-build --ignore-combinational-warning --no-warning-pause --loopback
+./run_tests.sh --with-build --ignore-combinational-warning --no-warning-pause --deep-loopback
+```
+
 ### Local Automated Hardware Operation Tests
 
 Generic local hardware operation tests in [/test-hw/](../test-hw/README.md).
