@@ -18,8 +18,8 @@ module top_ulx3s (
     input  wire        clk_25mhz,
     input  wire [6:0]  btn,
     output wire [7:0]  led,
-    input  wire        uart_rx_pin,
-    output wire        uart_tx_pin
+    input  wire        gp0,
+    output wire        gp1
 );
 
     wire [7:0] ui_in;
@@ -39,6 +39,12 @@ module top_ulx3s (
     assign rst_n = btn[0];
 
     assign ena   = 1'b1;
+
+    wire uart_tx_pin;
+    wire uart_rx_pin;
+
+    assign uart_rx_pin = gp0;
+    assign gp1         = uart_tx_pin;
 
     always @(posedge clk_25mhz) begin
         uart_rx_meta <= uart_rx_pin;
@@ -66,7 +72,7 @@ module top_ulx3s (
     `ifdef FORCE_LOOPBACK
         // Loopback UART TX to RX for testing
         initial $display("FORCE_LOOPBACK ENABLED");
-        assign uart_tx_pin = uart_rx_sync;  
+        assign uart_tx_pin = uart_rx_sync;
 
         // MODULE_FORCE_LOOPBACK_MUST_NOT_BE_ENABLED u_stop ();
 
