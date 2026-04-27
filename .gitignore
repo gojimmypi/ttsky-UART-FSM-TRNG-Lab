@@ -31,4 +31,8 @@ test/gate_level_netlist.v
 /ulx3s/Makefile.12F
 /ulx3s/Makefile.85f
 
+# any backup files
 **/*.bak
+
+# gsd zip artifact files may be unzipped here, not included in repo
+/gds

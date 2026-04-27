@@ -1,3 +1,16 @@
+/*
+ * Copyright (c) 2026 gojimmypi
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * See ATTRIBUTION.md for third-party sources and credits.
+ *
+ * file: top_ulx3s.v
+ *
+ * This is a ULX3S-specific wrapper for the TT module defined in /project.v
+ * It maps the standard TT pin interface to the actual pins on the ULX3S board, 
+ * and includes some simple logic to synchronize the UART RX signal and 
+ * optionally loop back the UART TX for testing.
+ */
 `default_nettype none
 `timescale 1ns/1ps
 
@@ -5,8 +18,8 @@ module top_ulx3s (
     input  wire        clk_25mhz,
     input  wire [6:0]  btn,
     output wire [7:0]  led,
-    input  wire        uart_rx_pin,
-    output wire        uart_tx_pin
+    input  wire        gp0,
+    output wire        gp1
 );
 
     wire [7:0] ui_in;
@@ -21,8 +34,17 @@ module top_ulx3s (
     reg uart_rx_meta;
     reg uart_rx_sync;
 
+    /* The BTN0 "PWR" on the ULX3S is used for reset. 
+     * It is active-low, so we can connect it directly to rst_n. */
     assign rst_n = btn[0];
+
     assign ena   = 1'b1;
+
+    wire uart_tx_pin;
+    wire uart_rx_pin;
+
+    assign uart_rx_pin = gp0;
+    assign gp1         = uart_tx_pin;
 
     always @(posedge clk_25mhz) begin
         uart_rx_meta <= uart_rx_pin;
@@ -34,7 +56,8 @@ module top_ulx3s (
 
     assign uio_in = 8'h00;
 
-    tt_um_gojimmypi dut
+    /* instantiate the main DUT from TT module in /project.v */
+    tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab dut
     (
         .ui_in(ui_in),
         .uo_out(uo_out),
@@ -49,7 +72,7 @@ module top_ulx3s (
     `ifdef FORCE_LOOPBACK
         // Loopback UART TX to RX for testing
         initial $display("FORCE_LOOPBACK ENABLED");
-        assign uart_tx_pin = uart_rx_sync;  
+        assign uart_tx_pin = uart_rx_sync;
 
         // MODULE_FORCE_LOOPBACK_MUST_NOT_BE_ENABLED u_stop ();
 

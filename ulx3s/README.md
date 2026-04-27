@@ -4,10 +4,22 @@ This directory includes a [top_ulx3s.v wrapper](./top_ulx3s.v) for testing the T
 
 See the separate [../test](../test) directory for testing native Tiny Tapeout.
 
+## Files
+
+ - `ulx3s\fujprog-v48-win64.exe`
+ - `ulx3s\Makefile`
+ - `ulx3s\project.json`
+ - `ulx3s\top_ulx3s.v`
+ - `ulx3s\ulx3s.bit`
+ - `ulx3s\ulx3s_empty.config`
+ - `ulx3s\ulx3s_out.config`
+ - `ulx3s\ulx3s_v20.lpf`
+ - `ulx3s\verilator_lint.sh`
+
 Included are scripts to build the project for the ULX3S and flash it to the board:
 
 - `ulx3s_build.sh` for your basic build.
-- `ulx3s_wsl_prog.sh` for programming the board from WSL. (a pre-compiled `fujprog-v48-win64.exe` is included)
+- `ulx3s_flash.sh` for programming the board from WSL. (a pre-compiled `fujprog-v48-win64.exe` is included)
 
 ## Optional Debugging
 

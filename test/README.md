@@ -3,6 +3,17 @@
 This is a sample testbench for a Tiny Tapeout project. It uses [cocotb](https://docs.cocotb.org/en/stable/) to drive the DUT and check the outputs.
 See below to get started or for more information, check the [website](https://tinytapeout.com/hdl/testing/).
 
+## Files
+
+ - `test\Makefile`
+ - `test\my_test.sh`
+ - `test\requirements.txt`
+ - `test\tb.fst`
+ - `test\tb.gtkw`
+ - `test\tb.v`
+ - `test\tb.vcd`
+ - `test\test.py`
+
 ## Setting up
 
 1. Edit [Makefile](Makefile) and modify `PROJECT_SOURCES` to point to your Verilog files.

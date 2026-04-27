@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) 2026 gojimmypi
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * See ATTRIBUTION.md for third-party sources and credits.
+ *
+ * file: test/tb.v
+ */
 `default_nettype none
 `timescale 1ns / 1ps
 
@@ -28,7 +36,7 @@ module tb ();
 `endif
 
   // Replace tt_um_example with your module name:
-  tt_um_gojimmypi user_project (
+  tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab user_project (
 
       // Include power ports for the Gate Level test:
 `ifdef GL_TEST
@@ -47,3 +55,5 @@ module tb ();
   );
 
 endmodule
+
+`default_nettype wire

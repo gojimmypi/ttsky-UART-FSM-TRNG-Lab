@@ -3,6 +3,8 @@
 # Copyright (c) 2026 gojimmypi
 # SPDX-License-Identifier: Apache-2.0
 #
+# See ATTRIBUTION.md for third-party sources and credits.
+#
 # file: ulx3s_build.sh
 #
 # This script is used to build the ULX3S FPGA project using the make tool. 
@@ -39,6 +41,8 @@ REMINDER_COMPLETE=1
 
 for arg in "$@"; do
     FOUND_KNOWN_ARG=0
+
+    # When editing MAKE_ARGS, don't forget to edit the Makefile!
 
     # A basic loopback that tests high level tx/rx communication
     if [ "$arg" = "--loopback" ]; then
