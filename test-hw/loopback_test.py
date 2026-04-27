@@ -23,6 +23,8 @@ def parse_args():
     parser.add_argument("--tx-delay", type=float, default=0.001)
     parser.add_argument("--repeat", type=int, default=1)
     parser.add_argument("--message", default="Hello loopback\r\n")
+    parser.add_argument("--bulk",  action="store_true", help="Write the whole message in one serial write"
+)
 
     return parser.parse_args()
 
@@ -131,7 +133,11 @@ def main():
 
                 time.sleep(0.05)
 
-                write_with_delay(ser, tx_data, args.tx_delay)
+                if args.bulk:
+                    ser.write(tx_data)
+                    ser.flush()
+                else:
+                    write_with_delay(ser, tx_data, args.tx_delay)
 
                 rx_data = read_until_quiet(
                     ser,
