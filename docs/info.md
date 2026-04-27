@@ -12,7 +12,47 @@ You can also include images in this folder and reference them in the markdown. E
 
 TODO: Add a detailed description of how the FSM and TRNG work, including any relevant diagrams or flowcharts.
 
+### UART
+
+Connect with your favorite terminal program such as putty.
+
+For the ULX3S FPGA, the UART is connected to pins XX and YY The default baud rate is 115200.
+
+See the [default reference ULX3S ulx3s_v20.lpf restraint file](https://github.com/emard/ulx3s/blob/master/doc/constraints/ulx3s_v20.lpf).
+
+Disabled:
+
+```
+# FREQUENCY PORT "gn[12]" 50 MHZ;
+# FREQUENCY PORT "gn12" 50 MHZ;
+```
+
+Previously:
+
+The `B11` and `A10` pins were updated with new names:
+
+```
+LOCATE COMP "gp[0]" SITE "B11"; # J1_5+  GP0 PCLK
+LOCATE COMP "gp[1]" SITE "A10"; # J1_7+  GP1 PCLK
+```
+
+These
+
+```
+# UART pins for testing
+
+LOCATE COMP "uart_rx_pin" SITE "B11"; # formerly "gp[0]"; # J1_5+  GP0 PCLK
+IOBUF PORT "uart_rx_pin" IO_TYPE=LVCMOS33;
+
+LOCATE COMP "uart_tx_pin" SITE "A10"; # formerly "gp[1]"; # J1_7+  GP1 PCLK
+IOBUF PORT "uart_tx_pin" IO_TYPE=LVCMOS33;
+```
+
 ## How to test
+
+There are TT simulation tests and local ULX3S FPGA tests.
+
+### TT Simulation tests
 
 Commit changes. See results in [actions](./actions/).
 
@@ -46,7 +86,7 @@ cd uls3s
 
 Connect to the FPGA using a serial terminal (e.g., `putty` or `minicom`) to view the output of the FSM and TRNG.
 
-### Local Hardware Operation Tests
+### Local Automated Hardware Operation Tests
 
 Generic local hardware operation tests in [/test-hw/](../test-hw/README.md).
 
