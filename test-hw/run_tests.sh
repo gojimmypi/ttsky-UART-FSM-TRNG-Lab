@@ -28,11 +28,28 @@ else
 fi
 
 # Default: no build/flash
+IS_LOOPBACK=0
 WITH_BUILD=0
 FOUND_KNOWN_ARG=0
 
 for arg in "$@"; do
     FOUND_KNOWN_ARG=0
+
+    # A basic loopback that tests high level tx/rx communication
+    if [ "$arg" = "--loopback" ]; then
+        FOUND_KNOWN_ARG=1
+        IS_LOOPBACK=1
+        BUILD_ARGS="$BUILD_ARGS $arg"
+        echo "Enabling loopback mode for build"
+    fi
+
+    # A deeper and more complex logic loopback that tests more of the internal logic and is more likely to catch issues
+    if [ "$arg" = "--deep-loopback" ]; then
+        FOUND_KNOWN_ARG=1
+        IS_LOOPBACK=1
+        BUILD_ARGS="$BUILD_ARGS $arg"
+        echo "Enabling deep loopback mode for build"
+    fi
 
     # A basic loopback that tests high level tx/rx communication
     if [ "$arg" = "--with-build" ]; then
@@ -85,10 +102,30 @@ if [ "$WITH_BUILD" -eq 1 ]; then
     popd                                      || exit 1
 fi
 
-# usage: tt_ulx3s_uart_test.py [-h] --port PORT [--baud BAUD] [--timeout TIMEOUT] [--idle-time IDLE_TIME]
-#                              [--repeat REPEAT] [--stop-on-fail]
-#                              [--reset-registers]
 
-python tt_ulx3s_uart_test.py --port $PORT                   || exit 1
+if [ "$IS_LOOPBACK" -eq 1 ]; then
+    # loopback_test.py [-h] [-b BAUD] [-t TIMEOUT] [-m MESSAGE] [-n REPEAT] port
 
-python tt_ulx3s_uart_test.py --port $PORT --reset-registers || exit 1
+    # The safest test to start (default write_with_delay when --bulk not specified)
+    python ./loopback_test.py --port $PORT -b 115200                  || exit 1
+
+    echo "Test non-bulk mode, delay = 0.005"
+    python ./loopback_test.py --port $PORT -b 115200 --tx-delay 0.005 || exit 1
+
+    echo "Test non-bulk mode, delay = 0.001"
+    python ./loopback_test.py --port $PORT -b 115200 --tx-delay 0.001 || exit 1
+
+    echo "Test non-bulk mode, delay = 0.000"
+    python ./loopback_test.py --port $PORT -b 115200 --tx-delay 0.000 || exit 1
+
+    echo "Test non-bulk mode, delay = 0.000"
+    python ./loopback_test.py --port $PORT -b 115200 --bulk           || exit 1
+else
+    # usage: tt_ulx3s_uart_test.py [-h] --port PORT [--baud BAUD] [--timeout TIMEOUT] [--idle-time IDLE_TIME]
+    #                              [--repeat REPEAT] [--stop-on-fail]
+    #                              [--reset-registers]
+
+    python ./tt_ulx3s_uart_test.py --port $PORT                   || exit 1
+
+    python ./tt_ulx3s_uart_test.py --port $PORT --reset-registers || exit 1
+fi
