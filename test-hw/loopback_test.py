@@ -125,8 +125,9 @@ def main():
             all_ok = True
 
             for test_index in range(args.repeat):
-                print("")
-                print("Test {}/{}".format(test_index + 1, args.repeat))
+                if args.repeat > 1:
+                    print("")
+                    print("Test {}/{}".format(test_index + 1, args.repeat))
 
                 ser.reset_input_buffer()
                 ser.reset_output_buffer()
