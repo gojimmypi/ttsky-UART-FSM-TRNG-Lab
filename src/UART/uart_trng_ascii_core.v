@@ -11,7 +11,7 @@
  * Purpose:
  * - Connects the minimal UART RX and TX blocks.
  * - In normal mode, connects the ASCII command parser to the TRNG stub.
- * - In DEEP_FORCE_LOOPBACK mode, bypasses the parser/TRNG path and performs an
+ * - In FORCE_DEEP_LOOPBACK mode, bypasses the parser/TRNG path and performs an
  *   internal byte echo so RX/TX can be isolated and validated.
  *
  * Why this block matters:
@@ -19,6 +19,12 @@
  *   both the Tiny Tapeout wrapper and the ULX3S wrapper.
  */
 `default_nettype none
+
+/*
+** See build options:
+**   `define FORCE_DEEP_LOOPBACK
+*/
+
 
 module uart_trng_ascii_core
 #(
@@ -81,7 +87,7 @@ module uart_trng_ascii_core
         .busy(tx_busy)
     );
 
-`ifdef DEEP_FORCE_LOOPBACK
+`ifdef FORCE_DEEP_LOOPBACK
     /*
      * Deep internal loopback mode:
      * - Meant to validate uart_rx_min and uart_tx_min in isolation.
@@ -92,7 +98,7 @@ module uart_trng_ascii_core
      * the observed behavior would no longer reflect the internal echo path.
      */
     `ifdef FORCE_LOOPBACK
-        MODULE_FORCE_LOOPBACK_MUST_NOT_BE_ENABLED_WITH_DEEP_FORCE_LOOPBACK u_stop ();
+        MODULE_FORCE_LOOPBACK_MUST_NOT_BE_ENABLED_WITH_FORCE_DEEP_LOOPBACK u_stop ();
     `endif
 
     reg  [7:0] tx_byte_r;

@@ -42,6 +42,8 @@ REMINDER_COMPLETE=1
 for arg in "$@"; do
     FOUND_KNOWN_ARG=0
 
+    # When editing MAKE_ARGS, don't forget to edit the Makefile!
+
     # A basic loopback that tests high level tx/rx communication
     if [ "$arg" = "--loopback" ]; then
         FOUND_KNOWN_ARG=1

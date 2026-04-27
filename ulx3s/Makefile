@@ -21,10 +21,18 @@ FREQ := 25
 
 # Optionally force a loopback
 FORCE_LOOPBACK ?= 0
+
+# Optionally force a deep loopback
+FORCE_DEEP_LOOPBACK ?= 0
+
 YOSYS_DEFS :=
 
 ifeq ($(FORCE_LOOPBACK),1)
     YOSYS_DEFS += -DFORCE_LOOPBACK
+endif
+
+ifeq ($(FORCE_DEEP_LOOPBACK),1)
+    YOSYS_DEFS += -DFORCE_DEEP_LOOPBACK
 endif
 
 ROOT     := ..

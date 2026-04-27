@@ -86,6 +86,36 @@ cd uls3s
 
 Connect to the FPGA using a serial terminal (e.g., `putty` or `minicom`) to view the output of the FSM and TRNG.
 
+### Local Loopback Test
+
+There are two loopback tests: a basic loopback test and a deep loopback test. The basic loopback test verifies that the UART is functioning 
+correctly by sending data from the FPGA to the host and back. The deep loopback test verifies that the FSM and TRNG are functioning correctly 
+by sending commands to the FPGA and reading the responses.
+
+#### Basic Loopback Test
+
+The basic loopback assigns `Tx` to `Rx` in `top_ulx3s.v`.
+
+```verilog
+    assign uart_tx_pin = uart_rx_sync;
+```
+
+All characters should be echoed back in the terminal when you type. This verifies that the UART is working correctly.
+
+Sample loopback build defines `FORCE_LOOPBACK=1` macro in `ulx3s_build.sh`:
+
+```bash
+./ulx3s_build.sh --loopback --ignore-combinational-warning --no-warning-pause
+./ulx3s_flash.sh
+```
+
+### Deep Loopback Test
+
+```bash
+./ulx3s_build.sh --deep-loopback --ignore-combinational-warning --no-warning-pause
+./ulx3s_flash.sh
+```
+
 ### Local Automated Hardware Operation Tests
 
 Generic local hardware operation tests in [/test-hw/](../test-hw/README.md).
