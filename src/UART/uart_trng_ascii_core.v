@@ -105,6 +105,10 @@ module uart_trng_ascii_core
     reg        tx_start_r;
     reg        rx_valid_d;
 
+    reg  [7:0] pending_byte_r;
+    reg        pending_valid_r;
+    reg        overflow_r;
+
     reg  [7:0] reg_status_r;
     reg  [7:0] reg_rawlo_r;
     reg  [7:0] reg_rawhi_r;
@@ -144,13 +148,16 @@ module uart_trng_ascii_core
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            rx_valid_d   <= 1'b0;
-            tx_byte_r    <= 8'h00;
-            tx_start_r   <= 1'b0;
-            reg_status_r <= 8'h00;
-            reg_rawlo_r  <= 8'h00;
-            reg_rawhi_r  <= 8'h00;
-            trng_bit_r   <= 1'b0;
+            rx_valid_d      <= 1'b0;
+            tx_byte_r       <= 8'h00;
+            tx_start_r      <= 1'b0;
+            pending_byte_r  <= 8'h00;
+            pending_valid_r <= 1'b0;
+            overflow_r      <= 1'b0;
+            reg_status_r    <= 8'h00;
+            reg_rawlo_r     <= 8'h00;
+            reg_rawhi_r     <= 8'h00;
+            trng_bit_r      <= 1'b0;
         end else begin
             rx_valid_d <= rx_valid;
             tx_start_r <= 1'b0;
@@ -161,23 +168,36 @@ module uart_trng_ascii_core
              * bit1 = decoded receive-byte pulse
              * bit2 = local TX start pulse
              * bit3 = TX busy
+             * bit4 = pending byte waiting for TX
+             * bit5 = loopback overflow/drop occurred
              */
             reg_status_r[0]   <= uart_rx_i;
             reg_status_r[1]   <= rx_valid;
             reg_status_r[2]   <= tx_start_r;
             reg_status_r[3]   <= tx_busy;
-            reg_status_r[7:4] <= 4'h0;
+            reg_status_r[4]   <= pending_valid_r;
+            reg_status_r[5]   <= overflow_r;
+            reg_status_r[7:6] <= 2'b00;
 
-            if (rx_valid_pulse && !tx_busy) begin
-                tx_byte_r   <= rx_byte;
-                tx_start_r  <= 1'b1;
-                reg_rawlo_r <= rx_byte;
-                reg_rawhi_r <= rx_byte;
-                trng_bit_r  <= rx_byte[0];
+            if (rx_valid_pulse) begin
+                if (!pending_valid_r) begin
+                    pending_byte_r  <= rx_byte;
+                    pending_valid_r <= 1'b1;
+                    reg_rawlo_r     <= rx_byte;
+                    reg_rawhi_r     <= rx_byte;
+                    trng_bit_r      <= rx_byte[0];
+                end else begin
+                    overflow_r <= 1'b1;
+                end
+            end
+
+            if (!tx_busy && pending_valid_r) begin
+                tx_byte_r       <= pending_byte_r;
+                tx_start_r      <= 1'b1;
+                pending_valid_r <= 1'b0;
             end
         end
     end
-
 `else
 
     /*
