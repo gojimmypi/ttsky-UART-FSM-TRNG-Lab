@@ -2,7 +2,7 @@
 
 # Tiny Tapeout Project: ttsky-UART-FSM-TRNG-Lab
 
-<!-- breadcrumb for testing workflows 1.0b, testing __tt_um_placeholder user_project -->
+<!-- breadcrumb for testing workflows 1.0b, testing separate tt-gds-action targets-->
 
 Details of this project are located in [docs/info.md](./docs/info.md)
 
