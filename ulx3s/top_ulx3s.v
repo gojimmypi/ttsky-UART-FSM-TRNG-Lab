@@ -40,21 +40,26 @@ module top_ulx3s (
 
     assign ena   = 1'b1;
 
-    wire uart_tx_pin;
-    wire uart_rx_pin;
+    /* Optional UART support - enable by defining UART_ENABLED in your project.v */
+    `ifdef UART_ENABLED
+        /* See example UART: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab */
 
-    assign uart_rx_pin = gp0;
-    assign gp1         = uart_tx_pin;
+        wire uart_tx_pin;
+        wire uart_rx_pin;
 
-    always @(posedge clk_25mhz) begin
-        uart_rx_meta <= uart_rx_pin;
-        uart_rx_sync <= uart_rx_meta;
-    end
+        assign uart_rx_pin = gp0;
+        assign gp1         = uart_tx_pin;
 
-    // Map UART RX into TT input
-    assign ui_in = {4'b0000, uart_rx_sync, 3'b000};
+        always @(posedge clk_25mhz) begin
+            uart_rx_meta <= uart_rx_pin;
+            uart_rx_sync <= uart_rx_meta;
+        end
 
-    assign uio_in = 8'h00;
+        // Map UART RX into TT input
+        assign ui_in = {4'b0000, uart_rx_sync, 3'b000};
+
+        assign uio_in = 8'h00;
+    `endif
 
     /* instantiate the main DUT from TT module in /project.v */
     tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab dut
@@ -74,16 +79,15 @@ module top_ulx3s (
         initial $display("FORCE_LOOPBACK ENABLED");
         assign uart_tx_pin = uart_rx_sync;
 
+        // Optionally ensure your project is not submitted in loopback mode
         // MODULE_FORCE_LOOPBACK_MUST_NOT_BE_ENABLED u_stop ();
 
     `else
         initial $display("FORCE_LOOPBACK DISABLED");
         assign uart_tx_pin = uo_out[4];
-        // assign uart_tx_pin = 1'b0;
-        // assign uart_tx_pin = 1'b1;
     `endif /* FORCE_LOOPBACK */
 
-    // Debug
+    // Optional Debug
     assign led = uo_out;
     // assign led = 8'h00;
 

@@ -14,6 +14,7 @@
 /* There's about a 5% (~ 100 cells) increase in the number of cells when using long strings.
  * Currently only the version string is implemented. */
 `define USE_LONG_STRINGS
+`define UART_ENABLED
 
 `ifdef ULX3S
     /* /ulx3s/Makefile includes references to needed files */
