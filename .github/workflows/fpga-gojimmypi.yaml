@@ -32,4 +32,4 @@ jobs:
           ecp5-device: 85k
           lpf: tt/fpga/ulx3s/ulx3s_v20.lpf
           artifact-name: fpga_ulx3s_ecp5
-
+          uart-enabled: true
