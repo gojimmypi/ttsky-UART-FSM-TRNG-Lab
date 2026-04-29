@@ -35,6 +35,9 @@ def read_lines(port, baud, max_lines, timeout_seconds):
             except Exception:
                 line = str(raw)
 
+            except KeyboardInterrupt:
+                print("\nInterrupted by user")
+
             print(line)
             lines.append(line)
 
