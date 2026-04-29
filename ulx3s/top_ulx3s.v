@@ -18,9 +18,24 @@ module top_ulx3s (
     input  wire        clk_25mhz,
     input  wire [6:0]  btn,
     output wire [7:0]  led,
+
+    /* External PMOD-style UART pins. */
     input  wire        gp0,
-    output wire        gp1
-);
+    output wire        gp1,
+
+    /* USB FTDI UART. */
+    output wire        ftdi_rxd,
+    input  wire        ftdi_txd,
+
+    /* ESP32 UART and boot control. */
+    output wire        wifi_rxd,
+    input  wire        wifi_txd,
+    output wire        wifi_en,
+    output wire        wifi_gpio0,
+
+    /* Keep board powered. */
+    output wire        shutdown
+); /* top_ulx3s input */
 
     wire [7:0] ui_in;
     wire [7:0] uio_in;
@@ -34,21 +49,55 @@ module top_ulx3s (
     reg uart_rx_meta;
     reg uart_rx_sync;
 
+    wire uart_rx_pin;
+    wire uart_tx_pin;
+
     /* The BTN0 "PWR" on the ULX3S is used for reset. 
      * It is active-low, so we can connect it directly to rst_n. */
     assign rst_n = btn[0];
 
     assign ena   = 1'b1;
 
+    /* Keep ESP32 enabled and in normal boot mode. */
+    assign wifi_en    = 1'b1;
+    assign wifi_gpio0 = 1'b1;
+
+    /* Do not shut down ULX3S power. */
+    assign shutdown = 1'b0;
+
+    /*
+     * UART source selection.
+     *
+     * Define ESP32_UART_ENABLED to connect the TT UART to the onboard ESP32.
+     * Otherwise, keep using gp0/gp1 for the external UART path.
+     */
+    `ifdef ESP32_UART_ENABLED
+        assign uart_rx_pin = wifi_txd;
+        assign wifi_rxd    = uart_tx_pin;
+        assign gp1         = uart_tx_pin;
+
+        /* Mirror ESP32 TX to the USB FTDI RX pin for debug visibility. */
+        assign ftdi_rxd = wifi_txd;
+
+        wire unused_ftdi_txd;
+        assign unused_ftdi_txd = ftdi_txd;
+    `else
+        `ifdef NO_ESP32_PASSTHRU_ENABLED
+            /* The ULS3S US1 USB port is NOT connected to the ESP32 */
+        `else
+            /* Unless explicitly disabled or otherwise assigned, connect the ESP32 to the ULX3S port */
+            assign uart_rx_pin = gp0;
+            assign gp1         = uart_tx_pin;
+
+            /* Leave USB FTDI connected to ESP32 when not using ESP32 for TT UART. (see above) */
+            assign wifi_rxd = ftdi_txd;
+            assign ftdi_rxd = wifi_txd;
+        `endif
+    `endif /* ESP32_UART_PASSTHRU_ENABLED */
+
     /* Optional UART support - enable by defining UART_ENABLED in your project.v */
     `ifdef UART_ENABLED
         /* See example UART: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab */
-
-        wire uart_tx_pin;
-        wire uart_rx_pin;
-
-        assign uart_rx_pin = gp0;
-        assign gp1         = uart_tx_pin;
 
         always @(posedge clk_25mhz) begin
             uart_rx_meta <= uart_rx_pin;

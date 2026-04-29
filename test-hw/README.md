@@ -42,3 +42,11 @@ Full build, ignore combinational warning, and no pause on warnings:
 ```
 ./run_tests.sh --with-build --ignore-combinational-warning --no-warning-pause
 ```
+
+Check ESP32 UART
+
+If there's a running ESP32 program without serial output, show some lines of text:
+
+```
+ ./ulx3s_esp32_uart_test.py --port /dev/ttyS3 --lines 10 --timeout 20
+```
