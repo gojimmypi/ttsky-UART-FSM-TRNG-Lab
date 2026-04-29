@@ -14,6 +14,9 @@
 `default_nettype none
 `timescale 1ns/1ps
 
+`define ESP32_BOOT_CONTROL_ENABLED
+//`define ESP32_BOOT_RTS_DTS_ENABLED
+
 module top_ulx3s (
     input  wire        clk_25mhz,
     input  wire [6:0]  btn,
@@ -27,6 +30,10 @@ module top_ulx3s (
     output wire        ftdi_rxd,
     input  wire        ftdi_txd,
 
+`ifdef ESP32_BOOT_RTS_DTS_ENABLED
+    input  wire        ftdi_nrts,
+    input  wire        ftdi_ndtr,
+`endif
     /* ESP32 UART and boot control. */
     output wire        wifi_rxd,
     input  wire        wifi_txd,
@@ -58,7 +65,6 @@ module top_ulx3s (
 
     assign ena   = 1'b1;
 
-    `define ESP32_BOOT_CONTROL_ENABLED
 
     `ifdef ESP32_BOOT_CONTROL_ENABLED
         /* If ESP32_BOOT_CONTROL_ENABLED is defined, BTN0 controls wifi_en and BTN1 controls wifi_gpio0 
@@ -84,8 +90,25 @@ module top_ulx3s (
          *   Changing baud rate to 460800
          *   Changed.
          */
-        assign wifi_en    = btn[0];
-        assign wifi_gpio0 = btn[1];
+        `ifdef ESP32_BOOT_RTS_DTS_ENABLED
+            wire dtr = ~ftdi_ndtr;
+            wire rts = ~ftdi_nrts;
+
+            // detect if host is actively driving (optional but robust)
+            wire auto_active = (dtr != 1'b0) || (rts != 1'b0);
+
+            wire en_auto    = ~(rts & ~dtr);
+            wire gpio0_auto = ~(dtr & ~rts);
+
+            wire en_btn    = btn[0];
+            wire gpio0_btn = btn[1];
+
+            assign wifi_en    = auto_active ? en_auto    : en_btn;
+            assign wifi_gpio0 = auto_active ? gpio0_auto : gpio0_btn;
+        `else
+            assign wifi_en    = btn[0];
+            assign wifi_gpio0 = btn[1];
+        `endif /* ESP32_BOOT_RTS_DTS_ENABLED */
     `else
         /* Keep ESP32 enabled and in normal boot mode. */
         assign wifi_en    = 1'b1;
