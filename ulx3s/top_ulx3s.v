@@ -58,9 +58,39 @@ module top_ulx3s (
 
     assign ena   = 1'b1;
 
-    /* Keep ESP32 enabled and in normal boot mode. */
-    assign wifi_en    = 1'b1;
-    assign wifi_gpio0 = 1'b1;
+    `define ESP32_BOOT_CONTROL_ENABLED
+
+    `ifdef ESP32_BOOT_CONTROL_ENABLED
+        /* If ESP32_BOOT_CONTROL_ENABLED is defined, BTN0 controls wifi_en and BTN1 controls wifi_gpio0 
+         *
+         * To RESET the ESP32 and start the running program in flash:
+         *    Hold btn[1]
+         *    Tap btn[0]
+         *    Release btn[1] 
+         *
+         * To PROGRAM the ESP32 in flash:
+         *    Hold btn[0]
+         *      (begin flash upload)
+         *    Release btn[0] when "Connecting..." is observed.
+         * 
+         * Should then see something like:
+         *
+         *   Chip is ESP32-D0WDQ6 (revision v1.0)
+         *   Features: WiFi, BT, Dual Core, 240MHz, VRef calibration in efuse, Coding Scheme None
+         *   Crystal is 40MHz
+         *   Uploading stub...
+         *   Running stub...
+         *   Stub running...
+         *   Changing baud rate to 460800
+         *   Changed.
+         */
+        assign wifi_en    = btn[0];
+        assign wifi_gpio0 = btn[1];
+    `else
+        /* Keep ESP32 enabled and in normal boot mode. */
+        assign wifi_en    = 1'b1;
+        assign wifi_gpio0 = 1'b1;
+    `endif /* ESP32_BOOT_CONTROL_ENABLED */
 
     /* Do not shut down ULX3S power. */
     assign shutdown = 1'b0;
