@@ -91,20 +91,20 @@ module top_ulx3s (
          *   Changed.
          */
         `ifdef ESP32_BOOT_RTS_DTS_ENABLED
-            wire dtr = ~ftdi_ndtr;
-            wire rts = ~ftdi_nrts;
+            wire dtr;
+            wire rts;
 
-            // detect if host is actively driving (optional but robust)
-            wire auto_active = (dtr != 1'b0) || (rts != 1'b0);
+            wire en_auto;
+            wire gpio0_auto;
 
-            wire en_auto    = ~(rts & ~dtr);
-            wire gpio0_auto = ~(dtr & ~rts);
+            assign dtr = ~ftdi_ndtr;
+            assign rts = ~ftdi_nrts;
 
-            wire en_btn    = btn[0];
-            wire gpio0_btn = btn[1];
+            assign en_auto    = ~(rts & ~dtr);
+            assign gpio0_auto = ~(dtr & ~rts);
 
-            assign wifi_en    = auto_active ? en_auto    : en_btn;
-            assign wifi_gpio0 = auto_active ? gpio0_auto : gpio0_btn;
+            assign wifi_en    = en_auto;
+            assign wifi_gpio0 = gpio0_auto;
         `else
             assign wifi_en    = btn[0];
             assign wifi_gpio0 = btn[1];

@@ -43,3 +43,10 @@ Build with ESP-ISF v5.5
     Changed.
       ... etc ...
 ```
+
+ftdi_ndtr    | ftdi_nrts | dtr | rts | wifi_gpio0 | wifi_en     | ESP32 state
+-------------| --------- | --- | --- | --------- | ------------ | ---
+   0         |   0       |  1  | 1   |     1     |      1       | normal run
+   0         |   1       |  1  | 0   |     0     |      1       | boot select low
+   1         |   0       |  0  | 1   |     1     |      0       | reset
+   1         |   1       |  0  | 0   |     1     |      1       | normal run
