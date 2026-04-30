@@ -42,19 +42,24 @@
  *   Changing baud rate to 460800
  *   Changed.
  */
+// #include "main.h"
 
 /* ESP-IDF */
 #include "sdkconfig.h"
 #include <esp_log.h>
 
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include <inttypes.h>
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_chip_info.h"
-#include "esp_flash.h"
+#include "esp_flash.h" 
 #include "esp_system.h"
+#include "driver/spi_master.h"
+#include "esp_err.h"
 
 /* Hardware; include after other libraries,
  * particularly after freeRTOS from settings.h */
@@ -71,13 +76,125 @@
     #define THIS_MONITOR_UART_BAUD_DATE 115200
 #endif
 
-// #include "main.h"
+
+/*
+ * Set these to match the ESP32 pins wired to the ULX3S FPGA.
+ * Avoid SPI1 unless you specifically know you need it.
+ */
+#define ULX3S_SPI_HOST      SPI2_HOST
+
+#if 0
+    #define PIN_NUM_MISO        19
+    #define PIN_NUM_MOSI        23
+    #define PIN_NUM_CLK         18
+    #define PIN_NUM_CS          5
+#endif
+
+#define PIN_NUM_MISO        2
+#define PIN_NUM_MOSI        15
+#define PIN_NUM_CLK         14
+#define PIN_NUM_CS          13
+
+#define SPI_CLOCK_HZ        1000000
 
 static const char* const TAG = "main";
+
+
+static spi_device_handle_t ulx3s_spi;
+
+static esp_err_t ulx3s_spi_init(void)
+{
+    esp_err_t ret;
+
+    spi_bus_config_t buscfg;
+    spi_device_interface_config_t devcfg;
+
+    memset(&buscfg, 0, sizeof(buscfg));
+    memset(&devcfg, 0, sizeof(devcfg));
+
+    buscfg.miso_io_num = PIN_NUM_MISO;
+    buscfg.mosi_io_num = PIN_NUM_MOSI;
+    buscfg.sclk_io_num = PIN_NUM_CLK;
+    buscfg.quadwp_io_num = -1;
+    buscfg.quadhd_io_num = -1;
+    buscfg.max_transfer_sz = 32;
+
+    devcfg.clock_speed_hz = SPI_CLOCK_HZ;
+    devcfg.mode = 0;
+    devcfg.spics_io_num = PIN_NUM_CS;
+    devcfg.queue_size = 1;
+
+    ret = spi_bus_initialize(ULX3S_SPI_HOST, &buscfg, SPI_DMA_DISABLED);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "spi_bus_initialize failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    ret = spi_bus_add_device(ULX3S_SPI_HOST, &devcfg, &ulx3s_spi);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "spi_bus_add_device failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    return ESP_OK;
+}
+
+static esp_err_t ulx3s_spi_transfer(
+    const uint8_t *tx_buf,
+    uint8_t *rx_buf,
+    size_t len)
+{
+    spi_transaction_t trans;
+    esp_err_t ret;
+
+    memset(&trans, 0, sizeof(trans));
+
+    trans.length = len * 8U;
+    trans.tx_buffer = tx_buf;
+    trans.rx_buffer = rx_buf;
+
+    ret = spi_device_transmit(ulx3s_spi, &trans);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "spi_device_transmit failed: %s", esp_err_to_name(ret));
+    }
+
+    return ret;
+}
+
+static void ulx3s_spi_test_once(void)
+{
+    esp_err_t ret;
+
+    /*
+     * Byte 0 is command.
+     * Byte 1 is payload or dummy clocks for readback.
+     *
+     * With many simple SPI slaves, rx[0] is old/stale.
+     * The useful response often appears in rx[1] or later.
+     */
+    uint8_t tx_buf[2];
+    uint8_t rx_buf[2];
+
+    tx_buf[0] = 0x52U;  /* Example command, ASCII 'R' */
+    tx_buf[1] = 0x00U;  /* Dummy byte to clock response */
+
+    rx_buf[0] = 0x00U;
+    rx_buf[1] = 0x00U;
+
+    ret = ulx3s_spi_transfer(tx_buf, rx_buf, sizeof(tx_buf));
+    if (ret != ESP_OK) {
+        return;
+    }
+
+    ESP_LOGI(TAG, "tx: %02X %02X  rx: %02X %02X",
+             tx_buf[0], tx_buf[1],
+             rx_buf[0], rx_buf[1]);
+}
 
 /* entry point */
 void app_main(void)
 {
+    esp_err_t ret;
     int stack_start = 0;
 
     ESP_LOGI(TAG, "------------------- ULX3S ESP32 Example ----------------");
@@ -118,6 +235,16 @@ void app_main(void)
         (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
 
     printf("Minimum free heap size: %" PRIu32 " bytes\n", esp_get_minimum_free_heap_size());
+
+    ret = ulx3s_spi_init();
+    if (ret != ESP_OK) {
+        return;
+    }
+
+    while (1) {
+        ulx3s_spi_test_once();
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 
     for (int i = 10; i >= 0; i--) {
         printf("Restarting in %d seconds...\n", i);

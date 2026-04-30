@@ -15,6 +15,7 @@
 `timescale 1ns/1ps
 
 `define ESP32_BOOT_CONTROL_ENABLED
+`define ULX3S_SPI_ENABLED
 //`define ESP32_BOOT_RTS_DTS_ENABLED
 
 module top_ulx3s (
@@ -29,6 +30,14 @@ module top_ulx3s (
     /* USB FTDI UART. */
     output wire        ftdi_rxd,
     input  wire        ftdi_txd,
+
+`ifdef ULX3S_SPI_ENABLED
+    /* instead of editing reference lpf, we'll use the existing names fr SPI: */
+    input  wire wifi_gpio14,  /* ESP32 SCK, wire spi_sck   */
+    input  wire wifi_gpio15,  /* ESP32 MOSI, wire spi_mosi */
+    input  wire wifi_gpio13,  /* ESP32 CS, wire spi_cs_n   */
+    output wire wifi_gpio2,   /* ESP32 MISO, wire spi_miso */
+`endif
 
 `ifdef ESP32_BOOT_RTS_DTS_ENABLED
     input  wire        ftdi_nrts,
@@ -65,6 +74,12 @@ module top_ulx3s (
 
     assign ena   = 1'b1;
 
+    // `define TEST_SPI_ZERO
+    `ifdef TEST_SPI_ZERO
+        /* low level connectivity test: are we using the right pins? */
+        assign spi_miso = 1'b0;  /* ESP32 should return rx: 00 00 */
+     // assign spi_miso = 1'b1;  /* ESP32 should return rx: FF FF */
+    `endif
 
     `ifdef ESP32_BOOT_CONTROL_ENABLED
         /* If ESP32_BOOT_CONTROL_ENABLED is defined, BTN0 controls wifi_en and BTN1 controls wifi_gpio0 
@@ -161,6 +176,18 @@ module top_ulx3s (
         assign ui_in = {4'b0000, uart_rx_sync, 3'b000};
 
         assign uio_in = 8'h00;
+    `endif
+
+    `ifdef ULX3S_SPI_ENABLED
+        wire spi_sck;
+        wire spi_mosi;
+        wire spi_cs_n;
+        wire spi_miso;
+
+        assign spi_sck     = wifi_gpio14;
+        assign spi_mosi    = wifi_gpio15;
+        assign spi_cs_n    = wifi_gpio13;
+        assign wifi_gpio2  = spi_miso;
     `endif
 
     /* instantiate the main DUT from TT module in /project.v */
