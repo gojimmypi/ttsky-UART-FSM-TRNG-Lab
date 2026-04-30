@@ -12,6 +12,136 @@ You can also include images in this folder and reference them in the markdown. E
 
 TODO: Add a detailed description of how the FSM and TRNG work, including any relevant diagrams or flowcharts.
 
+This design exposes a UART-controlled interface to a ring-oscillator-based entropy source (TRNG). 
+A host (PC, ESP32, etc.) sends simple ASCII commands over UART to configure internal 
+registers, control the oscillator network, and read back raw entropy data.
+
+At a high level:
+- A bank of ring oscillators generates jitter-based entropy
+- A sampling clock (controlled by a divider) captures this behavior
+- Control and configuration are managed through memory-mapped registers
+- Data and status are read back over the same UART interface
+
+---
+
+### Register Overview
+
+| Register     | Description |
+|--------------|-------------|
+| `reg_ctrl`   | Global control bits (enable, feature flags) |
+| `reg_src`    | Selects entropy source or oscillator group |
+| `reg_div`    | Clock divider controlling sampling rate |
+| `reg_mode`   | Operating mode configuration |
+| `reg_oscen`  | Bitmask enabling individual oscillators |
+| `reg_status` | Status flags (data ready, internal state) |
+| `reg_rawlo`  | Low byte of raw sampled entropy |
+| `reg_rawhi`  | High byte of raw sampled entropy |
+
+---
+
+### Key Concepts
+
+- **Enable (`E`)**  
+  Must typically be cleared (`E0`) before changing configuration, then set (`E1`) to run.
+
+- **Oscillator Control (`O`)**  
+  Enables one or more ring oscillators. More oscillators can improve entropy but may affect stability.
+
+- **Sampling (`D`)**  
+  The divider controls how frequently entropy is sampled. This impacts randomness quality and bias.
+
+- **Source Selection (`S`)**  
+  Allows switching between different entropy paths or test modes (implementation-specific).
+
+- **Raw Data (`R6`, `R7`)**  
+  Returns unprocessed entropy bytes. These are not whitened and may require post-processing.
+
+---
+
+### Typical Flow
+
+1. Disable the core (`E0`)
+2. Configure source, divider, mode, and oscillators
+3. Enable the core (`E1`)
+4. Read entropy and status via `R6`, `R7`, `R5`
+
+This simple interface allows interactive exploration of TRNG behavior directly from a terminal.
+
+
+## UART TRNG Command Interface
+
+All commands are ASCII and terminated with `\r`.  
+Responses are ASCII, typically:
+
+`` R<n>=<value> ``
+
+---
+
+### Write Commands
+
+| Cmd      | Description |
+|----------|-------------|
+| `E<n>`   | Write enable bit (0=disable, 1=enable) |
+| `S<n>`   | Write source select |
+| `V<n>`   | Write control bit 1 |
+| `W<n>`   | Write control bit 2 |
+| `D<hex>` | Write divider |
+| `M<hex>` | Write mode |
+| `O<hex>` | Write oscillator enable mask |
+
+**Special:**
+- `V\r` -> returns version string (if enabled in build)
+
+---
+
+### Read Commands
+
+| Cmd | Description |
+|-----|-------------|
+| R0 | Read reg_ctrl |
+| R1 | Read reg_src |
+| R2 | Read reg_div |
+| R3 | Read reg_mode |
+| R4 | Read reg_oscen |
+| R5 | Read reg_status |
+| R6 | Read reg_rawlo |
+| R7 | Read reg_rawhi |
+
+---
+
+### Examples
+
+Enable and configure:
+
+    E0\r
+    V0\r
+    W0\r
+    S0\r
+    D10\r
+    M00\r
+    O01\r
+    E1\r
+
+Read back registers:
+
+    R0\r -> R0=01
+    R2\r -> R2=10
+    R6\r -> R6=7B
+    R7\r -> R7=3C
+
+Version query:
+
+    V\r -> Version x.x.x <date>
+
+---
+
+### Notes
+
+- Commands are stateful; configure with `E0` before changes
+- `R6/R7` provide raw entropy bytes
+- `O` controls active oscillators (entropy source)
+- `D` affects sampling rate and bias
+
 ### UART
 
 Connect with your favorite terminal program such as putty.
