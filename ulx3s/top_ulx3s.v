@@ -32,13 +32,15 @@ module top_ulx3s (
     input  wire        ftdi_txd,
 
 `ifdef ULX3S_SPI_ENABLED
-    /* instead of editing reference lpf, we'll use the existing names fr SPI: */
-    input  wire wifi_gpio14,  /* ESP32 SCK, wire spi_sck   */
-    input  wire wifi_gpio15,  /* ESP32 MOSI, wire spi_mosi */
-    input  wire wifi_gpio13,  /* ESP32 CS, wire spi_cs_n   */
-    output wire wifi_gpio2,   /* ESP32 MISO, wire spi_miso */
+    /* Instead of editing reference lpf, we'll use the existing names for SPI. */
+    input  wire wifi_gpio14,  /* ESP32 PIN_NUM_CLK  14, wire spi_sck   */
+    input  wire wifi_gpio15,  /* ESP32 PIN_NUM_MOSI 15, wire spi_mosi  */
+    input  wire wifi_gpio13,  /* ESP32 PIN_NUM_CS   13, wire spi_cs_n */
+    output wire wifi_gpio2,   /* ESP32 PIN_NUM_MISO  2, wire spi_miso  */
 `endif
 
+/* Experimental RTS/DTS to control ESP32 boot mode during serial programming.
+ * See also ESP32_BOOT_CONTROL_ENABLED, below  */
 `ifdef ESP32_BOOT_RTS_DTS_ENABLED
     input  wire        ftdi_nrts,
     input  wire        ftdi_ndtr,
@@ -69,10 +71,10 @@ module top_ulx3s (
     wire uart_tx_pin;
 
 `ifdef ULX3S_SPI_ENABLED
-    wire spi_sck;
-    wire spi_mosi;
-    wire spi_cs_n;
-    wire spi_miso;
+    wire spi_sck;  /* ESP32 PIN_NUM_CLK  14 */
+    wire spi_mosi; /* ESP32 PIN_NUM_MOSI 15 */
+    wire spi_cs_n; /* ESP32 PIN_NUM_CS   13 */
+    wire spi_miso; /* ESP32 PIN_NUM_MISO  2 */
 `endif
 
     /* The BTN0 "PWR" on the ULX3S is used for reset. 
@@ -121,6 +123,7 @@ module top_ulx3s (
             assign wifi_en    = en_auto;
             assign wifi_gpio0 = gpio0_auto;
         `else
+            /* Current default: no RTS / DTS control */
             assign wifi_en    = btn[0];
             assign wifi_gpio0 = btn[1];
         `endif /* ESP32_BOOT_RTS_DTS_ENABLED */
@@ -197,7 +200,9 @@ module top_ulx3s (
         `endif
     `endif
 
-    /* instantiate the main DUT from TT module in /project.v */
+    /*************************************************************************
+     * Instantiate the main DUT from TT module in /project.v
+     ************************************************************************/
     tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab dut
     (
         .ui_in(ui_in),
@@ -210,6 +215,7 @@ module top_ulx3s (
         .rst_n(rst_n)  // TODO - add a reset button and connect it here instead of hardcoding rst_n=1
     );
 
+    /* Some optional UART loopback test for development only */
     `ifdef FORCE_LOOPBACK
         // Loopback UART TX to RX for testing
         initial $display("FORCE_LOOPBACK ENABLED");
