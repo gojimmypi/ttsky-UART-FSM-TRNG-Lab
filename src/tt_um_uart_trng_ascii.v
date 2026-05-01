@@ -138,6 +138,9 @@ module tt_um_uart_trng_ascii
     assign uo_out[7] = reg_rawlo[2];
 
 `ifdef SPI_ENABLED
+    localparam [7:0] SPI_TEST_BYTE = 8'hD2;
+    localparam       SPI_IDLE_MISO = 1'b1;
+
     assign spi_sck       = uio_in[0];
     assign spi_mosi      = uio_in[1];
     assign spi_cs_n      = uio_in[2];
@@ -150,15 +153,15 @@ module tt_um_uart_trng_ascii
         if (!rst_n) begin
             spi_sck_sync <= 3'b000;
             spi_cs_sync  <= 3'b111;
-            spi_tx_shift <= 8'hA5;
-            spi_miso     <= 1'b1;
+            spi_tx_shift <= SPI_TEST_BYTE;
+            spi_miso     <= SPI_IDLE_MISO;
         end else begin
             spi_sck_sync <= {spi_sck_sync[1:0], spi_sck};
             spi_cs_sync  <= {spi_cs_sync[1:0], spi_cs_n};
 
             if (spi_cs_start) begin
-                spi_tx_shift <= 8'hA5;
-                spi_miso     <= 1'b1;
+                spi_tx_shift <= SPI_TEST_BYTE;
+                spi_miso     <= SPI_IDLE_MISO;
             end else if (spi_cs_active && spi_sck_fall) begin
                 spi_miso     <= spi_tx_shift[7];
                 spi_tx_shift <= {spi_tx_shift[6:0], 1'b0};
