@@ -45,6 +45,19 @@ Some suggestions for success
 
 ### Error Messages
 
+
+#### FT_Open() failed Cannot find JTAG cable
+
+Is there something else connected to the serial port, perhaps a putty session?
+
+```
+ULX2S / ULX3S JTAG programmer v4.8 (git 96ebb45 built Oct  7 2020 22:42:00)
+Copyright (C) Marko Zec, EMARD, gojimmypi, kost and contributors
+FT_Open() failed
+Cannot find JTAG cable.
+```
+
+#### 
 If the ESP32 is running and spewing data to the SPI, UART, etc, consider pressing `rst` (`btn[0]`) to pause and quiet the 
 ESP32 in bootloader mode. Otherwise this error may be encountered:
 
