@@ -2,7 +2,7 @@
 
 for f in \
   ./project.v \
-  ./tt_um_uart_trng_ascii.v \
+  ./tt_um_main.v \
   ./UART/TRNG/trng_cfg_ascii_core.v \
   ./UART/TRNG/trng_stub.v \
   ./UART/uart_rx_min.v \

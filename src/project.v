@@ -22,7 +22,7 @@
 `else
     /* Tiny Tapeout needs to include all the files directly since it doesn't support Makefiles.
      * or list them in /info.yaml file (pick one, don't mix) */
-    `include "tt_um_uart_trng_ascii.v"
+    `include "tt_um_main.v"
     `include "UART/uart_rx_min.v"
     `include "UART/uart_tx_min.v"
     `include "UART/uart_trng_ascii_core.v"
@@ -69,7 +69,7 @@ module tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
 
     wire unused_ok;
 
-    tt_um_uart_trng_ascii 
+    tt_um_main
     #(
         .CLOCK_HZ(CLOCK_HZ),
         .UART_BAUD(UART_BAUD)

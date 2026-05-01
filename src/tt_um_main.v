@@ -4,7 +4,7 @@
  *
  * See ATTRIBUTION.md for third-party sources and credits.
  *
- * file: tt_um_uart_trng_ascii.v
+ * file: tt_um_main.v
  *
  * Tiny Tapeout wrapper for the UART/TRNG ASCII core.
  *
@@ -37,7 +37,7 @@
 
 `define SPI_TEST_MODE
 
-module tt_um_uart_trng_ascii 
+module tt_um_main 
 #(
     parameter [31:0] CLOCK_HZ  = 32'd25000000,
     parameter [31:0] UART_BAUD = 32'd115200
