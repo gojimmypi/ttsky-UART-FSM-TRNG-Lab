@@ -35,8 +35,6 @@
  */
 `default_nettype none
 
-`define SPI_TEST_MODE
-
 module tt_um_main 
 #(
     parameter [31:0] CLOCK_HZ  = 32'd25000000,
@@ -157,7 +155,7 @@ module tt_um_main
         if (!rst_n) begin
             spi_sck_sync <= 3'b000;
             spi_cs_sync  <= 3'b111;
-            `ifdef SPI_TEST_MODE
+            `ifdef SPI_TEST_FIXED
                 spi_tx_shift <= SPI_TEST_BYTE;
                 spi_miso     <= SPI_IDLE_MISO;
             `else
@@ -176,7 +174,7 @@ module tt_um_main
             /*   SCK rises   -> ESP32 samples next valid bit  */
 
             if (spi_cs_start) begin
-                `ifdef SPI_TEST_MODE
+                `ifdef SPI_TEST_FIXED
                     /* Preload shift register so next bit (bit6) is ready after first clock */
                     spi_tx_shift <= {SPI_TEST_BYTE[6:0], 1'b0};
                     /* Drive first bit (bit7) immediately so master samples valid data on first SCK */

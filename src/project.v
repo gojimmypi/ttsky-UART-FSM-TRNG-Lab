@@ -17,6 +17,10 @@
 `define UART_ENABLED
 `define SPI_ENABLED
 
+/* Pick zero or one of these SPI tests: */
+`define SPI_TEST_FIXED
+// `define SPI_TEST_ECHO
+
 `ifdef ULX3S
     /* /ulx3s/Makefile includes references to needed files */
 `else
@@ -45,8 +49,8 @@
 module tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
 /* verilator lint_on DECLFILENAME */
 #(
-    parameter [31:0] CLOCK_HZ  = 32'd25000000,
-    parameter [31:0] UART_BAUD = 32'd115200
+    parameter [31:0] CLOCK_HZ  = 32'd25000000,  /* default clock is 25 MHz     */
+    parameter [31:0] UART_BAUD = 32'd115200     /* default UART is 115200 baud */
 )
 (
     // Optional Analog
@@ -107,5 +111,12 @@ module tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
     `endif /* ULX3S */
 
 endmodule
+
+/* Sttings Sanity Check */
+`ifdef SPI_TEST_FIXED
+    `ifdef SPI_TEST_ECHO
+        MODULE_SPI_TEST_ECHO_MUST_NOT_BE_ENABLED_WITH_SPI_TEST_FIXED u_stop ();
+    `endif
+`endif
 
 `default_nettype wire
