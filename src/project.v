@@ -15,6 +15,7 @@
  * Currently only the version string is implemented. */
 `define USE_LONG_STRINGS
 `define UART_ENABLED
+`define SPI_ENABLED
 
 `ifdef ULX3S
     /* /ulx3s/Makefile includes references to needed files */

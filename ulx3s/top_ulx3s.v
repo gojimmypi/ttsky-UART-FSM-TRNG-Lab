@@ -68,18 +68,18 @@ module top_ulx3s (
     wire uart_rx_pin;
     wire uart_tx_pin;
 
+`ifdef ULX3S_SPI_ENABLED
+    wire spi_sck;
+    wire spi_mosi;
+    wire spi_cs_n;
+    wire spi_miso;
+`endif
+
     /* The BTN0 "PWR" on the ULX3S is used for reset. 
      * It is active-low, so we can connect it directly to rst_n. */
     assign rst_n = btn[0];
 
     assign ena   = 1'b1;
-
-    // `define TEST_SPI_ZERO
-    `ifdef TEST_SPI_ZERO
-        /* low level connectivity test: are we using the right pins? */
-        assign spi_miso = 1'b0;  /* ESP32 should return rx: 00 00 */
-     // assign spi_miso = 1'b1;  /* ESP32 should return rx: FF FF */
-    `endif
 
     `ifdef ESP32_BOOT_CONTROL_ENABLED
         /* If ESP32_BOOT_CONTROL_ENABLED is defined, BTN0 controls wifi_en and BTN1 controls wifi_gpio0 
@@ -175,51 +175,26 @@ module top_ulx3s (
         // Map UART RX into TT input
         assign ui_in = {4'b0000, uart_rx_sync, 3'b000};
 
+`ifdef ULX3S_SPI_ENABLED
+        assign uio_in = {5'b00000, spi_cs_n, spi_mosi, spi_sck};
+`else
         assign uio_in = 8'h00;
+`endif
     `endif
 
     `ifdef ULX3S_SPI_ENABLED
-        wire spi_sck;
-        wire spi_mosi;
-        wire spi_cs_n;
-        reg  spi_miso;
+        assign spi_sck    = wifi_gpio14;
+        assign spi_mosi   = wifi_gpio15;
+        assign spi_cs_n   = wifi_gpio13;
 
-        reg [2:0] spi_sck_sync;
-        reg [2:0] spi_cs_sync;
-        reg [7:0] spi_tx_shift;
-
-        wire spi_sck_fall;
-        wire spi_cs_start;
-        wire spi_cs_active;
-
-        assign spi_sck       = wifi_gpio14;
-        assign spi_mosi      = wifi_gpio15;
-        assign spi_cs_n      = wifi_gpio13;
-        assign wifi_gpio2    = spi_miso;
-
-        assign spi_sck_fall  = spi_sck_sync[2:1] == 2'b10;
-        assign spi_cs_start  = spi_cs_sync[2:1] == 2'b10;
-        assign spi_cs_active = !spi_cs_sync[2];
-
-        always @(posedge clk_25mhz) begin
-            if (!rst_n) begin
-                spi_sck_sync <= 3'b000;
-                spi_cs_sync  <= 3'b111;
-                spi_tx_shift <= 8'hA5;
-                spi_miso     <= 1'b1;
-            end else begin
-                spi_sck_sync <= {spi_sck_sync[1:0], spi_sck};
-                spi_cs_sync  <= {spi_cs_sync[1:0], spi_cs_n};
-
-                if (spi_cs_start) begin
-                    spi_tx_shift <= 8'hA5;
-                    spi_miso     <= 1'b1;
-                end else if (spi_cs_active && spi_sck_fall) begin
-                    spi_miso     <= spi_tx_shift[7];
-                    spi_tx_shift <= {spi_tx_shift[6:0], 1'b0};
-                end
-            end
-        end
+        `ifdef TEST_SPI_ZERO
+            /* Board-level pin test before using the TT SPI implementation. */
+            assign wifi_gpio2 = 1'b0;  /* ESP32 should return rx: 00 00 */
+            // assign wifi_gpio2 = 1'b1;  /* ESP32 should return rx: FF FF */
+        `else
+            assign spi_miso   = uio_out[3];
+            assign wifi_gpio2 = spi_miso;
+        `endif
     `endif
 
     /* instantiate the main DUT from TT module in /project.v */

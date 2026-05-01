@@ -23,9 +23,12 @@
  * - uo_out[3:1]  : selected status bits
  * - uo_out[0]    : trng_bit
  *
- * - uio_out[7:0] : full reg_rawhi byte
+ * - uio_out[7:4] : reg_rawhi[7:4] when SPI is enabled
+ * - uio_out[3]   : SPI MISO when SPI is enabled
+ * - uio_out[2:0] : unused when SPI is enabled
+ * - uio_out[7:0] : full reg_rawhi byte when SPI is disabled
  *
- * - uio_oe[7:0]  : all forced as outputs
+ * - uio_oe[7:0]  : UIO direction control
  *
  * This module contains almost no behavior of its own. It is mostly a pin-map
  * and visibility wrapper around uart_trng_ascii_core.
@@ -60,6 +63,20 @@ module tt_um_uart_trng_ascii
     wire       trng_bit;
     wire       uart_tx;
 
+`ifdef SPI_ENABLED
+    wire       spi_sck;
+    wire       spi_mosi;
+    wire       spi_cs_n;
+    reg        spi_miso;
+    reg [2:0]  spi_sck_sync;
+    reg [2:0]  spi_cs_sync;
+    reg [7:0]  spi_tx_shift;
+
+    wire       spi_sck_fall;
+    wire       spi_cs_start;
+    wire       spi_cs_active;
+`endif
+
     wire _unused_ui_in = &{ui_in[7:4], ui_in[2:0]};
 
     wire _unused_debug_regs = &{
@@ -78,7 +95,11 @@ module tt_um_uart_trng_ascii
      * uio_in is reserved for future use.
      */
     wire unused_ok;
+`ifdef SPI_ENABLED
+    assign unused_ok = &{ena, uio_in[7:3]};
+`else
     assign unused_ok = &{ena, uio_in};
+`endif
 
     uart_trng_ascii_core
     #(
@@ -116,9 +137,47 @@ module tt_um_uart_trng_ascii
     assign uo_out[6] = reg_rawlo[1];
     assign uo_out[7] = reg_rawlo[2];
 
+`ifdef SPI_ENABLED
+    assign spi_sck       = uio_in[0];
+    assign spi_mosi      = uio_in[1];
+    assign spi_cs_n      = uio_in[2];
+
+    assign spi_sck_fall  = spi_sck_sync[2:1] == 2'b10;
+    assign spi_cs_start  = spi_cs_sync[2:1] == 2'b10;
+    assign spi_cs_active = !spi_cs_sync[2];
+
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            spi_sck_sync <= 3'b000;
+            spi_cs_sync  <= 3'b111;
+            spi_tx_shift <= 8'hA5;
+            spi_miso     <= 1'b1;
+        end else begin
+            spi_sck_sync <= {spi_sck_sync[1:0], spi_sck};
+            spi_cs_sync  <= {spi_cs_sync[1:0], spi_cs_n};
+
+            if (spi_cs_start) begin
+                spi_tx_shift <= 8'hA5;
+                spi_miso     <= 1'b1;
+            end else if (spi_cs_active && spi_sck_fall) begin
+                spi_miso     <= spi_tx_shift[7];
+                spi_tx_shift <= {spi_tx_shift[6:0], 1'b0};
+            end
+        end
+    end
+
+    assign uio_out[0]   = 1'b0;
+    assign uio_out[1]   = 1'b0;
+    assign uio_out[2]   = 1'b0;
+    assign uio_out[3]   = spi_miso;
+    assign uio_out[7:4] = reg_rawhi[7:4];
+
+    assign uio_oe = 8'hF8;
+`else
     /* Drive all UIO pins as outputs and show the high raw-data byte there. */
     assign uio_out = reg_rawhi;
     assign uio_oe  = 8'hFF;
+`endif
 
 endmodule
 
