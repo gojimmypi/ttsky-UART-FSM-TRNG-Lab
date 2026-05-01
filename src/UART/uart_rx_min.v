@@ -71,7 +71,7 @@ module uart_rx_min
     /* Shift register receives the byte LSB first. */
     reg [7:0]  shift_reg;
 
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             rx_meta <= 1'b1;
             rx_sync <= 1'b1;
@@ -81,7 +81,7 @@ module uart_rx_min
         end
     end
 
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             state      <= ST_IDLE;
             clk_count  <= 16'd0;

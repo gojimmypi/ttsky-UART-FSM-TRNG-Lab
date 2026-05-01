@@ -86,7 +86,8 @@ module tt_um_main
         reg_mode,
         reg_oscen,
         reg_status[7:3],
-        reg_rawlo[7:3]
+        reg_rawlo[7:3], 
+        reg_rawhi[3:0]
     };
 
     /*
@@ -96,7 +97,7 @@ module tt_um_main
      */
     wire unused_ok;
 `ifdef SPI_ENABLED
-    assign unused_ok = &{ena, uio_in[7:3]};
+    assign unused_ok = &{ena, uio_in[7:4], spi_mosi};
 `else
     assign unused_ok = &{ena, uio_in};
 `endif
@@ -204,8 +205,8 @@ module tt_um_main
 
     assign uio_out[7:4] = reg_rawhi[7:4];
 
-    /* 8'hF4 means only uio[2] and uio[7:4] are driven outputs. 
-     * uio[0], uio[1], and uio[3] are inputs for CS, MOSI, and SCK*/
+    /* 8'hF4 means only uio[2] and uio[7:4] are driven outputs.
+     * uio[0], uio[1], and uio[3] are inputs for CS, MOSI, and SCK. */
     assign uio_oe = 8'hF4;
 `else
     /* Drive all UIO pins as outputs and show the high raw-data byte there. */

@@ -259,7 +259,7 @@ module trng_cfg_ascii_core
 `else
 `endif
 
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             state                 <= ST_IDLE;
             next_state_after_send <= ST_IDLE;

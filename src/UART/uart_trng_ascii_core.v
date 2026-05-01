@@ -146,7 +146,7 @@ module uart_trng_ascii_core
     assign reg_rawhi  = reg_rawhi_r;
     assign trng_bit   = trng_bit_r;
 
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             rx_valid_d      <= 1'b0;
             tx_byte_r       <= 8'h00;
