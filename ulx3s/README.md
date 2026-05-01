@@ -33,3 +33,23 @@ Windows users have a pre-compiled `fujprog-v48-win64.exe` included for programmi
 See
 
 - <https://github.com/kost/fujprog>
+
+
+## Troubleshooting
+
+Some suggestions for success
+
+- Use short, quality USB cables.
+- Ensure no terminal sessions are connected to ports when attempting to program.
+
+
+### Error Messages
+
+If the ESP32 is running and spewing data to the SPI, UART, etc, consider pressing `rst` (`btn[0]`) to pause and quiet the 
+ESP32 in bootloader mode. Otherwise this error may be encountered:
+
+```
+Found unknown (FFFFFFFF) device, but the bitstream is for LFE5U-85F.
+
+Failed.
+```
