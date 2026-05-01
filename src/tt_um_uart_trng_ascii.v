@@ -35,6 +35,8 @@
  */
 `default_nettype none
 
+`define SPI_TEST_MODE
+
 module tt_um_uart_trng_ascii 
 #(
     parameter [31:0] CLOCK_HZ  = 32'd25000000,
@@ -153,12 +155,18 @@ module tt_um_uart_trng_ascii
         if (!rst_n) begin
             spi_sck_sync <= 3'b000;
             spi_cs_sync  <= 3'b111;
-            spi_tx_shift <= SPI_TEST_BYTE;
-            spi_miso     <= SPI_IDLE_MISO;
+            `ifdef SPI_TEST_MODE
+                spi_tx_shift <= SPI_TEST_BYTE;
+                spi_miso     <= SPI_IDLE_MISO;
+            `else
+                ERROR NOT IMPLMENTED
+            `endif
+
         end else begin
             spi_sck_sync <= {spi_sck_sync[1:0], spi_sck};
             spi_cs_sync  <= {spi_cs_sync[1:0], spi_cs_n};
 
+            /* SPI slave, mode 0 (CPOL=0, CPHA=0), MSB-first  */
             /* SPI mode 0 behavior                            */
             /*   CS_N falls  -> preload first MISO bit        */
             /*   SCK rises   -> ESP32 samples valid bit       */
@@ -166,11 +174,14 @@ module tt_um_uart_trng_ascii
             /*   SCK rises   -> ESP32 samples next valid bit  */
 
             if (spi_cs_start) begin
-                /* Preload shift register so next bit (bit6) is ready after first clock */
-                spi_tx_shift <= {SPI_TEST_BYTE[6:0], 1'b0};
-
-                /* Drive first bit (bit7) immediately so master samples valid data on first SCK */
-                spi_miso     <= SPI_TEST_BYTE[7];
+                `ifdef SPI_TEST_MODE
+                    /* Preload shift register so next bit (bit6) is ready after first clock */
+                    spi_tx_shift <= {SPI_TEST_BYTE[6:0], 1'b0};
+                    /* Drive first bit (bit7) immediately so master samples valid data on first SCK */
+                    spi_miso     <= SPI_TEST_BYTE[7];
+                `else
+                    ERROR NOT IMPLMENTED
+                `endif
             end else if (spi_cs_active && spi_sck_fall) begin
                 /* On SCK falling edge, present next bit to MISO */
                 spi_miso     <= spi_tx_shift[7];
