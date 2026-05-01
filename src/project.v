@@ -17,6 +17,9 @@
 `define UART_ENABLED
 `define SPI_ENABLED
 
+/* optionally define an SPI test byte. Default is 0x42 */
+`define SPI_TEST_BYTE 8'hD2
+
 /* Pick zero or one of these SPI tests: */
 `define SPI_TEST_FIXED
 // `define SPI_TEST_ECHO

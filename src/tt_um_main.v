@@ -138,7 +138,12 @@ module tt_um_main
     assign uo_out[7] = reg_rawlo[2];
 
 `ifdef SPI_ENABLED
-    localparam [7:0] SPI_TEST_BYTE = 8'hD2;
+    /* Reminder the Tx byte comes from the ESP32; see main.c */
+    `ifdef SPI_TEST_BYTE
+        localparam [7:0] SPI_TEST_BYTE_VAL = `SPI_TEST_BYTE;
+    `else
+        localparam [7:0] SPI_TEST_BYTE_VAL = 8'h42;
+    `endif
     localparam       SPI_IDLE_MISO = 1'b1;
 
 
@@ -156,7 +161,7 @@ module tt_um_main
             spi_sck_sync <= 3'b000;
             spi_cs_sync  <= 3'b111;
             `ifdef SPI_TEST_FIXED
-                spi_tx_shift <= SPI_TEST_BYTE;
+                spi_tx_shift <= SPI_TEST_BYTE_VAL;
                 spi_miso     <= SPI_IDLE_MISO;
             `else
                 ERROR NOT IMPLMENTED
@@ -176,9 +181,9 @@ module tt_um_main
             if (spi_cs_start) begin
                 `ifdef SPI_TEST_FIXED
                     /* Preload shift register so next bit (bit6) is ready after first clock */
-                    spi_tx_shift <= {SPI_TEST_BYTE[6:0], 1'b0};
+                    spi_tx_shift <= {SPI_TEST_BYTE_VAL[6:0], 1'b0};
                     /* Drive first bit (bit7) immediately so master samples valid data on first SCK */
-                    spi_miso     <= SPI_TEST_BYTE[7];
+                    spi_miso     <= SPI_TEST_BYTE_VAL[7];
                 `else
                     ERROR NOT IMPLMENTED
                 `endif
