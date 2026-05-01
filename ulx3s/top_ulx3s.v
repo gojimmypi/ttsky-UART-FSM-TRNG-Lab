@@ -70,6 +70,16 @@ module top_ulx3s (
     wire uart_rx_pin;
     wire uart_tx_pin;
 
+    /* See https://tinytapeout.com/specs/pinouts/#spi
+     * SPI uses CS, MOSI, MISO and SCK and therefore requires only one row of pins of the Pmod connector, preferably the upper row. Since standard SPI has to send and receive, the bidirectional Pmod is used:
+     *
+     *    Top row:
+     *
+     *    uio[0] - CS
+     *    uio[1] - MOSI
+     *    uio[2] - MISO
+     *    uio[3] - SCK
+     */
 `ifdef ULX3S_SPI_ENABLED
     wire spi_sck;  /* ESP32 PIN_NUM_CLK  14 */
     wire spi_mosi; /* ESP32 PIN_NUM_MOSI 15 */
@@ -178,14 +188,10 @@ module top_ulx3s (
         // Map UART RX into TT input
         assign ui_in = {4'b0000, uart_rx_sync, 3'b000};
 
-`ifdef ULX3S_SPI_ENABLED
-        assign uio_in = {5'b00000, spi_cs_n, spi_mosi, spi_sck};
-`else
-        assign uio_in = 8'h00;
-`endif
-    `endif
+    `endif /* UART_ENABLED */
 
     `ifdef ULX3S_SPI_ENABLED
+        assign uio_in = {4'b0000, spi_sck, 1'b0, spi_mosi, spi_cs_n};
         assign spi_sck    = wifi_gpio14;
         assign spi_mosi   = wifi_gpio15;
         assign spi_cs_n   = wifi_gpio13;
@@ -195,9 +201,11 @@ module top_ulx3s (
             assign wifi_gpio2 = 1'b0;  /* ESP32 should return rx: 00 00 */
             // assign wifi_gpio2 = 1'b1;  /* ESP32 should return rx: FF FF */
         `else
-            assign spi_miso   = uio_out[3];
+            assign spi_miso   = uio_out[2];
             assign wifi_gpio2 = spi_miso;
         `endif
+    `else
+        assign uio_in = 8'h00;
     `endif
 
     /*************************************************************************

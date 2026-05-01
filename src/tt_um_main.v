@@ -24,9 +24,9 @@
  * - uo_out[0]    : trng_bit
  *
  * - uio_out[7:4] : reg_rawhi[7:4] when SPI is enabled
- * - uio_out[3]   : SPI MISO when SPI is enabled
- * - uio_out[2:0] : unused when SPI is enabled
- * - uio_out[7:0] : full reg_rawhi byte when SPI is disabled
+ * - uio_out[2]   : SPI MISO when SPI is enabled
+ * - uio_out[1:0] : SPI inputs (CS, MOSI) via uio_in[] when SPI is enabled
+ * - uio_out[7:0] : reg_rawhi byte (driven when SPI is disabled)
  *
  * - uio_oe[7:0]  : UIO direction control
  *
@@ -143,9 +143,11 @@ module tt_um_main
     localparam [7:0] SPI_TEST_BYTE = 8'hD2;
     localparam       SPI_IDLE_MISO = 1'b1;
 
-    assign spi_sck       = uio_in[0];
-    assign spi_mosi      = uio_in[1];
-    assign spi_cs_n      = uio_in[2];
+
+    assign spi_cs_n = uio_in[0];
+    assign spi_mosi = uio_in[1];
+    assign spi_sck  = uio_in[3];
+
 
     assign spi_sck_fall  = spi_sck_sync[2:1] == 2'b10;
     assign spi_cs_start  = spi_cs_sync[2:1] == 2'b10;
@@ -194,11 +196,14 @@ module tt_um_main
 
     assign uio_out[0]   = 1'b0;
     assign uio_out[1]   = 1'b0;
-    assign uio_out[2]   = 1'b0;
-    assign uio_out[3]   = spi_miso;
+    assign uio_out[2]   = spi_miso;
+    assign uio_out[3]   = 1'b0;
+
     assign uio_out[7:4] = reg_rawhi[7:4];
 
-    assign uio_oe = 8'hF8;
+    /* 8'hF4 means only uio[2] and uio[7:4] are driven outputs. 
+     * uio[0], uio[1], and uio[3] are inputs for CS, MOSI, and SCK*/
+    assign uio_oe = 8'hF4;
 `else
     /* Drive all UIO pins as outputs and show the high raw-data byte there. */
     assign uio_out = reg_rawhi;
