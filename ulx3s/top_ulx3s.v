@@ -182,12 +182,44 @@ module top_ulx3s (
         wire spi_sck;
         wire spi_mosi;
         wire spi_cs_n;
-        wire spi_miso;
+        reg  spi_miso;
 
-        assign spi_sck     = wifi_gpio14;
-        assign spi_mosi    = wifi_gpio15;
-        assign spi_cs_n    = wifi_gpio13;
-        assign wifi_gpio2  = spi_miso;
+        reg [2:0] spi_sck_sync;
+        reg [2:0] spi_cs_sync;
+        reg [7:0] spi_tx_shift;
+
+        wire spi_sck_fall;
+        wire spi_cs_start;
+        wire spi_cs_active;
+
+        assign spi_sck       = wifi_gpio14;
+        assign spi_mosi      = wifi_gpio15;
+        assign spi_cs_n      = wifi_gpio13;
+        assign wifi_gpio2    = spi_miso;
+
+        assign spi_sck_fall  = spi_sck_sync[2:1] == 2'b10;
+        assign spi_cs_start  = spi_cs_sync[2:1] == 2'b10;
+        assign spi_cs_active = !spi_cs_sync[2];
+
+        always @(posedge clk_25mhz) begin
+            if (!rst_n) begin
+                spi_sck_sync <= 3'b000;
+                spi_cs_sync  <= 3'b111;
+                spi_tx_shift <= 8'hA5;
+                spi_miso     <= 1'b1;
+            end else begin
+                spi_sck_sync <= {spi_sck_sync[1:0], spi_sck};
+                spi_cs_sync  <= {spi_cs_sync[1:0], spi_cs_n};
+
+                if (spi_cs_start) begin
+                    spi_tx_shift <= 8'hA5;
+                    spi_miso     <= 1'b1;
+                end else if (spi_cs_active && spi_sck_fall) begin
+                    spi_miso     <= spi_tx_shift[7];
+                    spi_tx_shift <= {spi_tx_shift[6:0], 1'b0};
+                end
+            end
+        end
     `endif
 
     /* instantiate the main DUT from TT module in /project.v */
