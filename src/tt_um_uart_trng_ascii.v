@@ -159,11 +159,23 @@ module tt_um_uart_trng_ascii
             spi_sck_sync <= {spi_sck_sync[1:0], spi_sck};
             spi_cs_sync  <= {spi_cs_sync[1:0], spi_cs_n};
 
+            /* SPI mode 0 behavior                            */
+            /*   CS_N falls  -> preload first MISO bit        */
+            /*   SCK rises   -> ESP32 samples valid bit       */
+            /*   SCK falls   -> TT prepares next bit          */
+            /*   SCK rises   -> ESP32 samples next valid bit  */
+
             if (spi_cs_start) begin
-                spi_tx_shift <= SPI_TEST_BYTE;
-                spi_miso     <= SPI_IDLE_MISO;
+                /* Preload shift register so next bit (bit6) is ready after first clock */
+                spi_tx_shift <= {SPI_TEST_BYTE[6:0], 1'b0};
+
+                /* Drive first bit (bit7) immediately so master samples valid data on first SCK */
+                spi_miso     <= SPI_TEST_BYTE[7];
             end else if (spi_cs_active && spi_sck_fall) begin
+                /* On SCK falling edge, present next bit to MISO */
                 spi_miso     <= spi_tx_shift[7];
+
+                /* Shift left to prepare following bit */
                 spi_tx_shift <= {spi_tx_shift[6:0], 1'b0};
             end
         end
