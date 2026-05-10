@@ -6,7 +6,39 @@
 # file: run_tests.sh
 #
 # usage: run_tests.sh [--with-build]
-
+#                     [--loopback]
+#                     [--deep-loopback]
+#                     [--ignore-combinational-warning]
+#                     [--no-warning-pause]
+#                     [--port <port>]
+#
+# Options:
+#
+#   --with-build
+#       Build and flash the ULX3S bitstream before running tests.
+#
+#   --loopback
+#       Enable basic loopback mode for the build and run loopback tests.
+#
+#   --deep-loopback
+#       Enable deeper internal loopback mode for the build and run loopback tests.
+#
+#   --ignore-combinational-warning
+#       Pass through to the build script. Ignore the ABC combinational network
+#       warning. Not recommended unless this warning is already understood.
+#
+#   --no-warning-pause
+#       Pass through to the build script. Do not pause when warnings are found.
+#
+#   --port <port>
+#       Serial port to use for tests. If omitted, the default below is used.
+#
+# Examples:
+#
+#   ./run_tests.sh
+#   ./run_tests.sh --port /dev/ttyS11
+#   ./run_tests.sh --with-build --loopback --port /dev/ttyS11
+#   ./run_tests.sh --with-build --deep-loopback --ignore-combinational-warning
 #
 # Windows: PORT=COM8
 # Linux:   PORT=/dev/ttyUSB0
@@ -105,14 +137,16 @@ for arg in "$@"; do
         echo ""
         echo "Unknown argument: $arg"
         echo ""
-        echo "Usage: $0 [--loopback] [--deep-loopback]"
+        echo "Usage: $0 [--with-build] [--loopback] [--deep-loopback]"
         echo "          [--ignore-combinational-warning] [--no-warning-pause]"
         echo "          [--port <port>]"
         echo ""
+        echo "  --with-build: Build and flash before running tests"
         echo "  --loopback: Enable basic loopback mode for build"
         echo "  --deep-loopback: Enable deeper loopback mode for build"
-        echo "  --ignore-combinational-warning: Ignore ABC combinational network warning (not recommended)"
+        echo "  --ignore-combinational-warning: Ignore ABC combinational network warning"
         echo "  --no-warning-pause: Do not pause for warnings"
+        echo "  --port <port>: Serial port to use for tests"
         exit 1
     fi 
 done

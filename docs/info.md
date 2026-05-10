@@ -270,6 +270,8 @@ Additional loopback tests:
 The `run_tests.sh` can be used to run the loopback tests with the appropriate flags:
 
 ```
+ cd /mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/test-hw    
+
 ./run_tests.sh --with-build --ignore-combinational-warning --no-warning-pause --loopback
 ./run_tests.sh --with-build --ignore-combinational-warning --no-warning-pause --deep-loopback
 ./run_tests.sh --with-build --ignore-combinational-warning --no-warning-pause
