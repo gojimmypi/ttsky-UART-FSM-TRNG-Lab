@@ -154,7 +154,65 @@
     <ShowAfterProgramming>false</ShowAfterProgramming>
   </DeviceTerminalSettings>
   <SmartTerminalSettings>
-    <Environments />
+    <Environments>
+      <NamedEnvironment>
+        <Records>
+          <Record>
+            <VariableName>LANG</VariableName>
+            <Value>en_US.UTF-8</Value>
+          </Record>
+          <Record>
+            <VariableName>PATH</VariableName>
+            <Value>C:\Program Files\Git\cmd;C:\SysGCC\esp32-master\python_env\\idf5.5_py3.11_env\Scripts;C:\Users\gojimmypi\AppData\Local\VisualGDB\Python-3.11.5;C:\SysGCC\esp32-master\tools\xtensa-esp-elf\esp-14.2.0_20241119\xtensa-esp-elf\bin;C:\SysGCC\esp32-master\tools\xtensa-esp-elf\esp-14.2.0_20241119\xtensa-esp-elf\bin;C:\SysGCC\esp32-master\tools\esp32ulp-elf\2.38_20240113\esp32ulp-elf\bin;C:\SysGCC\esp32-master\tools\riscv32-esp-elf\esp-14.2.0_20241119\riscv32-esp-elf\bin;C:\SysGCC\esp32-master\tools\idf-exe\1.0.3;C:\SysGCC\esp32-master\tools\ccache\4.10.2\ccache-4.10.2-windows-x86_64;C:\SysGCC\esp32-master\tools\ninja\1.12.1;%PATH%</Value>
+          </Record>
+          <Record>
+            <VariableName>IDF_TOOLS_PATH</VariableName>
+            <Value />
+          </Record>
+          <Record>
+            <VariableName>ESP_ROM_ELF_DIR</VariableName>
+            <Value>C:/SysGCC/esp32-master/tools/esp-rom-elfs/20241011</Value>
+          </Record>
+          <Record>
+            <VariableName>TOOLCHAIN_ROOT</VariableName>
+            <Value>C:/SysGCC/esp32-master</Value>
+          </Record>
+          <Record>
+            <VariableName>EFP_BASE</VariableName>
+            <Value>C:/Users/gojimmypi/AppData/Local/VisualGDB/EmbeddedEFPs</Value>
+          </Record>
+          <Record>
+            <VariableName>TESTFW_BASE</VariableName>
+            <Value>C:/Users/gojimmypi/AppData/Local/VisualGDB/TestFrameworks</Value>
+          </Record>
+          <Record>
+            <VariableName>TESTFW_BASE_LOCAL</VariableName>
+            <Value>C:/Users/gojimmypi/AppData/Local/VisualGDB/TestFrameworks</Value>
+          </Record>
+          <Record>
+            <VariableName>IDF_PATH</VariableName>
+            <Value>C:\SysGCC\esp32-master\esp-idf\v5.5</Value>
+          </Record>
+          <Record>
+            <VariableName>SYSPROGS_COMPONENTS_DIR</VariableName>
+            <Value>C:/SysGCC/esp32-master/esp-idf/SysprogsComponents</Value>
+          </Record>
+          <Record>
+            <VariableName>IDF_GIT_DIR</VariableName>
+            <Value>C:\Program Files\Git\cmd</Value>
+          </Record>
+          <Record>
+            <VariableName>IDF_PYTHON_DIR</VariableName>
+            <Value>C:\Users\gojimmypi\AppData\Local\VisualGDB\Python-3.11.5</Value>
+          </Record>
+          <Record>
+            <VariableName>IDF_PYTHON_ENV_PATH</VariableName>
+            <Value>C:\SysGCC\esp32-master\python_env\\idf5.5_py3.11_env</Value>
+          </Record>
+        </Records>
+        <Name>Saved env</Name>
+      </NamedEnvironment>
+    </Environments>
   </SmartTerminalSettings>
   <CustomShortcuts>
     <Shortcuts />
