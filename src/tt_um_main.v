@@ -41,6 +41,8 @@ module tt_um_main
     parameter [31:0] UART_BAUD = 32'd115200
 )
 (
+    /* For Tiny Tapeout, these are the only ports you can use. 
+     * See:    https://tinytapeout.com/specs/pinouts/         */
     input  wire [7:0] ui_in,
     output wire [7:0] uo_out,
     input  wire [7:0] uio_in,
@@ -77,6 +79,7 @@ module tt_um_main
     wire       spi_cs_active;
 `endif
 
+    /* TODO check unused wires when SPI and/or UART not enabled */
     wire _unused_ui_in = &{ui_in[7:4], uio_in[2], ui_in[2:0]};
 
     wire _unused_debug_regs = &{
