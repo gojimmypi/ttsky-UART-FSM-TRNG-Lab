@@ -6,14 +6,46 @@
 # file: run_tests.sh
 #
 # usage: run_tests.sh [--with-build]
-
+#                     [--loopback]
+#                     [--deep-loopback]
+#                     [--ignore-combinational-warning]
+#                     [--no-warning-pause]
+#                     [--port <port>]
+#
+# Options:
+#
+#   --with-build
+#       Build and flash the ULX3S bitstream before running tests.
+#
+#   --loopback
+#       Enable basic loopback mode for the build and run loopback tests.
+#
+#   --deep-loopback
+#       Enable deeper internal loopback mode for the build and run loopback tests.
+#
+#   --ignore-combinational-warning
+#       Pass through to the build script. Ignore the ABC combinational network
+#       warning. Not recommended unless this warning is already understood.
+#
+#   --no-warning-pause
+#       Pass through to the build script. Do not pause when warnings are found.
+#
+#   --port <port>
+#       Serial port to use for tests. If omitted, the default below is used.
+#
+# Examples:
+#
+#   ./run_tests.sh
+#   ./run_tests.sh --port /dev/ttyS11
+#   ./run_tests.sh --with-build --loopback --port /dev/ttyS11
+#   ./run_tests.sh --with-build --deep-loopback --ignore-combinational-warning
 #
 # Windows: PORT=COM8
 # Linux:   PORT=/dev/ttyUSB0
 # macOS:   PORT=/dev/tty.usbserial-0001
 # WSL:     PORT=/dev/ttyS8
 
-PORT=/dev/ttyS8
+PORT=/dev/ttyS11
 
 # Run shell check to ensure this a good script.
 # Specify the executable shell checker you want to use:
@@ -28,11 +60,58 @@ else
 fi
 
 # Default: no build/flash
+IS_LOOPBACK=0
 WITH_BUILD=0
 FOUND_KNOWN_ARG=0
+EXPECT_PORT_VALUE=0
 
+# ------------------------------------------------------------------------------
+# Parameter processing
+# ------------------------------------------------------------------------------
 for arg in "$@"; do
     FOUND_KNOWN_ARG=0
+
+    # --------------------------------------------------------------------------
+    # First look at optiona that require a parameter
+    # --------------------------------------------------------------------------
+    # Handle value for previous --port
+    if [ "$EXPECT_PORT_VALUE" -eq 1 ]; then
+        PORT="$arg"
+        EXPECT_PORT_VALUE=0
+
+        FOUND_KNOWN_ARG=1
+        echo "Using port: $PORT"
+        continue
+    fi
+
+    if [ "$arg" = "--port" ]; then
+        echo "Will use specified port instead of $PORT"
+        FOUND_KNOWN_ARG=1
+        if [ -z "$1" ]; then
+            echo "Error: --port requires a value"
+            exit 1
+        fi
+        EXPECT_PORT_VALUE=1
+    fi
+
+    # ----------------------------------------------------------------
+    # Non-parameter options follow
+    # ----------------------------------------------------------------
+    # A basic loopback that tests high level tx/rx communication
+    if [ "$arg" = "--loopback" ]; then
+        FOUND_KNOWN_ARG=1
+        IS_LOOPBACK=1
+        BUILD_ARGS="$BUILD_ARGS $arg"
+        echo "Enabling loopback mode for build"
+    fi
+
+    # A deeper and more complex logic loopback that tests more of the internal logic and is more likely to catch issues
+    if [ "$arg" = "--deep-loopback" ]; then
+        FOUND_KNOWN_ARG=1
+        IS_LOOPBACK=1
+        BUILD_ARGS="$BUILD_ARGS $arg"
+        echo "Enabling deep loopback mode for build"
+    fi
 
     # A basic loopback that tests high level tx/rx communication
     if [ "$arg" = "--with-build" ]; then
@@ -58,17 +137,29 @@ for arg in "$@"; do
         echo ""
         echo "Unknown argument: $arg"
         echo ""
-        echo "Usage: $0 [--loopback] [--deep-loopback]"
+        echo "Usage: $0 [--with-build] [--loopback] [--deep-loopback]"
         echo "          [--ignore-combinational-warning] [--no-warning-pause]"
+        echo "          [--port <port>]"
         echo ""
+        echo "  --with-build: Build and flash before running tests"
         echo "  --loopback: Enable basic loopback mode for build"
         echo "  --deep-loopback: Enable deeper loopback mode for build"
-        echo "  --ignore-combinational-warning: Ignore ABC combinational network warning (not recommended)"
+        echo "  --ignore-combinational-warning: Ignore ABC combinational network warning"
         echo "  --no-warning-pause: Do not pause for warnings"
+        echo "  --port <port>: Serial port to use for tests"
         exit 1
     fi 
 done
 
+if [ "$EXPECT_PORT_VALUE" -eq 1 ]; then
+    echo "Error: --port requires a value"
+    exit 1
+fi
+
+
+# ------------------------------------------------------------------------------
+# Optional build
+# ------------------------------------------------------------------------------
 if [ "$WITH_BUILD" -eq 1 ]; then
     BUILD_ARGS_ARRAY=()
 
@@ -85,10 +176,40 @@ if [ "$WITH_BUILD" -eq 1 ]; then
     popd                                      || exit 1
 fi
 
-# usage: tt_ulx3s_uart_test.py [-h] --port PORT [--baud BAUD] [--timeout TIMEOUT] [--idle-time IDLE_TIME]
-#                              [--repeat REPEAT] [--stop-on-fail]
-#                              [--reset-registers]
+# ------------------------------------------------------------------------------
+# Run tests
+# ------------------------------------------------------------------------------
+if [ "$IS_LOOPBACK" -eq 1 ]; then
+    echo ""
+    echo "Begin loopback tests..."
+    # loopback_test.py [-h] [-b BAUD] [-t TIMEOUT] [-m MESSAGE] [-n REPEAT] port
 
-python tt_ulx3s_uart_test.py --port $PORT                   || exit 1
+    # The safest test to start (default write_with_delay when --bulk not specified)
+    echo "Test default params"
+    python ./loopback_test.py --port "$PORT" -b 115200                  || exit 1
+    printf "Test default params - complete.\n\n"
 
-python tt_ulx3s_uart_test.py --port $PORT --reset-registers || exit 1
+    echo "Test non-bulk mode, delay = 0.005"
+    python ./loopback_test.py --port "$PORT" -b 115200 --tx-delay 0.005 || exit 1
+    printf "Test non-bulk mode, delay = 0.005 - complete.\n\n"
+
+    echo "Test non-bulk mode, delay = 0.001"
+    python ./loopback_test.py --port "$PORT" -b 115200 --tx-delay 0.001 || exit 1
+    printf "Test non-bulk mode, delay = 0.001 - complete.\n\n"
+
+    echo "Test non-bulk mode, delay = 0.000"
+    python ./loopback_test.py --port "$PORT" -b 115200 --tx-delay 0.000 || exit 1
+    printf "Test non-bulk mode, delay = 0.000 - complete.\n\n"
+
+    echo "Test bulk mode most challenging"
+    python ./loopback_test.py --port "$PORT" -b 115200 --bulk           || exit 1
+    printf "Test bulk mode most challenging - complete.\n\n"
+else
+    # usage: tt_ulx3s_uart_test.py [-h] --port PORT [--baud BAUD] [--timeout TIMEOUT] [--idle-time IDLE_TIME]
+    #                              [--repeat REPEAT] [--stop-on-fail]
+    #                              [--reset-registers]
+
+    python ./tt_ulx3s_uart_test.py --port "$PORT"                   || exit 1
+
+    python ./tt_ulx3s_uart_test.py --port "$PORT" --reset-registers || exit 1
+fi

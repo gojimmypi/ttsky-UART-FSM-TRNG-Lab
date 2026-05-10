@@ -5,7 +5,7 @@
  * See ATTRIBUTION.md for third-party sources and credits.
  *
  * file: trng_stub.v
- ^
+ *
  * Deterministic stand-in for a future real TRNG.
  *
  * Purpose:
@@ -56,7 +56,7 @@ module trng_stub
     /* Export the current LFSR LSB as a single-bit entropy-like signal. */
     assign trng_bit = lfsr[0];
 
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             sample_ctr <= 16'h0000;
             lfsr       <= 16'h1ACE;

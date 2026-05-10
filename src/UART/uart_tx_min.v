@@ -65,7 +65,7 @@ module uart_tx_min
     reg [3:0]  bit_index;
     reg [15:0] clk_count;
 
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             state     <= ST_IDLE;
             tx        <= 1'b1;

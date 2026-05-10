@@ -31,6 +31,14 @@ These modules were adapted and rewritten for this project.
 
 ---
 
+## EMARD
+
+Numerous design, implementation, and other references created by EMARD:
+
+- https://github.com/emard/ulx3s
+- https://github.com/emard/ulx3s-misc
+- https://github.com/emard/esp32ecp5
+
 ## ULX3S Platform Resources
 
 Development and testing were performed using the ULX3S FPGA platform.

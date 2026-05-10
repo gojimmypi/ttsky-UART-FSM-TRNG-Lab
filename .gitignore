@@ -36,3 +36,9 @@ test/gate_level_netlist.v
 
 # gsd zip artifact files may be unzipped here, not included in repo
 /gds
+
+**/.visualgdb/
+**/build/**
+/ulx3s/ESP32/sdkconfig
+/**/CMakeLists.txt.old
+*.user

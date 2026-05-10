@@ -2,6 +2,8 @@
 
 # Tiny Tapeout Project: ttsky-UART-FSM-TRNG-Lab
 
+<!-- breadcrumb for testing workflows 1.0b, testing end-to-end build -->
+
 Details of this project are located in [docs/info.md](./docs/info.md)
 
 See companions projects:
@@ -9,7 +11,7 @@ See companions projects:
 - https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab (Global Foundry 180)
 - This https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab (Sky130)
 
-## Files
+## Files and Directories
 
  - `.devcontainer` - TT VS Code devcontainer configuration for easy setup and development. Edit with caution.
  - `.github/workflows` - see the CI [workflows](.github/workflows)
