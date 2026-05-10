@@ -77,7 +77,7 @@ module tt_um_main
     wire       spi_cs_active;
 `endif
 
-    wire _unused_ui_in = &{ui_in[7:4], ui_in[2:0]};
+    wire _unused_ui_in = &{ui_in[7:4], uio_in[2], ui_in[2:0]};
 
     wire _unused_debug_regs = &{
         reg_ctrl,
@@ -150,6 +150,7 @@ module tt_um_main
 
     assign spi_cs_n = uio_in[0];
     assign spi_mosi = uio_in[1];
+    /* uio_in[2] not used */
     assign spi_sck  = uio_in[3];
 
 
