@@ -46,6 +46,15 @@ def send_cmd(ser, cmd, args):
         print("(no response)")
 
 
+def run_command_list(ser, args, title, commands):
+    print("")
+    print(title)
+    print("=" * len(title))
+
+    for cmd in commands:
+        send_cmd(ser, cmd, args)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", required=True)
@@ -54,7 +63,7 @@ def main():
     parser.add_argument("--idle-time", type=float, default=0.05)
     args = parser.parse_args()
 
-    commands = [
+    lfsr_frozen_sample_test = [
 
         # Disable TRNG updates while configuring registers.
         "E0",
@@ -112,6 +121,84 @@ def main():
         "R7",
     ]
 
+    source_select_fallback_test = [
+
+        # Disable TRNG updates before changing source select.
+        "E0",
+
+        # Select source 1:
+        # SRC_RO0 single oscillator path.
+        "S1",
+
+        # Enable only oscillator 0.
+        "O01",
+
+        # Use fast sampling for this source-select test.
+        "D01",
+
+        # Enable TRNG sampling.
+        "E1",
+
+        # Freeze captured sample.
+        "E0",
+
+        # Read low byte from SRC_RO0 path.
+        "R6",
+
+        # Read high byte from SRC_RO0 path.
+        "R7",
+
+        # Disable TRNG updates before changing source select.
+        "E0",
+
+        # Select source 2:
+        # SRC_ROX XOR of enabled oscillator paths.
+        "S2",
+
+        # Enable all oscillator mask bits.
+        "OFF",
+
+        # Use fast sampling.
+        "D01",
+
+        # Enable TRNG sampling.
+        "E1",
+
+        # Freeze captured sample.
+        "E0",
+
+        # Read low byte from SRC_ROX path.
+        "R6",
+
+        # Read high byte from SRC_ROX path.
+        "R7",
+
+        # Disable TRNG updates before changing source select.
+        "E0",
+
+        # Select source 3:
+        # SRC_MIX mixed RO/LFSR/history path.
+        "S3",
+
+        # Enable all oscillator mask bits.
+        "OFF",
+
+        # Use fast sampling.
+        "D01",
+
+        # Enable TRNG sampling.
+        "E1",
+
+        # Freeze captured sample.
+        "E0",
+
+        # Read low byte from SRC_MIX path.
+        "R6",
+
+        # Read high byte from SRC_MIX path.
+        "R7",
+    ]
+
     ser = serial.Serial(args.port, args.baud, timeout=0.01)
 
     try:
@@ -120,8 +207,19 @@ def main():
 
         time.sleep(0.1)
 
-        for cmd in commands:
-            send_cmd(ser, cmd, args)
+        run_command_list(
+            ser,
+            args,
+            "Test 1: LFSR frozen sample test",
+            lfsr_frozen_sample_test,
+        )
+
+        run_command_list(
+            ser,
+            args,
+            "Test 2: Source-select fallback test",
+            source_select_fallback_test,
+        )
 
     finally:
         ser.close()
