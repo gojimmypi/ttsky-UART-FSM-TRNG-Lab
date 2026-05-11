@@ -29,6 +29,7 @@ module tt_spi_slave
 
     /* Reminder the Tx byte comes from the ESP32; see main.c */
 `ifdef SPI_TEST_BYTE
+    /* see project.v for how to set this value; default is 0x42 */
     localparam [7:0] SPI_TEST_BYTE_VAL = `SPI_TEST_BYTE;
 `else
     localparam [7:0] SPI_TEST_BYTE_VAL = 8'h42;

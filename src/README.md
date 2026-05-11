@@ -14,4 +14,5 @@
 
  - `src\TRNG\trng_cfg_ascii_core.v` - a simple TRNG core that can be configured via UART commands, and sends random numbers over UART when a specific command is received. This is a more complex version of the `uart_trng_ascii_core` that allows for configuration of the TRNG parameters.
  - `src\TRNG\trng_stub.v` - a stub TRNG core that can be used for testing the UART functionality without the complexity of a real TRNG. It generates pseudo-random numbers based on a simple counter and some bit manipulation, and sends them over UART when a specific command is received. This can be useful for testing the UART communication and command parsing without needing a real TRNG implementation.
+ - `src\TRNG\trng_lab_core.v` - an optional TRNG lab core that provides an alternative to the `trng_stub` for experimentation and testing purposes.
  

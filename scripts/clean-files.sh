@@ -6,6 +6,7 @@ for f in \
   ./SPI/spi_master.v \
   ./TRNG/trng_cfg_ascii_core.v \
   ./TRNG/trng_stub.v \
+  ./TRNG/trng_lab_core.v \
   ./UART/uart_rx_min.v \
   ./UART/uart_trng_ascii_core.v \
   ./UART/uart_tx_min.v 

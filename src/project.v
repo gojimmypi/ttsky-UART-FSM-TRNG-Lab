@@ -7,8 +7,16 @@
  * file: project.v
  *
  * Top-level wrapper for the Tiny Tapeout project.
+ *
+ * If the ULX3S FPGA is used, see the /ulx3s/top_ulx3s.v wrapper file and define ULX3S when building. 
  */
 `default_nettype none
+
+`ifdef ULX3S
+    `timescale 1ns/1ps
+`else
+    /* Tiny Tapeout doesn't support timescale directives, so we can ignore it. */
+`endif /* ULX3S */
 
 
 /* There's about a 5% (~ 100 cells) increase in the number of cells when using long strings.
@@ -16,6 +24,7 @@
 `define USE_LONG_STRINGS
 `define UART_ENABLED
 `define SPI_ENABLED
+`define TRNG_ENABLED
 
 /* optionally define an SPI test byte. Default is 0x42 */
 `define SPI_TEST_BYTE 8'hD2
@@ -24,8 +33,32 @@
 `define SPI_TEST_FIXED
 // `define SPI_TEST_ECHO
 
+/* Conditional TRNG settings */
 `ifdef ULX3S
-    /* /ulx3s/Makefile includes references to needed files */
+    /* Do not define TRNG_USE_RO when building for ULX3S since
+     * the real RO-based TRNG is only available in the Tiny Tapeout environment. */
+    `ifdef TRNG_USE_RO
+        PROJECT_ULX3S_MUST_NOT_USE_TRNG_USE_RO u_stop ();
+    `endif
+`else
+    `define TRNG_USE_RO
+`endif
+
+/*
+ * Build Environment Configuration
+ *
+ * The codebase is designed to be portable across different FPGA platforms and simulation environments.
+ * Conditional compilation directives are used to include or exclude code based on the target environment.
+ * This allows for a single codebase that can be built for both the ULX3S FPGA and the Tiny Tapeout platform,
+ * while still supporting environment-specific features and optimizations.
+ *
+ * Key points:
+ * - The `ULX3S` macro is defined when building for the ULX3S FPGA, enabling ULX3S-specific code paths.
+ * - When `ULX3S` is not defined, it is assumed that the build target is Tiny Tapeout, and Tiny Tapeout-specific code paths are enabled.
+ * - This structure allows for clean separation of environment-specific code while maintaining a shared core logic.
+ */
+`ifdef ULX3S
+    /* The ./ulx3s/Makefile includes references to needed files */
 `else
     /* Tiny Tapeout needs to include all the files directly since it doesn't support Makefiles.
      * or list them in /info.yaml file (pick one, don't mix) */
@@ -35,16 +68,14 @@
     `include "UART/uart_tx_min.v"
     `include "UART/uart_trng_ascii_core.v"
     `include "TRNG/trng_cfg_ascii_core.v"
-    `include "TRNG/trng_stub.v"
+    `ifdef TRNG_ENABLED
+        `include "TRNG/trng_lab_core.v"
+    `else
+        `include "TRNG/trng_stub.v"
+    `endif /* TRNG_ENABLED */
 `endif /* ULX3S */
 
-`ifdef ULX3S
-    `timescale 1ns/1ps
-`else
-    /* Tiny Tapeout doesn't support timescale directives, so we can ignore it. */
-`endif /* ULX3S */
-
-/* See companion prject: SKY130 (ChipFoundry) tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab */
+/* See companion project: SKY130 (ChipFoundry) tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab */
 
 /* Assume TT needs this file to be called project.v 
  * but the module is called tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab - so disable warning: */
@@ -116,7 +147,7 @@ module tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
 
 endmodule
 
-/* Sttings Sanity Check */
+/* Settings Sanity Check */
 `ifdef SPI_TEST_FIXED
     `ifdef SPI_TEST_ECHO
         MODULE_SPI_TEST_ECHO_MUST_NOT_BE_ENABLED_WITH_SPI_TEST_FIXED u_stop ();

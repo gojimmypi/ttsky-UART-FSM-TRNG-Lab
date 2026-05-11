@@ -79,8 +79,8 @@ module trng_cfg_ascii_core
 
 `ifdef USE_LONG_STRINGS
     localparam [4:0] ST_Q_STR      = 5'd14;
-    localparam integer VERSION_LEN = 23;             /* 123456789012345678901234 */
-    localparam [(8 * VERSION_LEN) - 1:0] VERSION_STR = "Version 0.1.2 5/10/2026";
+    localparam integer VERSION_LEN = 24;             /* 123456789012345678901234 */
+    localparam [(8 * VERSION_LEN) - 1:0] VERSION_STR = "Version 0.1.2a 5/10/2026";
 `else
 `endif
 
