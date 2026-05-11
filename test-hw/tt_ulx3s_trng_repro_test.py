@@ -50,7 +50,7 @@ def send_command(ser, command, args):
 def expect_ok(name, response):
     if response != b"OK\r":
         print(f"FAIL: {name}")
-        print( "Expected: b'OK\\r'")
+        print("  Expected: b'OK\\r'")
         print(f"  Actual:   {response!r}")
         return False
 
@@ -81,6 +81,10 @@ def configure_lfsr_test_mode(ser, args):
 
     # Disable sampling before changing configuration.
     ok = write_ok(ser, args, "E0 disable", b"E0\r") and ok
+
+    # Pulse TRNG internal reset through reg_ctrl[2].
+    ok = write_ok(ser, args, "W1 assert TRNG reset", b"W1\r") and ok
+    ok = write_ok(ser, args, "W0 release TRNG reset", b"W0\r") and ok
 
     # Select source 0:
     # SRC_LFSR deterministic test source.
