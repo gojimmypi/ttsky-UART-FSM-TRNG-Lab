@@ -58,6 +58,10 @@ module trng_lab_core
     wire        unused_reg_src;
     wire        unused_reg_mode;
 
+    wire trng_reset;
+
+    assign trng_reset = reg_ctrl[2];
+
     assign trng_enable = reg_ctrl[0];
     assign source_select = reg_src[1:0];
 
@@ -124,7 +128,7 @@ module trng_lab_core
     end
 
     always @(posedge clk) begin
-        if (!rst_n) begin
+        if (!rst_n || trng_reset) begin
             sample_ctr      <= 16'h0000;
             lfsr            <= 16'h1ACE;
             sample_shift    <= 16'h0000;
@@ -160,11 +164,11 @@ module trng_lab_core
                 end
             end else begin
                 sample_ctr <= 16'h0000;
-            end
-        end
-    end
+            end /* if (trng_enable) */
+        end /* else */
+    end /* always */
 
-endmodule
+endmodule /* trng_lab_core */
 
 module trng_ro
 #(
