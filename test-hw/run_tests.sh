@@ -45,7 +45,7 @@
 # macOS:   PORT=/dev/tty.usbserial-0001
 # WSL:     PORT=/dev/ttyS8
 
-PORT=/dev/ttyS11
+PORT=/dev/ttyS12
 
 # Run shell check to ensure this a good script.
 # Specify the executable shell checker you want to use:

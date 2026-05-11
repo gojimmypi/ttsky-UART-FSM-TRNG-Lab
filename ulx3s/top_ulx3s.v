@@ -164,7 +164,7 @@ module top_ulx3s (
         assign unused_ftdi_txd = ftdi_txd;
     `else
         `ifdef NO_ESP32_PASSTHRU_ENABLED
-            /* The ULS3S US1 USB port is NOT connected to the ESP32 */
+            /* The ULX3S US1 USB port is NOT connected to the ESP32 */
         `else
             /* Unless explicitly disabled or otherwise assigned, connect the ESP32 to the ULX3S port */
             assign uart_rx_pin = gp0;

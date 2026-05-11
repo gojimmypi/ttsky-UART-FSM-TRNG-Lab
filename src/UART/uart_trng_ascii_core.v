@@ -6,7 +6,7 @@
  *
  * file: uart_trng_ascii_core.v
  *
- * Core integration block for the UART/TRNG ASCII design.
+ * Core integration block for the TRNG ASCII design.
  *
  * Purpose:
  * - Connects the minimal UART RX and TX blocks.

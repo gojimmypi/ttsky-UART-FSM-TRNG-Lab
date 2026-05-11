@@ -33,8 +33,8 @@
     `include "UART/uart_rx_min.v"
     `include "UART/uart_tx_min.v"
     `include "UART/uart_trng_ascii_core.v"
-    `include "UART/TRNG/trng_cfg_ascii_core.v"
-    `include "UART/TRNG/trng_stub.v"
+    `include "TRNG/trng_cfg_ascii_core.v"
+    `include "TRNG/trng_stub.v"
 `endif /* ULX3S */
 
 `ifdef ULX3S

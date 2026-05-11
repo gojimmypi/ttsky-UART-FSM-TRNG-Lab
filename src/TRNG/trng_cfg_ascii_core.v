@@ -6,7 +6,7 @@
  *
  * file: trng_cfg_ascii_core.v
  *
- * ASCII command parser and register front-end for the UART/TRNG experiment.
+ * ASCII command parser and register front-end for the TRNG experiment.
  *
  * Purpose:
  * - Receives decoded UART bytes from uart_rx_min.

@@ -208,7 +208,7 @@ Test locally with ULX3S FPGA in [/ulx3s/](../ulx3s/README.md) directory.
 Example:
 
 ```bash
-cd uls3s
+cd ulx3s
 
 ./ulx3s_build.sh
 ./ulx3s_flash.sh

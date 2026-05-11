@@ -6,7 +6,7 @@
  *
  * file: tt_um_main.v
  *
- * Tiny Tapeout wrapper for the UART/TRNG ASCII core.
+ * Tiny Tapeout wrapper for the TRNG ASCII core.
  *
  * Purpose:
  * - Exposes the project through the standard Tiny Tapeout pin interface.
