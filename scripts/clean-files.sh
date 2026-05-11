@@ -3,6 +3,7 @@
 for f in \
   ./project.v \
   ./tt_um_main.v \
+  ./SPI/spi_master.v \
   ./TRNG/trng_cfg_ascii_core.v \
   ./TRNG/trng_stub.v \
   ./UART/uart_rx_min.v \

@@ -30,6 +30,7 @@
     /* Tiny Tapeout needs to include all the files directly since it doesn't support Makefiles.
      * or list them in /info.yaml file (pick one, don't mix) */
     `include "tt_um_main.v"
+    `include "SPI/spi_slave.v"
     `include "UART/uart_rx_min.v"
     `include "UART/uart_tx_min.v"
     `include "UART/uart_trng_ascii_core.v"
