@@ -90,7 +90,15 @@ module trng_lab_core
     assign unused_reg_src  = &reg_src[7:2];
     assign unused_reg_mode = &reg_mode[7:3];
 
-`ifdef (TRNG_USE_RO) && !def(FPGA) && !def(ULX3S)
+`ifdef TRNG_USE_RO
+    `ifndef FPGA
+        `ifndef ULX3S
+            `define TRNG_LAB_USE_REAL_RO
+        `endif
+    `endif
+`endif
+
+`ifdef TRNG_LAB_USE_REAL_RO
     /* For FPGA or simulation, do not define TRNG_USE_RO. */
     /* For ASIC, define TRNG_USE_RO to instantiate actual ring oscillators. */
     trng_ro #(.STAGES(3))  u_ro0 (.enable(reg_oscen[0]), .ro_out(ro_raw[0]));
