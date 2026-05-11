@@ -55,25 +55,60 @@ def main():
     args = parser.parse_args()
 
     commands = [
+
+        # Disable TRNG updates while configuring registers.
         "E0",
+
+        # Select source 0:
+        # SRC_LFSR deterministic test mode.
         "S0",
+
+        # Set fast sample divider.
+        # Lower values update samples more quickly.
         "D01",
+
+        # Disable all ring oscillators.
+        # Pure deterministic LFSR mode.
         "O00",
+
+        # Enable TRNG sampling.
         "E1",
-        "R6",
-        "R7",
-        "R6",
-        "R7",
-        "R6",
-        "R7",
+
+        # Freeze the sample register contents so
+        # R6/R7 belong to the same captured sample.
         "E0",
-        "D40",
+
+        # Read low byte of captured sample.
+        "R6",
+
+        # Read high byte of captured sample.
+        "R7",
+
+        # Re-enable sampling to generate a new sample.
         "E1",
+
+        # Freeze again before reading.
+        "E0",
+
+        # Read next sample low byte.
         "R6",
+
+        # Read next sample high byte.
         "R7",
+
+        # Slow down sampling rate substantially.
+        "D40",
+
+        # Enable sampling again using slower divider.
+        "E1",
+
+        # Freeze captured sample.
+        "E0",
+
+        # Read low byte of slower-updating sample.
         "R6",
-        "R7",
-        "R6",
+
+        # Read high byte of slower-updating sample.
         "R7",
     ]
 
