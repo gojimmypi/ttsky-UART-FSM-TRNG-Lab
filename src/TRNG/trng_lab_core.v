@@ -40,8 +40,10 @@ module trng_lab_core
     reg  [15:0] lfsr;
     reg  [15:0] sample_shift;
 
-    reg         ro_sample_meta;
-    reg         ro_sample_sync;
+    reg         ro0_sample_meta;
+    reg         ro0_sample_sync;
+    reg         rox_sample_meta;
+    reg         rox_sample_sync;
     reg         selected_bit;
 
     wire        trng_enable;
@@ -52,9 +54,9 @@ module trng_lab_core
     wire        ro_xor;
     wire        lfsr_next_bit;
 
-    wire _unused_reg_ctrl;
-    wire _unused_reg_src;
-    wire _unused_reg_mode;
+    wire        unused_reg_ctrl;
+    wire        unused_reg_src;
+    wire        unused_reg_mode;
 
     assign trng_enable = reg_ctrl[0];
     assign source_select = reg_src[1:0];
@@ -68,9 +70,9 @@ module trng_lab_core
 
     assign trng_bit = sample_shift[0];
 
-    assign _unused_reg_ctrl = &reg_ctrl[7:3];
-    assign _unused_reg_src  = &reg_src[7:2];
-    assign _unused_reg_mode = &reg_mode[7:3];
+    assign unused_reg_ctrl = &reg_ctrl[7:3];
+    assign unused_reg_src  = &reg_src[7:2];
+    assign unused_reg_mode = &reg_mode[7:3];
 
 `ifdef TRNG_USE_RO
     /*  For FPGA or simulation, do not define TRNG_USE_RO */
@@ -104,15 +106,15 @@ module trng_lab_core
             end
 
             SRC_RO0: begin
-                selected_bit = ro_sample_sync;
+                selected_bit = ro0_sample_sync;
             end
 
             SRC_ROX: begin
-                selected_bit = ro_sample_sync ^ sample_shift[1];
+                selected_bit = rox_sample_sync;
             end
 
             SRC_MIX: begin
-                selected_bit = ro_sample_sync ^ lfsr[0] ^ lfsr[5] ^ sample_shift[3];
+                selected_bit = rox_sample_sync ^ lfsr[0] ^ lfsr[5] ^ sample_shift[3];
             end
 
             default: begin
@@ -123,17 +125,22 @@ module trng_lab_core
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            sample_ctr     <= 16'h0000;
-            lfsr           <= 16'h1ACE;
-            sample_shift   <= 16'h0000;
-            ro_sample_meta <= 1'b0;
-            ro_sample_sync <= 1'b0;
-            reg_status     <= 8'h00;
-            reg_rawlo      <= 8'h00;
-            reg_rawhi      <= 8'h00;
+            sample_ctr      <= 16'h0000;
+            lfsr            <= 16'h1ACE;
+            sample_shift    <= 16'h0000;
+            ro0_sample_meta <= 1'b0;
+            ro0_sample_sync <= 1'b0;
+            rox_sample_meta <= 1'b0;
+            rox_sample_sync <= 1'b0;
+            reg_status      <= 8'h00;
+            reg_rawlo       <= 8'h00;
+            reg_rawhi       <= 8'h00;
         end else begin
-            ro_sample_meta <= ro_xor;
-            ro_sample_sync <= ro_sample_meta;
+            ro0_sample_meta <= ro_raw[0];
+            ro0_sample_sync <= ro0_sample_meta;
+
+            rox_sample_meta <= ro_xor;
+            rox_sample_sync <= rox_sample_meta;
 
             reg_status[0]   <= trng_enable;
             reg_status[1]   <= sample_tick;
@@ -168,7 +175,7 @@ module trng_ro
     output wire ro_out
 );
 
-    wire [STAGES:0] ring;
+    (* keep *) wire [STAGES:0] ring;
 
     assign ring[0] = enable ? ~ring[STAGES] : 1'b0;
 
