@@ -46,6 +46,12 @@ module trng_lab_core
     reg         rox_sample_sync;
     reg         selected_bit;
 
+    reg         trng_step_d;
+
+    wire        trng_step;
+    wire        trng_step_pulse;
+    wire        do_sample;
+
     wire        trng_enable;
     wire        sample_tick;
     wire [1:0]  source_select;
@@ -58,14 +64,20 @@ module trng_lab_core
     wire        unused_reg_src;
     wire        unused_reg_mode;
 
-    wire trng_reset;
+    wire        trng_reset;
 
     assign trng_reset = reg_ctrl[2];
+
+    /* reg_ctrl[1], written by V1/V0, is a deterministic single-step request. */
+    assign trng_step = reg_ctrl[1];
+    assign trng_step_pulse = trng_step && !trng_step_d;
 
     assign trng_enable = reg_ctrl[0];
     assign source_select = reg_src[1:0];
 
     assign sample_tick = sample_ctr >= {8'h00, reg_div};
+
+    assign do_sample = (trng_enable && sample_tick) || trng_step_pulse;
 
     assign lfsr_next_bit = lfsr[15] ^ lfsr[13] ^ lfsr[12] ^ lfsr[10];
 
@@ -79,8 +91,8 @@ module trng_lab_core
     assign unused_reg_mode = &reg_mode[7:3];
 
 `ifdef TRNG_USE_RO
-    /*  For FPGA or simulation, do not define TRNG_USE_RO */
-    /*  For ASIC, define TRNG_USE_RO to instantiate actual ring oscillators. */
+    /* For FPGA or simulation, do not define TRNG_USE_RO. */
+    /* For ASIC, define TRNG_USE_RO to instantiate actual ring oscillators. */
     trng_ro #(.STAGES(3))  u_ro0 (.enable(reg_oscen[0]), .ro_out(ro_raw[0]));
     trng_ro #(.STAGES(5))  u_ro1 (.enable(reg_oscen[1]), .ro_out(ro_raw[1]));
     trng_ro #(.STAGES(7))  u_ro2 (.enable(reg_oscen[2]), .ro_out(ro_raw[2]));
@@ -129,6 +141,8 @@ module trng_lab_core
 
     always @(posedge clk) begin
         if (!rst_n || trng_reset) begin
+            trng_step_d     <= 1'b0;
+
             sample_ctr      <= 16'h0000;
             lfsr            <= 16'h1ACE;
             sample_shift    <= 16'h0000;
@@ -140,6 +154,8 @@ module trng_lab_core
             reg_rawlo       <= 8'h00;
             reg_rawhi       <= 8'h00;
         end else begin
+            trng_step_d     <= trng_step;
+
             ro0_sample_meta <= ro_raw[0];
             ro0_sample_sync <= ro0_sample_meta;
 
@@ -152,21 +168,19 @@ module trng_lab_core
             reg_status[4:3] <= source_select;
             reg_status[7:5] <= reg_mode[2:0];
 
-            if (trng_enable) begin
-                if (sample_tick) begin
-                    sample_ctr   <= 16'h0000;
-                    lfsr         <= {lfsr[14:0], lfsr_next_bit};
-                    sample_shift <= {sample_shift[14:0], selected_bit};
-                    reg_rawlo    <= sample_shift[7:0];
-                    reg_rawhi    <= sample_shift[15:8];
-                end else begin
-                    sample_ctr <= sample_ctr + 16'h0001;
-                end
+            if (do_sample) begin
+                sample_ctr   <= 16'h0000;
+                lfsr         <= {lfsr[14:0], lfsr_next_bit};
+                sample_shift <= {sample_shift[14:0], selected_bit};
+                reg_rawlo    <= {sample_shift[6:0], selected_bit};
+                reg_rawhi    <= sample_shift[14:7];
+            end else if (trng_enable) begin
+                sample_ctr <= sample_ctr + 16'h0001;
             end else begin
                 sample_ctr <= 16'h0000;
-            end /* if (trng_enable) */
-        end /* else */
-    end /* always */
+            end
+        end
+    end
 
 endmodule /* trng_lab_core */
 

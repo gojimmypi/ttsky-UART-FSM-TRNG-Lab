@@ -4,6 +4,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # file: tt_ulx3s_trng_repro_test.py
+#
+# Reproducibility test for the deterministic LFSR path in trng_lab_core.
+#
+# This does not test physical entropy. It verifies that source S0 can be reset
+# and stepped deterministically, which makes it useful for regression testing.
 
 import argparse
 import re
@@ -76,11 +81,27 @@ def read_reg(ser, args, reg_num):
     return int(match.group(2), 16)
 
 
+def pulse_single_step(ser, args):
+    ok = True
+
+    # Assert the deterministic single-step bit.
+    ok = write_ok(ser, args, "V1 assert single step", b"V1\r") and ok
+
+    # Release the deterministic single-step bit.
+    # The RTL detects the rising edge, so this prepares the next step.
+    ok = write_ok(ser, args, "V0 release single step", b"V0\r") and ok
+
+    return ok
+
+
 def configure_lfsr_test_mode(ser, args):
     ok = True
 
-    # Disable sampling before changing configuration.
+    # Disable free-running sampling before changing configuration.
     ok = write_ok(ser, args, "E0 disable", b"E0\r") and ok
+
+    # Clear single-step state before asserting reset.
+    ok = write_ok(ser, args, "V0 clear single step", b"V0\r") and ok
 
     # Pulse TRNG internal reset through reg_ctrl[2].
     ok = write_ok(ser, args, "W1 assert TRNG reset", b"W1\r") and ok
@@ -94,7 +115,8 @@ def configure_lfsr_test_mode(ser, args):
     # This keeps the test purely digital and deterministic.
     ok = write_ok(ser, args, "O00 disable oscillators", b"O00\r") and ok
 
-    # Use fast sample divider.
+    # Use fast divider for consistency with other TRNG tests.
+    # The divider is not used by single-step capture.
     ok = write_ok(ser, args, "D01 set divider", b"D01\r") and ok
 
     return ok
@@ -103,11 +125,14 @@ def configure_lfsr_test_mode(ser, args):
 def capture_sample(ser, args):
     ok = True
 
-    # Enable sampling long enough for the core to update.
-    ok = write_ok(ser, args, "E1 enable sampling", b"E1\r") and ok
+    # Keep free-running sampling disabled.
+    ok = write_ok(ser, args, "E0 disable sampling", b"E0\r") and ok
 
-    # Freeze R6/R7 so the pair is coherent.
-    ok = write_ok(ser, args, "E0 freeze sampling", b"E0\r") and ok
+    # Build one reported sample from several deterministic one-bit captures.
+    # With the default of 16 steps, R6/R7 contains a full 16-bit sample_shift
+    # value instead of the early 0001, 0003, 0007 fill pattern.
+    for _ in range(args.bits_per_sample):
+        ok = pulse_single_step(ser, args) and ok
 
     rawlo = read_reg(ser, args, 6)
     rawhi = read_reg(ser, args, 7)
@@ -142,11 +167,49 @@ def collect_sequence(ser, args, name):
     return samples
 
 
+def evaluate_sequence(samples):
+    unique_count = len(set(samples))
+    zero_count = samples.count(0x0000)
+    ones_count = samples.count(0xFFFF)
+
+    bit_ones = 0
+    total_bits = len(samples) * 16
+
+    for sample in samples:
+        bit_ones += sample.bit_count()
+
+    bit_ratio = bit_ones / total_bits
+
+    print("")
+    print("Sequence quality check:")
+    print(f"  Samples:      {len(samples)}")
+    print(f"  Unique:       {unique_count}")
+    print(f"  Zero samples: {zero_count}")
+    print(f"  0xFFFF count: {ones_count}")
+    print(f"  One bits:     {bit_ones}/{total_bits}")
+    print(f"  One ratio:    {bit_ratio:.3f}")
+
+    if unique_count < 2:
+        print("FAIL: deterministic sequence is stuck")
+        return False
+
+    if zero_count == len(samples):
+        print("FAIL: deterministic sequence is all zero")
+        return False
+
+    if ones_count == len(samples):
+        print("FAIL: deterministic sequence is all 0xFFFF")
+        return False
+
+    print("PASS: deterministic sequence is not stuck")
+    return True
+
+
 def compare_sequences(first, second):
     ok = True
 
     print("")
-    print("Evaluation:")
+    print("Reproducibility evaluation:")
 
     if len(first) != len(second):
         print("FAIL: sequence lengths differ")
@@ -176,6 +239,7 @@ def main():
     parser.add_argument("--timeout", type=float, default=2.0)
     parser.add_argument("--idle-time", type=float, default=0.05)
     parser.add_argument("--samples", type=int, default=8)
+    parser.add_argument("--bits-per-sample", type=int, default=16)
     args = parser.parse_args()
 
     ser = serial.Serial(args.port, args.baud, timeout=0.01)
@@ -194,12 +258,16 @@ def main():
             print("FAIL")
             return 1
 
-        if compare_sequences(first, second):
-            print("")
+        ok = True
+        ok = compare_sequences(first, second) and ok
+        ok = evaluate_sequence(first) and ok
+
+        print("")
+
+        if ok:
             print("PASS")
             return 0
 
-        print("")
         print("FAIL")
         return 1
 
