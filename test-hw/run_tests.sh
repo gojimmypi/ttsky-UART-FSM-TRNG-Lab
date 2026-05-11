@@ -214,4 +214,6 @@ else
     python ./tt_ulx3s_uart_test.py --port "$PORT" --reset-registers || exit 1
 
     python ./tt_ulx3s_trng_uart_test.py --port "$PORT"              || exit 1
+
+    python ./tt_ulx3s_trng_repro_test.py --port  "$PORT"            || exit 1
 fi

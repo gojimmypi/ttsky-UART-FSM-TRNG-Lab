@@ -46,11 +46,6 @@ module trng_lab_core
     reg         rox_sample_sync;
     reg         selected_bit;
 
-    reg         trng_step_d; /* deterministic single-step/capture mode using reg_ctrl[1], controlled by V1/V0 */
-    wire        trng_step;
-    wire        trng_step_pulse;
-    wire        do_sample;
-
     wire        trng_enable;
     wire        sample_tick;
     wire [1:0]  source_select;
@@ -66,9 +61,6 @@ module trng_lab_core
     wire trng_reset;
 
     assign trng_reset = reg_ctrl[2];
-    assign trng_step = reg_ctrl[1];
-    assign trng_step_pulse = trng_step && !trng_step_d;
-    assign do_sample = (trng_enable && sample_tick) || trng_step_pulse;
 
     assign trng_enable = reg_ctrl[0];
     assign source_select = reg_src[1:0];
@@ -137,8 +129,6 @@ module trng_lab_core
 
     always @(posedge clk) begin
         if (!rst_n || trng_reset) begin
-            trng_step_d     <= 1'b0;
-
             sample_ctr      <= 16'h0000;
             lfsr            <= 16'h1ACE;
             sample_shift    <= 16'h0000;
@@ -150,8 +140,6 @@ module trng_lab_core
             reg_rawlo       <= 8'h00;
             reg_rawhi       <= 8'h00;
         end else begin
-            trng_step_d     <= trng_step;
-
             ro0_sample_meta <= ro_raw[0];
             ro0_sample_sync <= ro0_sample_meta;
 
@@ -164,8 +152,8 @@ module trng_lab_core
             reg_status[4:3] <= source_select;
             reg_status[7:5] <= reg_mode[2:0];
 
-            if (trng_enable || trng_step_pulse) begin
-                if (do_sample) begin
+            if (trng_enable) begin
+                if (sample_tick) begin
                     sample_ctr   <= 16'h0000;
                     lfsr         <= {lfsr[14:0], lfsr_next_bit};
                     sample_shift <= {sample_shift[14:0], selected_bit};
