@@ -82,6 +82,9 @@ def configure_lfsr_test_mode(ser, args):
     # Disable sampling before changing configuration.
     ok = write_ok(ser, args, "E0 disable", b"E0\r") and ok
 
+    # Clear single-step capture state V0 *before* reset 
+    ok = write_ok(ser, args, "V0 clear single step", b"V0\r") and ok
+
     # Pulse TRNG internal reset through reg_ctrl[2].
     ok = write_ok(ser, args, "W1 assert TRNG reset", b"W1\r") and ok
     ok = write_ok(ser, args, "W0 release TRNG reset", b"W0\r") and ok
@@ -103,11 +106,13 @@ def configure_lfsr_test_mode(ser, args):
 def capture_sample(ser, args):
     ok = True
 
-    # Enable sampling long enough for the core to update.
-    ok = write_ok(ser, args, "E1 enable sampling", b"E1\r") and ok
+    # Keep free-running sampling disabled.
+    ok = write_ok(ser, args, "E0 disable sampling", b"E0\r") and ok
 
-    # Freeze R6/R7 so the pair is coherent.
-    ok = write_ok(ser, args, "E0 freeze sampling", b"E0\r") and ok
+    # Pulse single-step capture through reg_ctrl[1].
+    # This advances the LFSR exactly once independent of UART timing.
+    ok = write_ok(ser, args, "V1 assert single step", b"V1\r") and ok
+    ok = write_ok(ser, args, "V0 release single step", b"V0\r") and ok
 
     rawlo = read_reg(ser, args, 6)
     rawhi = read_reg(ser, args, 7)
