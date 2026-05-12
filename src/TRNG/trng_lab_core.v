@@ -249,7 +249,13 @@ module trng_ro_inverter_cell
 
     `LINT_OFF_PINMISSING_POWER_PINS
 
-    `ifdef SKY130
+    `ifdef sky130
+        (* keep_hierarchy *) sky130_fd_sc_hd__inv_2 u_inv
+        (
+            .A(a),
+            .Y(y)
+        );
+    `elsif sky130a
         (* keep_hierarchy *) sky130_fd_sc_hd__inv_2 u_inv
         (
             .A(a),
