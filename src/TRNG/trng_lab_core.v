@@ -252,7 +252,7 @@ module trng_ro_inverter_cell
 
     `LINT_OFF_PINMISSING_POWER_PINS
 
-    /* See targt.pdk.v included at the top-level project.v for the PDK selection. 
+    /* See target.pdk.v included at the top-level project.v for the PDK selection. 
      * The cells instantiated here must match the selected PDK. */ 
     `ifdef PDK_TARGET_SKY130
         (* keep_hierarchy *) sky130_fd_sc_hd__inv_2 u_inv
