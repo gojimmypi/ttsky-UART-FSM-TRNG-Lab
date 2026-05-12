@@ -110,11 +110,14 @@ module trng_lab_core
  */
 `ifdef TRNG_USE_RO
     `ifdef FPGA
-        `error "TRNG_USE_RO is not supported for FPGA builds. Please remove TRNG_USE_RO definition."
+        /* TRNG_USE_RO is not supported for FPGA builds. Please remove TRNG_USE_RO definition. */
+        FPGA_TRNG_USE_RO_NOT_SUPPORTED u_stop ();
     `endif
     `ifdef SYNTH
-        `error "TRNG_USE_RO is not supported for FPGA builds. Please remove TRNG_USE_RO definition."
+        /* TRNG_USE_RO is not supported for FPGA builds. Please remove TRNG_USE_RO definition. */
+        SYNTH_TRNG_USE_RO_NOT_SUPPORTED u_stop ();
     `endif
+
     `ifdef TRNG_ALLOW_REAL_RO
         `define TRNG_LAB_USE_REAL_RO
     `endif

@@ -41,8 +41,12 @@
         PROJECT_ULX3S_MUST_NOT_USE_TRNG_USE_RO u_stop ();
     `endif
 `else
-    `define TRNG_USE_RO
-    `define TRNG_ALLOW_REAL_RO
+    `ifdef __pnr__
+        `define TRNG_USE_RO
+        `define TRNG_ALLOW_REAL_RO
+    `else
+        /* some other non ULX3S, non ASIC path */
+    `endif
 `endif
 
 /*
