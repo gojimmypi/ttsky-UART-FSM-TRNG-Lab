@@ -93,7 +93,9 @@ module trng_lab_core
 `ifdef TRNG_USE_RO
     `ifndef FPGA
         `ifndef ULX3S
-            `define TRNG_LAB_USE_REAL_RO
+            `ifndef SYNTH
+                `define TRNG_LAB_USE_REAL_RO
+            `endif
         `endif
     `endif
 `endif
