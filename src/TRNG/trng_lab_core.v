@@ -192,6 +192,22 @@ module trng_lab_core
 
 endmodule /* trng_lab_core */
 
+`ifdef TRNG_LAB_USE_REAL_RO
+
+module trng_ro_inverter_cell
+(
+    input  wire a,
+    output wire y
+);
+
+    (* keep_hierarchy *) sky130_fd_sc_hd__inv_2 u_inv
+    (
+        .A(a),
+        .Y(y)
+    );
+
+endmodule /* trng_ro_inverter_cell */
+
 module trng_ro
 #(
     parameter integer STAGES = 3
@@ -201,21 +217,26 @@ module trng_ro
     output wire ro_out
 );
 
-    (* keep *) wire [STAGES:0] ring;
+    wire [STAGES-1:0] inv_in;
+    wire [STAGES-1:0] inv_out;
 
-    assign ring[0] = enable ? ~ring[STAGES] : 1'b0;
+    assign inv_in[STAGES-1:1] = inv_out[STAGES-2:0];
+    assign inv_in[0] = inv_out[STAGES-1] & enable;
+    assign ro_out = inv_in[0];
 
-    genvar i;
-
-    generate
-        for (i = 0; i < STAGES; i = i + 1) begin : gen_ro_stage
-            assign ring[i + 1] = ~ring[i];
-        end
-    endgenerate
-
-    assign ro_out = ring[STAGES];
+    (* keep_hierarchy *) trng_ro_inverter_cell inv_array [STAGES-1:0]
+    (
+        .a(inv_in),
+        .y(inv_out)
+    );
 
 endmodule /* trng_ro */
+
+`endif /* TRNG_LAB_USE_REAL_RO */
+
+`ifdef TRNG_LAB_USE_REAL_RO
+    `undef TRNG_LAB_USE_REAL_RO
+`endif
 
 `endif /* TRNG_ENABLED */
 
