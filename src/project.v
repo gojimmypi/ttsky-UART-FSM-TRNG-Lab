@@ -40,6 +40,9 @@
     `ifdef TRNG_USE_RO
         PROJECT_ULX3S_MUST_NOT_USE_TRNG_USE_RO u_stop ();
     `endif
+    `ifdef TRNG_ALLOW_REAL_RO
+        PROJECT_ULX3S_MUST_NOT_USE_TRNG_ALLOW_REAL_RO u_stop ();
+    `endif
 `else
     `ifdef __pnr__
         /* HACK ALERT: __pnr__ does not conclusively prove that we are building for Tiny Tapeout, 
