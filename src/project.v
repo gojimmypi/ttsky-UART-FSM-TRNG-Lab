@@ -42,10 +42,18 @@
     `endif
 `else
     `ifdef __pnr__
+        /* HACK ALERT: __pnr__ does not conclusively prove that we are building for Tiny Tapeout, 
+         * but it is a strong indicator that we are in an environment where the real RO-based TRNG can be used. */
         `define TRNG_USE_RO
         `define TRNG_ALLOW_REAL_RO
     `else
-        /* some other non ULX3S, non ASIC path */
+        /* some other non ULX3S, non ASIC path. Detect if REAL RO defined externally and abort */
+        `ifdef TRNG_USE_RO
+            PROJECT_NON_ASIC_MUST_NOT_USE_TRNG_USE_RO u_stop ();
+        `endif
+        `ifdef TRNG_ALLOW_REAL_RO
+            PROJECT_NON_ASIC_MUST_NOT_USE_TRNG_ALLOW_REAL_RO u_stop ();
+        `endif
     `endif
 `endif
 
