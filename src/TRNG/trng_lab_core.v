@@ -16,6 +16,9 @@
  * Note the project.v settings for TRNG_USE_RO and TRNG_ALLOW_REAL_RO, and the conditional 
  * code below that checks for these defines. (in particular the `ifdef __pnr__`)
  *
+ * There's an additional manual identification of PDK in root-level target_pdk.v included by project.v, 
+ * which is used to conditionally instantiate the correct standard cells in the RO code.
+ *
  * See GDS_logs.zip\runs\wokwi\06-yosys-synthesis\tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab.nl.v
  *   and confirm this exists: module trng_ro_inverter_cell(a, y);
  *   with many instantiated sky130_fd_sc_hd__inv_2 cells inside. 
@@ -249,19 +252,15 @@ module trng_ro_inverter_cell
 
     `LINT_OFF_PINMISSING_POWER_PINS
 
-    `ifdef sky130
+    /* See targt.pdk.v included at the top-level project.v for the PDK selection. 
+     * The cells instantiated here must match the selected PDK. */ 
+    `ifdef PDK_TARGET_SKY130
         (* keep_hierarchy *) sky130_fd_sc_hd__inv_2 u_inv
         (
             .A(a),
             .Y(y)
         );
-    `elsif sky130a
-        (* keep_hierarchy *) sky130_fd_sc_hd__inv_2 u_inv
-        (
-            .A(a),
-            .Y(y)
-        );
-    `elsif GF180
+    `elsif PDK_TARGET_GF180
         (* keep_hierarchy *) gf180mcu_fd_sc_mcu7t5v0__inv_2 u_inv
         (
             .A(a),

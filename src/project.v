@@ -12,6 +12,8 @@
  */
 `default_nettype none
 
+`include "target_pdk.v"
+
 `ifdef ULX3S
     `timescale 1ns/1ps
 `else
