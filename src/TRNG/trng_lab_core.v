@@ -102,19 +102,20 @@ module trng_lab_core
     assign unused_reg_mode = &reg_mode[7:3];
     assign unused_sample_shift = sample_shift[15];
 
+/*
+ * The real RO path instantiates SKY130 standard cells.
+ * Keep it disabled for normal simulation and FPGA builds.
+ * Enable it only for an explicit ASIC RO experiment by defining both:
+ * TRNG_USE_RO and TRNG_ALLOW_REAL_RO.
+ */
 `ifdef TRNG_USE_RO
-    `ifndef FPGA
-        `ifndef ULX3S
-            `ifndef SYNTH
-                `define TRNG_LAB_USE_REAL_RO
-            `endif
-        `endif
+    `ifdef TRNG_ALLOW_REAL_RO
+        `define TRNG_LAB_USE_REAL_RO
     `endif
 `endif
 
 `ifdef TRNG_LAB_USE_REAL_RO
-    /* For FPGA or simulation, do not define TRNG_USE_RO. */
-    /* For ASIC, define TRNG_USE_RO to instantiate actual ring oscillators. */
+    /* Real ring oscillator path. Requires explicit TRNG_ALLOW_REAL_RO. */
     trng_ro #(.STAGES(3))  u_ro0 (.enable(reg_oscen[0]), .ro_out(ro_raw[0]));
     trng_ro #(.STAGES(5))  u_ro1 (.enable(reg_oscen[1]), .ro_out(ro_raw[1]));
     trng_ro #(.STAGES(7))  u_ro2 (.enable(reg_oscen[2]), .ro_out(ro_raw[2]));
