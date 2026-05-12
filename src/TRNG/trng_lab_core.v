@@ -261,9 +261,9 @@ module trng_ro_inverter_cell
             .Y(y)
         );
     `elsif PDK_TARGET_GF180
-        (* keep_hierarchy *) gf180mcu_fd_sc_mcu7t5v0__inv_2 u_inv
+        (* keep_hierarchy *) gf180mcu_fd_sc_mcu7t5v0__inv_1 u_inv
         (
-            .A(a),
+            .I(a),
             .ZN(y)
         );
     `else
