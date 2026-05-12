@@ -26,6 +26,7 @@ FORCE_LOOPBACK ?= 0
 FORCE_DEEP_LOOPBACK ?= 0
 
 YOSYS_DEFS :=
+YOSYS_DEFS += -DULX3S
 
 ifeq ($(FORCE_LOOPBACK),1)
     YOSYS_DEFS += -DFORCE_LOOPBACK
@@ -43,6 +44,12 @@ TEST_DIR := $(ROOT)/test
 INFO_YAML ?= ../info.yaml
 TOP_MODULE := $(shell sed -n 's/^[[:space:]]*top_module:[[:space:]]*"\?\([^"]*\)"\?/\1/p' $(INFO_YAML))
 COMPILE_ARGS += -DTT_TOP_MODULE=$(TOP_MODULE)
+
+ifeq ($(TOP_MODULE),)
+$(error Could not find top_module in $(INFO_YAML))
+endif
+
+YOSYS_DEFS += -DTT_TOP_MODULE=$(TOP_MODULE)
 
 # TT uses tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab, but we need a ulx3s wrapper for that in ./top_ulx3s.v
 # RTL_TOP  := tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
@@ -96,7 +103,7 @@ $(VDIR)/$(SIMEXE): $(RTL_SRCS) $(TB_SRCS)
 bit: $(BITFILE)
 
 $(JSON): $(RTL_SRCS)
-	$(YOSYS) $(YOSYS_DEFS) -p "read_verilog -DULX3S $(RTL_SRCS); synth_ecp5 -top $(RTL_TOP) -json $(JSON)"
+	$(YOSYS) $(YOSYS_DEFS) -p "read_verilog $(RTL_SRCS); synth_ecp5 -top $(RTL_TOP) -json $(JSON)"
 
 $(CONFIG): $(JSON)
 	$(NEXTPNR) \
