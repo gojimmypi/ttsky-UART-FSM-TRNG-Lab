@@ -14,6 +14,16 @@
 /* this entire file is only for the TRNG lab core, which is an optional alternative to the trng_stub */
 `ifdef TRNG_ENABLED
 
+`ifndef LINT_OFF_PINMISSING_POWER_PINS
+`ifdef USE_POWER_PINS
+`define LINT_OFF_PINMISSING_POWER_PINS /* verilator lint_off PINMISSING */
+`define LINT_ON_PINMISSING_POWER_PINS  /* verilator lint_on PINMISSING */
+`else
+`define LINT_OFF_PINMISSING_POWER_PINS /* */
+`define LINT_ON_PINMISSING_POWER_PINS  /* */
+`endif
+`endif
+
 module trng_lab_core
 (
     input  wire       clk,
@@ -63,6 +73,7 @@ module trng_lab_core
     wire        unused_reg_ctrl;
     wire        unused_reg_src;
     wire        unused_reg_mode;
+    wire        unused_sample_shift;
 
     wire        trng_reset;
 
@@ -89,6 +100,7 @@ module trng_lab_core
     assign unused_reg_ctrl = &reg_ctrl[7:3];
     assign unused_reg_src  = &reg_src[7:2];
     assign unused_reg_mode = &reg_mode[7:3];
+    assign unused_sample_shift = sample_shift[15];
 
 `ifdef TRNG_USE_RO
     `ifndef FPGA
@@ -202,11 +214,13 @@ module trng_ro_inverter_cell
     output wire y
 );
 
+    `LINT_OFF_PINMISSING_POWER_PINS
     (* keep_hierarchy *) sky130_fd_sc_hd__inv_2 u_inv
     (
         .A(a),
         .Y(y)
     );
+    `LINT_ON_PINMISSING_POWER_PINS
 
 endmodule /* trng_ro_inverter_cell */
 
@@ -238,6 +252,14 @@ endmodule /* trng_ro */
 
 `ifdef TRNG_LAB_USE_REAL_RO
     `undef TRNG_LAB_USE_REAL_RO
+`endif
+
+`ifdef LINT_OFF_PINMISSING_POWER_PINS
+    `undef LINT_OFF_PINMISSING_POWER_PINS
+`endif
+
+`ifdef LINT_ON_PINMISSING_POWER_PINS
+    `undef LINT_ON_PINMISSING_POWER_PINS
 `endif
 
 `endif /* TRNG_ENABLED */
