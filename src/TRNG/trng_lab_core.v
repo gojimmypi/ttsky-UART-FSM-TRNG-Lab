@@ -2,12 +2,32 @@
  * Copyright (c) 2026 gojimmypi
  * SPDX-License-Identifier: Apache-2.0
  *
+ * See ATTRIBUTION.md for third-party sources and credits.
+ *
  * file: trng_lab_core.v
  *
  * Experimental TRNG lab core.
  *
  * This is intended for education and experimentation.
  * It is not a certified cryptographic random number generator.
+ *
+ * WARNING: There's a bit of hackery in this file to allow the real RO-based TRNG code 
+ * to be included only when explicitly enabled, and only in appropriate build environments.
+ * Note the project.v settings for TRNG_USE_RO and TRNG_ALLOW_REAL_RO, and the conditional 
+ * code below that checks for these defines. (in particular the `ifdef __pnr__`)
+ *
+ * See GDS_logs.zip\runs\wokwi\06-yosys-synthesis\tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab.nl.v
+ *   and confirm this exists: module trng_ro_inverter_cell(a, y);
+ *   with many instantiated sky130_fd_sc_hd__inv_2 cells inside. 
+ * If you see this, the real RO code is included. If you see instead a module trng_ro_inverter_cell 
+ * with no internal cells, then the real RO code is not included and the trng_ro module is just a passthrough.
+ *
+ * ABC: Error: The network is combinational.
+ *   This is GOOD for a ring oscillator design.
+ *
+ * gdslogs/runs/wokwi/58-klayout-streamout/klayout-streamout.log
+ *   Should contain the text:
+ *   [INFO] All LEF cells have matching GDS cells.
  */
 `default_nettype none
 
@@ -15,13 +35,13 @@
 `ifdef TRNG_ENABLED
 
 `ifndef LINT_OFF_PINMISSING_POWER_PINS
-`ifdef USE_POWER_PINS
-`define LINT_OFF_PINMISSING_POWER_PINS /* verilator lint_off PINMISSING */
-`define LINT_ON_PINMISSING_POWER_PINS  /* verilator lint_on PINMISSING */
-`else
-`define LINT_OFF_PINMISSING_POWER_PINS /* */
-`define LINT_ON_PINMISSING_POWER_PINS  /* */
-`endif
+    `ifdef USE_POWER_PINS
+        `define LINT_OFF_PINMISSING_POWER_PINS /* verilator lint_off PINMISSING */
+        `define LINT_ON_PINMISSING_POWER_PINS  /* verilator lint_on PINMISSING */
+    `else
+        `define LINT_OFF_PINMISSING_POWER_PINS /* */
+        `define LINT_ON_PINMISSING_POWER_PINS  /* */
+    `endif
 `endif
 
 module trng_lab_core
@@ -119,6 +139,8 @@ module trng_lab_core
     `endif
 
     `ifdef TRNG_ALLOW_REAL_RO
+        /* TRNG_LAB_USE_REAL_RO is used internally to conditionally include the real RO code. 
+         * Do not define externally as there are multiple build paths during testing (e.g. FPGA) */
         `define TRNG_LAB_USE_REAL_RO
     `endif
 `endif
@@ -135,6 +157,7 @@ module trng_lab_core
     trng_ro #(.STAGES(17)) u_ro7 (.enable(reg_oscen[7]), .ro_out(ro_raw[7]));
 
 `else
+    /* Typical simulation or FPGA path. The "RO" bits are just taps from the LFSR. */
 
     assign ro_raw[0] = lfsr[0];
     assign ro_raw[1] = lfsr[3];
