@@ -261,6 +261,7 @@ module trng_ro_inverter_cell
             .Y(y)
         );
     `elsif PDK_TARGET_GF180
+        /* See https://github.com/google/globalfoundries-pdk-libs-gf180mcu_fd_sc_mcu7t5v0/blob/main/cells/inv/gf180mcu_fd_sc_mcu7t5v0__inv_1.functional.v */
         (* keep_hierarchy *) gf180mcu_fd_sc_mcu7t5v0__inv_1 u_inv
         (
             .I(a),
