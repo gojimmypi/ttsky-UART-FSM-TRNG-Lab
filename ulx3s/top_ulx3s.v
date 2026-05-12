@@ -211,7 +211,7 @@ module top_ulx3s (
     /*************************************************************************
      * Instantiate the main DUT from TT module in /project.v
      ************************************************************************/
-    tt_um_gojimmypi_UART_FSM_TRNG_Lab dut
+    tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab dut
     (
         .ui_in(ui_in),
         .uo_out(uo_out),
