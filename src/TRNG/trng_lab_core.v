@@ -248,11 +248,24 @@ module trng_ro_inverter_cell
 );
 
     `LINT_OFF_PINMISSING_POWER_PINS
-    (* keep_hierarchy *) sky130_fd_sc_hd__inv_2 u_inv
-    (
-        .A(a),
-        .Y(y)
-    );
+
+    `ifdef SKY130
+        (* keep_hierarchy *) sky130_fd_sc_hd__inv_2 u_inv
+        (
+            .A(a),
+            .Y(y)
+        );
+    `elsif GF180
+        (* keep_hierarchy *) gf180mcu_fd_sc_mcu7t5v0__inv_2 u_inv
+        (
+            .A(a),
+            .ZN(y)
+        );
+    `else
+        /* Only SKY130 and GF180 supported at this time */
+        PROJECT_ASIC_SKY130_OR_GF180_ONLY u_stop ();
+    `endif
+
     `LINT_ON_PINMISSING_POWER_PINS
 
 endmodule /* trng_ro_inverter_cell */
@@ -271,6 +284,7 @@ module trng_ro
 
     assign inv_in[STAGES-1:1] = inv_out[STAGES-2:0];
     assign inv_in[0] = inv_out[STAGES-1] & enable;
+
     assign ro_out = inv_in[0];
 
     (* keep_hierarchy *) trng_ro_inverter_cell inv_array [STAGES-1:0]
