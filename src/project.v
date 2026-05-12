@@ -98,9 +98,25 @@
 /* Assume TT needs this file to be called project.v 
  * but the module is called tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab - so disable warning: */
 
+ /* Define a unique name for the module based on the target PDK. 
+  * This allows the same project.v file to be used across different PDK targets without modification, 
+  * while still adhering to any naming requirements imposed by the Tiny Tapeout platform. */
+ `ifdef PDK_TARGET_SKY130
 /* verilator lint_off DECLFILENAME */
 module tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
 /* verilator lint_on DECLFILENAME */
+
+`elsif PDK_TARGET_GF180
+/* verilator lint_off DECLFILENAME */
+module tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab
+/* verilator lint_on DECLFILENAME */
+
+`else
+/* Only SKY130 and GF180 supported at this time. See target_pdk.v 
+ * There will likely be an error later with this name and the need for real RO */
+module UART_FSM_TRNG_Lab
+`endif
+
 #(
     parameter [31:0] CLOCK_HZ  = 32'd25000000,  /* default clock is 25 MHz     */
     parameter [31:0] UART_BAUD = 32'd115200     /* default UART is 115200 baud */

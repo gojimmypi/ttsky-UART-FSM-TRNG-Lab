@@ -267,8 +267,7 @@ module trng_ro_inverter_cell
             .ZN(y)
         );
     `else
-        /* Only SKY130 and GF180 supported at this time */
-        PROJECT_ASIC_SKY130_OR_GF180_ONLY u_stop ();
+        PROJECT_ASIC_SKY130_OR_GF180_ONLY u_stop (); /* Only SKY130 and GF180 supported at this time */
     `endif
 
     `LINT_ON_PINMISSING_POWER_PINS
