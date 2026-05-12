@@ -42,6 +42,7 @@
     `endif
 `else
     `define TRNG_USE_RO
+    `define TRNG_ALLOW_REAL_RO
 `endif
 
 /*

@@ -1,7 +1,5 @@
 # Tiny Tapeout Verilog Source Files
 
-<!-- tests passing but TRNG_LAB_USE_REAL_RO not enabled for ASIC -->
-
 ## Files
 
  - `src\config.json` - edit with caution
