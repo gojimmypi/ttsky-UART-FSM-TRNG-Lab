@@ -35,8 +35,13 @@ module tb ();
   wire VGND = 1'b0;
 `endif
 
-  // Replace tt_um_example with your module name:
-  tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab user_project (
+
+`ifndef TT_TOP_MODULE
+    // Replace tt_um_example with your module name:
+    `define TT_TOP_MODULE tt_um_example
+`endif
+
+`TT_TOP_MODULE user_project (
 
       // Include power ports for the Gate Level test:
 `ifdef GL_TEST
