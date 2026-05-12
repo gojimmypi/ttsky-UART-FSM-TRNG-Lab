@@ -100,8 +100,10 @@
 
  /* Define a unique name for the module based on the target PDK. 
   * This allows the same project.v file to be used across different PDK targets without modification, 
-  * while still adhering to any naming requirements imposed by the Tiny Tapeout platform. */
- `ifdef PDK_TARGET_SKY130
+  * while still adhering to any naming requirements imposed by the Tiny Tapeout platform. 
+  * 
+  * There's no Makefile to extract name from info.yaml, so the module name is hardcoded here: */
+`ifdef PDK_TARGET_SKY130
 /* verilator lint_off DECLFILENAME */
 module tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
 /* verilator lint_on DECLFILENAME */

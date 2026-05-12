@@ -39,6 +39,11 @@ ROOT     := ..
 SRC_DIR  := $(ROOT)/src
 TEST_DIR := $(ROOT)/test
 
+# Get the TOP_MODULE from the info.yaml file, and pass it as a define. 
+INFO_YAML ?= ../info.yaml
+TOP_MODULE := $(shell sed -n 's/^[[:space:]]*top_module:[[:space:]]*"\?\([^"]*\)"\?/\1/p' $(INFO_YAML))
+COMPILE_ARGS += -DTT_TOP_MODULE=$(TOP_MODULE)
+
 # TT uses tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab, but we need a ulx3s wrapper for that in ./top_ulx3s.v
 # RTL_TOP  := tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
 RTL_TOP  := top_ulx3s

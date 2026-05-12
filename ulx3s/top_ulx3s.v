@@ -211,7 +211,13 @@ module top_ulx3s (
     /*************************************************************************
      * Instantiate the main DUT from TT module in /project.v
      ************************************************************************/
-    tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab dut
+`ifndef TT_TOP_MODULE
+    /* TT_TOP_MODULE should be defined in Makefile, extracted from root info.yaml
+     * Otherwise replace tt_um_example with your module name:  */
+    `define TT_TOP_MODULE tt_um_example
+`endif
+
+    `TT_TOP_MODULE dut
     (
         .ui_in(ui_in),
         .uo_out(uo_out),

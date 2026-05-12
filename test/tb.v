@@ -37,7 +37,8 @@ module tb ();
 
 
 `ifndef TT_TOP_MODULE
-    // Replace tt_um_example with your module name:
+    /* TT_TOP_MODULE should be defined in Makefile, extracted from root info.yaml
+     * Otherwise replace tt_um_example with your module name:  */
     `define TT_TOP_MODULE tt_um_example
 `endif
 
