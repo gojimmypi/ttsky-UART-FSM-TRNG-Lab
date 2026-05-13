@@ -24,6 +24,8 @@
 /* There's about a 5% (~ 100 cells) increase in the number of cells when using long strings.
  * Currently only the version string is implemented. */
 `define USE_LONG_STRINGS
+`define VERSION_STRING_LEN 23 /* 123456789012345678901234 */   
+`define VERSION_STRING          "Version 0.1.3 5/13/2026"   
 `define UART_ENABLED
 `define SPI_ENABLED
 `define TRNG_ENABLED

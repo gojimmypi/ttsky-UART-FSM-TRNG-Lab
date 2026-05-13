@@ -7,6 +7,21 @@ You can also include images in this folder and reference them in the markdown. E
 512 kb in size, and the combined size of all images must be less than 1 MB.
 -->
 
+## Status
+
+- Not submitted to [ttsky26a](https://app.tinytapeout.com/prepurchase?shuttle=ttsky26a). (full!)
+- Probably NOT going to be submitted to [ttsky26b](https://app.tinytapeout.com/prepurchase?shuttle=ttsky26b) (deadline Mon May 18, 2026)
+- Planning submission to [ttgf26a](https://app.tinytapeout.com/prepurchase?shuttle=ttgf26a) (deadline Mon June 22, 2026)
+
+Version 0.1.3
+
+Implemented: 
+
+- Functional UART
+- Functional FSM 
+- Initial demo of SPI (static reply) See [ULX3S ESP32 Demo](../ulx3s/ESP32/README.md)
+- TRNG for SKY130 and GF180, as well as a stub for testing.
+- Next: Mirror UART query onto SPI, add primitive JTAG
 
 ## How it works
 
