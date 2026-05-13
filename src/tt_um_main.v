@@ -6,7 +6,7 @@
  *
  * file: tt_um_main.v
  *
- * Tiny Tapeout wrapper for the UART/TRNG ASCII core.
+ * Tiny Tapeout wrapper for the TRNG ASCII core.
  *
  * Purpose:
  * - Exposes the project through the standard Tiny Tapeout pin interface.
@@ -41,6 +41,8 @@ module tt_um_main
     parameter [31:0] UART_BAUD = 32'd115200
 )
 (
+    /* For Tiny Tapeout, these are the only ports you can use. 
+     * See:    https://tinytapeout.com/specs/pinouts/         */
     input  wire [7:0] ui_in,
     output wire [7:0] uo_out,
     input  wire [7:0] uio_in,
@@ -63,20 +65,17 @@ module tt_um_main
     wire       trng_bit;
     wire       uart_tx;
 
-`ifdef SPI_ENABLED
-    wire       spi_sck;
-    wire       spi_mosi;
-    wire       spi_cs_n;
-    reg        spi_miso;
-    reg [2:0]  spi_sck_sync;
-    reg [2:0]  spi_cs_sync;
-    reg [7:0]  spi_tx_shift;
+    reg        uart_rx_meta;
+    reg        uart_rx_sync;
 
-    wire       spi_sck_fall;
-    wire       spi_cs_start;
-    wire       spi_cs_active;
+`ifdef SPI_ENABLED
+    wire spi_sck;
+    wire spi_mosi;
+    wire spi_cs_n;
+    wire spi_miso;
 `endif
 
+    /* TODO check unused wires when SPI and/or UART not enabled */
     wire _unused_ui_in = &{ui_in[7:4], uio_in[2], ui_in[2:0]};
 
     wire _unused_debug_regs = &{
@@ -102,6 +101,25 @@ module tt_um_main
     assign unused_ok = &{ena, uio_in};
 `endif
 
+    /* 
+     * Synchronize asynchronous UART RX input to the local clock domain.
+     *
+     * The external UART RX pin (ui_in[3]) is asynchronous to clk and can
+     * violate setup/hold timing if sampled directly by synchronous logic.
+     *
+     * A two-stage synchronizer reduces metastability risk and prevents
+     * X propagation/glitches observed during GF180 gate-level simulation.
+     */
+     always @(posedge clk) begin
+        if (!rst_n) begin
+            uart_rx_meta <= 1'b1;
+            uart_rx_sync <= 1'b1;
+        end else begin
+            uart_rx_meta <= ui_in[3];
+            uart_rx_sync <= uart_rx_meta;
+        end
+    end
+
     uart_trng_ascii_core
     #(
         .CLOCK_HZ(CLOCK_HZ),
@@ -111,7 +129,7 @@ module tt_um_main
     (
         .clk(clk),
         .rst_n(rst_n),
-        .uart_rx_i(ui_in[3]),
+        .uart_rx_i(uart_rx_sync),
         .uart_tx_o(uart_tx),
         .reg_ctrl_o(reg_ctrl),
         .reg_src_o(reg_src),
@@ -139,65 +157,19 @@ module tt_um_main
     assign uo_out[7] = reg_rawlo[2];
 
 `ifdef SPI_ENABLED
-    /* Reminder the Tx byte comes from the ESP32; see main.c */
-    `ifdef SPI_TEST_BYTE
-        localparam [7:0] SPI_TEST_BYTE_VAL = `SPI_TEST_BYTE;
-    `else
-        localparam [7:0] SPI_TEST_BYTE_VAL = 8'h42;
-    `endif
-    localparam       SPI_IDLE_MISO = 1'b1;
-
-
     assign spi_cs_n = uio_in[0];
     assign spi_mosi = uio_in[1];
-    /* uio_in[2] not used */
     assign spi_sck  = uio_in[3];
 
-
-    assign spi_sck_fall  = spi_sck_sync[2:1] == 2'b10;
-    assign spi_cs_start  = spi_cs_sync[2:1] == 2'b10;
-    assign spi_cs_active = !spi_cs_sync[2];
-
-    always @(posedge clk) begin
-        if (!rst_n) begin
-            spi_sck_sync <= 3'b000;
-            spi_cs_sync  <= 3'b111;
-            `ifdef SPI_TEST_FIXED
-                spi_tx_shift <= SPI_TEST_BYTE_VAL;
-                spi_miso     <= SPI_IDLE_MISO;
-            `else
-                ERROR NOT IMPLMENTED
-            `endif
-
-        end else begin
-            spi_sck_sync <= {spi_sck_sync[1:0], spi_sck};
-            spi_cs_sync  <= {spi_cs_sync[1:0], spi_cs_n};
-
-            /* SPI slave, mode 0 (CPOL=0, CPHA=0), MSB-first  */
-            /* SPI mode 0 behavior                            */
-            /*   CS_N falls  -> preload first MISO bit        */
-            /*   SCK rises   -> ESP32 samples valid bit       */
-            /*   SCK falls   -> TT prepares next bit          */
-            /*   SCK rises   -> ESP32 samples next valid bit  */
-
-            if (spi_cs_start) begin
-                `ifdef SPI_TEST_FIXED
-                    /* Preload shift register so next bit (bit6) is ready after first clock */
-                    spi_tx_shift <= {SPI_TEST_BYTE_VAL[6:0], 1'b0};
-                    /* Drive first bit (bit7) immediately so master samples valid data on first SCK */
-                    spi_miso     <= SPI_TEST_BYTE_VAL[7];
-                `else
-                    ERROR NOT IMPLMENTED
-                `endif
-            end else if (spi_cs_active && spi_sck_fall) begin
-                /* On SCK falling edge, present next bit to MISO */
-                spi_miso     <= spi_tx_shift[7];
-
-                /* Shift left to prepare following bit */
-                spi_tx_shift <= {spi_tx_shift[6:0], 1'b0};
-            end
-        end
-    end
+    tt_spi_slave u_spi_slave
+    (
+        .clk(clk),
+        .rst_n(rst_n),
+        .spi_sck(spi_sck),
+        .spi_cs_n(spi_cs_n),
+        .spi_mosi(spi_mosi),
+        .spi_miso(spi_miso)
+    );
 
     assign uio_out[0]   = 1'b0;
     assign uio_out[1]   = 1'b0;
@@ -206,11 +178,8 @@ module tt_um_main
 
     assign uio_out[7:4] = reg_rawhi[7:4];
 
-    /* 8'hF4 means only uio[2] and uio[7:4] are driven outputs.
-     * uio[0], uio[1], and uio[3] are inputs for CS, MOSI, and SCK. */
     assign uio_oe = 8'hF4;
 `else
-    /* Drive all UIO pins as outputs and show the high raw-data byte there. */
     assign uio_out = reg_rawhi;
     assign uio_oe  = 8'hFF;
 `endif

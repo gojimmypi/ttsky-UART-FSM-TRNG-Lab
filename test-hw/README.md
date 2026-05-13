@@ -50,3 +50,42 @@ If there's a running ESP32 program without serial output, show some lines of tex
 ```
  ./ulx3s_esp32_uart_test.py --port /dev/ttyS3 --lines 10 --timeout 20
 ```
+
+
+## Troubleshooting
+
+For `could not open port /dev/ttyS11` such as that shown below, make sure the port is not already in use by another program, such as a terminal program or another instance of the test script. 
+
+If the port number has changed, which is common with Windows, pass the correct port number to the test script using the `--port` argument, for example: 
+
+```
+python ./tt_ulx3s_uart_test.py --port /dev/ttyS3
+```
+
+Or edit the default port in `run_tests.sh`
+
+```text
+ULX2S / ULX3S JTAG programmer v4.8 (git 96ebb45 built Oct  7 2020 22:42:00)
+Copyright (C) Marko Zec, EMARD, gojimmypi, kost and contributors
+Using USB cable: ULX3S FPGA 12K v3.0.3
+Programming: 100%
+Completed in 12.98 seconds.
+/mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/test-hw
+Traceback (most recent call last):
+  File "/home/gojimmypi/.local/lib/python3.10/site-packages/serial/serialposix.py", line 322, in open
+    self.fd = os.open(self.portstr, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+OSError: [Errno 5] Input/output error: '/dev/ttyS11'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/test-hw/./tt_ulx3s_uart_test.py", line 397, in <module>
+    sys.exit(main())
+  File "/mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/test-hw/./tt_ulx3s_uart_test.py", line 375, in main
+    ser = serial.Serial(args.port, args.baud, timeout=0.01)
+  File "/home/gojimmypi/.local/lib/python3.10/site-packages/serial/serialutil.py", line 244, in __init__
+    self.open()
+  File "/home/gojimmypi/.local/lib/python3.10/site-packages/serial/serialposix.py", line 325, in open
+    raise SerialException(msg.errno, "could not open port {}: {}".format(self._port, msg))
+serial.serialutil.SerialException: [Errno 5] could not open port /dev/ttyS11: [Errno 5] Input/output error: '/dev/ttyS11'
+```

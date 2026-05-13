@@ -19,6 +19,9 @@
  * - It is an LFSR-based pseudo-random source controlled by a simple divider.
  */
 `default_nettype none
+`ifdef TRNG_ENABLED
+    /* stub not used when TRNG is disabled. */
+`else
 
 module trng_stub
 (
@@ -92,11 +95,12 @@ module trng_stub
                     reg_rawhi <= lfsr[15:8];
                 end else begin
                     sample_ctr <= sample_ctr + 1'b1;
-                end
-            end
-        end
-    end
+                end /* if (sample_ctr >= {8'h00, reg_div}) */
+            end /* if (trng_enable) */
+        end /* else, if not enabled, hold current values steady. */
+    end /* always @(posedge clk) */
 
-endmodule
+endmodule /* trng_stub */
+`endif /* Conditional TRNG_ENABLED */
 
 `default_nettype wire

@@ -6,7 +6,7 @@
  *
  * file: uart_trng_ascii_core.v
  *
- * Core integration block for the UART/TRNG ASCII design.
+ * Core integration block for the TRNG ASCII design.
  *
  * Purpose:
  * - Connects the minimal UART RX and TX blocks.
@@ -198,12 +198,16 @@ module uart_trng_ascii_core
             end
         end
     end
+    /* End of FORCE_DEEP_LOOPBACK mode. */
 `else
 
     /*
      * Normal system mode:
      * - trng_cfg_ascii_core interprets UART command bytes.
+     *
      * - trng_stub supplies readable status and sample bytes.
+     *     ** or (see project.v TRNG_ENABLED) **
+     * - trng_lab_core or trng_stub supplies readable status and sample bytes.
      */
     wire [7:0] reg_ctrl;
     wire [7:0] reg_src;
@@ -239,6 +243,23 @@ module uart_trng_ascii_core
         .reg_rawhi(reg_rawhi)
     );
 
+`ifdef TRNG_ENABLED
+    trng_lab_core u_trng
+    (
+        .clk(clk),
+        .rst_n(rst_n),
+        .reg_ctrl(reg_ctrl),
+        .reg_src(reg_src),
+        .reg_div(reg_div),
+        .reg_mode(reg_mode),
+        .reg_oscen(reg_oscen),
+        .reg_status(reg_status),
+        .reg_rawlo(reg_rawlo),
+        .reg_rawhi(reg_rawhi),
+        .trng_bit(trng_bit)
+    );
+`else
+    /* use only the stub when TRNG is not enabled, so we can still test the ASCII parser and UART path */
     trng_stub u_trng
     (
         .clk(clk),
@@ -253,8 +274,8 @@ module uart_trng_ascii_core
         .reg_rawhi(reg_rawhi),
         .trng_bit(trng_bit)
     );
-
-`endif
+`endif /* End of TRNG_ENABLED conditional. */
+`endif /* End of FORCE_DEEP_LOOPBACK conditional. */
 
     /* Re-export selected internals to the outer wrappers for debug/visibility. */
     assign reg_ctrl_o   = reg_ctrl;
