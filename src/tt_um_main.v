@@ -68,15 +68,11 @@ module tt_um_main
     reg        uart_rx_meta;
     reg        uart_rx_sync;
 
+`ifdef SPI_REG_ACCESS
     wire       spi_reg_wr_en;
     wire [2:0] spi_reg_addr;
     wire [7:0] spi_reg_wdata;
-`ifdef SPI_REG_ACCESS
     wire [7:0] spi_reg_rdata;
-`else
-    wire [7:0] spi_reg_rdata;
-
-    assign spi_reg_rdata = 8'h00;
 `endif
 
 `ifdef SPI_ENABLED
@@ -84,6 +80,11 @@ module tt_um_main
     wire spi_mosi;
     wire spi_cs_n;
     wire spi_miso;
+`ifndef SPI_REG_ACCESS
+    wire       spi_unused_reg_wr_en;
+    wire [2:0] spi_unused_reg_addr;
+    wire [7:0] spi_unused_reg_wdata;
+`endif
 `endif
 
     /* TODO check unused wires when SPI and/or UART not enabled */
@@ -151,6 +152,13 @@ module tt_um_main
         .reg_rawlo_o(reg_rawlo),
         .reg_rawhi_o(reg_rawhi),
         .trng_bit_o(trng_bit)
+`ifdef SPI_REG_ACCESS
+        ,
+        .spi_reg_wr_en(spi_reg_wr_en),
+        .spi_reg_addr(spi_reg_addr),
+        .spi_reg_wdata(spi_reg_wdata),
+        .spi_reg_rdata(spi_reg_rdata)
+`endif
     );
 
     /*
@@ -181,10 +189,17 @@ module tt_um_main
         .spi_mosi(spi_mosi),
         .spi_miso(spi_miso),
 
+`ifdef SPI_REG_ACCESS
         .reg_wr_en(spi_reg_wr_en),
         .reg_addr(spi_reg_addr),
         .reg_wdata(spi_reg_wdata),
         .reg_rdata(spi_reg_rdata)
+`else
+        .reg_wr_en(spi_unused_reg_wr_en),
+        .reg_addr(spi_unused_reg_addr),
+        .reg_wdata(spi_unused_reg_wdata),
+        .reg_rdata(8'h00)
+`endif
     );
 
     assign uio_out[0]   = 1'b0;
@@ -195,11 +210,15 @@ module tt_um_main
     assign uio_out[7:4] = reg_rawhi[7:4];
 
     assign uio_oe = 8'hF4;
+`ifndef SPI_REG_ACCESS
+    wire _unused_spi_reg_outputs = &{
+        1'b0,
+        spi_unused_reg_wr_en,
+        spi_unused_reg_addr,
+        spi_unused_reg_wdata
+    };
+`endif
 `else
-    assign spi_reg_wr_en = 1'b0;
-    assign spi_reg_addr  = 3'd0;
-    assign spi_reg_wdata = 8'h00;
-
     assign uio_out = reg_rawhi;
     assign uio_oe  = 8'hFF;
 `endif

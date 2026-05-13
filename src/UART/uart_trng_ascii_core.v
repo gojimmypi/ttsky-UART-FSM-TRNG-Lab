@@ -231,6 +231,12 @@ module uart_trng_ascii_core
     wire [7:0] reg_rawlo;
     wire [7:0] reg_rawhi;
     wire       trng_bit;
+`ifndef SPI_REG_ACCESS
+    wire [7:0] unused_spi_reg_rdata;
+    wire       unused_spi_reg_rdata_ok;
+
+    assign unused_spi_reg_rdata_ok = &{1'b0, unused_spi_reg_rdata};
+`endif
 
     trng_cfg_ascii_core u_cfg
     (
@@ -263,7 +269,7 @@ module uart_trng_ascii_core
         .spi_reg_wr_en(1'b0),
         .spi_reg_addr(3'b000),
         .spi_reg_wdata(8'h00),
-        .spi_reg_rdata()
+        .spi_reg_rdata(unused_spi_reg_rdata)
 `endif
     );
 
