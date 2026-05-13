@@ -30,7 +30,7 @@
 `define SPI_ENABLED
 `define TRNG_ENABLED
 
-/* optionally define an SPI test byte. Default is 0x42 */
+/* SPI_ENABLED selects the register-access SPI slave in SPI/spi_slave.v. */
 `define SPI_TEST_BYTE 8'hD2
 
 /* Pick zero or one of these SPI tests: */
@@ -185,11 +185,5 @@ module UART_FSM_TRNG_Lab
 
 endmodule
 
-/* Settings Sanity Check */
-`ifdef SPI_TEST_FIXED
-    `ifdef SPI_TEST_ECHO
-        MODULE_SPI_TEST_ECHO_MUST_NOT_BE_ENABLED_WITH_SPI_TEST_FIXED u_stop ();
-    `endif
-`endif
 
 `default_nettype wire

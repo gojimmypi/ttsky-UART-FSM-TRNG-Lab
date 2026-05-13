@@ -2,15 +2,46 @@
  * Copyright (c) 2026 gojimmypi
  * SPDX-License-Identifier: Apache-2.0
  *
- * file: tt_spi_slave.v
+ * file: spi_slave.v
  *
- * Simple SPI slave helper for Tiny Tapeout experiments.
+ * SPI register-access slave for Tiny Tapeout experiments.
  *
- * Current implementation:
+ * Protocol:
  * - SPI mode 0 (CPOL=0, CPHA=0)
  * - MSB first
- * - transmit-only test path
- * - fixed transmit byte
+ *
+ * Modes:
+ * - default: SPI register-access slave
+ * - SPI_TEST_FIXED: prior transmit-only fixed-byte test path
+ *
+ * Pin convention:
+ * - uio[0] = CS_N
+ * - uio[1] = MOSI
+ * - uio[2] = MISO
+ * - uio[3] = SCK
+ *
+ * Command byte:
+ * - bit7    = 1 for read, 0 for write
+ * - bits2:0 = register address 0..7
+ * - other bits are ignored
+ *
+ * Read transaction:
+ * - byte 0: command 8'h80 | addr
+ * - byte 1: dummy byte clocks out register value
+ *
+ * Write transaction:
+ * - byte 0: command addr
+ * - byte 1: data byte written to register address 0..4
+ *
+ * Register map matches the UART Rn command:
+ * - 0 reg_ctrl
+ * - 1 reg_src
+ * - 2 reg_div
+ * - 3 reg_mode
+ * - 4 reg_oscen
+ * - 5 reg_status, read-only
+ * - 6 reg_rawlo, read-only
+ * - 7 reg_rawhi, read-only
  */
 
 `default_nettype none
@@ -24,10 +55,17 @@ module tt_spi_slave
     input  wire       spi_cs_n,
     input  wire       spi_mosi,
 
-    output reg        spi_miso
+    output reg        spi_miso,
+
+    output reg        reg_wr_en,
+    output reg  [2:0] reg_addr,
+    output reg  [7:0] reg_wdata,
+    input  wire [7:0] reg_rdata
 );
 
-    /* Reminder the Tx byte comes from the ESP32; see main.c */
+`ifdef SPI_TEST_FIXED
+
+    /* Prior transmit-only SPI test path. */
 `ifdef SPI_TEST_BYTE
     /* see project.v for how to set this value; default is 0x42 */
     localparam [7:0] SPI_TEST_BYTE_VAL = `SPI_TEST_BYTE;
@@ -45,9 +83,9 @@ module tt_spi_slave
     wire spi_cs_start;
     wire spi_cs_active;
 
-    /* Keep currently-unused MOSI referenced */
+    /* Keep currently-unused inputs referenced in fixed test mode. */
     wire unused_ok;
-    assign unused_ok = &{1'b0, spi_mosi};
+    assign unused_ok = &{1'b0, spi_mosi, reg_rdata};
 
     assign spi_sck_fall  = spi_sck_sync[2:1] == 2'b10;
     assign spi_cs_start  = spi_cs_sync[2:1] == 2'b10;
@@ -57,28 +95,25 @@ module tt_spi_slave
         if (!rst_n) begin
             spi_sck_sync <= 3'b000;
             spi_cs_sync  <= 3'b111;
-
-`ifdef SPI_TEST_FIXED
             spi_tx_shift <= SPI_TEST_BYTE_VAL;
             spi_miso     <= SPI_IDLE_MISO;
-`else
-            spi_tx_shift <= 8'h00;
-            spi_miso     <= SPI_IDLE_MISO;
-`endif
-
+            reg_wr_en    <= 1'b0;
+            reg_addr     <= 3'd0;
+            reg_wdata    <= 8'h00;
         end else begin
             spi_sck_sync <= {spi_sck_sync[1:0], spi_sck};
             spi_cs_sync  <= {spi_cs_sync[1:0], spi_cs_n};
+            reg_wr_en    <= 1'b0;
+            reg_addr     <= 3'd0;
+            reg_wdata    <= 8'h00;
 
             /* SPI slave, mode 0 (CPOL=0, CPHA=0), MSB-first */
             /*
-             * CS_N falls  -> preload first MISO bit
-             * SCK rises   -> ESP32 samples valid bit
-             * SCK falls   -> TT prepares next bit
+             * CS_N falls  : preload first MISO bit
+             * SCK rises   : ESP32 samples valid bit
+             * SCK falls   : TT prepares next bit
              */
-
             if (spi_cs_start) begin
-`ifdef SPI_TEST_FIXED
                 /*
                  * Preload shift register so bit6 is ready after
                  * the first falling edge.
@@ -90,17 +125,144 @@ module tt_spi_slave
                  * valid data on the first rising edge.
                  */
                 spi_miso <= SPI_TEST_BYTE_VAL[7];
-`endif
-
             end else if (spi_cs_active && spi_sck_fall) begin
-                /* Present next bit */
+                /* Present next bit. */
                 spi_miso <= spi_tx_shift[7];
 
-                /* Shift for following bit */
+                /* Shift for following bit. */
                 spi_tx_shift <= {spi_tx_shift[6:0], 1'b0};
+            end else if (!spi_cs_active) begin
+                spi_miso <= SPI_IDLE_MISO;
             end
         end
     end
+
+`else
+
+    /*
+     * SPI register-access protocol:
+     *
+     * Read:
+     * - byte 0: 8'h80 | addr
+     * - byte 1: dummy byte clocks out register value
+     *
+     * Write:
+     * - byte 0: addr
+     * - byte 1: data byte written to register address 0..4
+     */
+
+    localparam SPI_IDLE_MISO = 1'b1;
+
+    localparam [1:0] ST_CMD  = 2'd0;
+    localparam [1:0] ST_DATA = 2'd1;
+
+    reg [2:0] spi_sck_sync;
+    reg [2:0] spi_cs_sync;
+
+    reg [7:0] rx_shift;
+    reg [7:0] tx_shift;
+    reg [2:0] bit_count;
+    reg [1:0] state;
+    reg       cmd_read;
+    reg       load_read_data;
+
+    wire spi_sck_rise;
+    wire spi_sck_fall;
+    wire spi_cs_start;
+    wire spi_cs_active;
+    wire [7:0] rx_next;
+    wire byte_done;
+
+    assign spi_sck_rise  = spi_sck_sync[2:1] == 2'b01;
+    assign spi_sck_fall  = spi_sck_sync[2:1] == 2'b10;
+    assign spi_cs_start  = spi_cs_sync[2:1] == 2'b10;
+    assign spi_cs_active = !spi_cs_sync[2];
+    assign rx_next       = {rx_shift[6:0], spi_mosi};
+    assign byte_done     = bit_count == 3'd7;
+
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            spi_sck_sync   <= 3'b000;
+            spi_cs_sync    <= 3'b111;
+            rx_shift       <= 8'h00;
+            tx_shift       <= 8'h00;
+            bit_count      <= 3'd0;
+            state          <= ST_CMD;
+            cmd_read       <= 1'b0;
+            load_read_data <= 1'b0;
+            spi_miso       <= SPI_IDLE_MISO;
+            reg_wr_en      <= 1'b0;
+            reg_addr       <= 3'd0;
+            reg_wdata      <= 8'h00;
+        end else begin
+            spi_sck_sync <= {spi_sck_sync[1:0], spi_sck};
+            spi_cs_sync  <= {spi_cs_sync[1:0], spi_cs_n};
+            reg_wr_en    <= 1'b0;
+
+            if (spi_cs_start) begin
+                rx_shift       <= 8'h00;
+                tx_shift       <= 8'h00;
+                bit_count      <= 3'd0;
+                state          <= ST_CMD;
+                cmd_read       <= 1'b0;
+                load_read_data <= 1'b0;
+                spi_miso       <= 1'b0;
+            end else if (!spi_cs_active) begin
+                spi_miso <= SPI_IDLE_MISO;
+            end else begin
+                if (spi_sck_rise) begin
+                    rx_shift <= rx_next;
+
+                    if (byte_done) begin
+                        bit_count <= 3'd0;
+
+                        case (state)
+                            ST_CMD: begin
+                                reg_addr <= rx_next[2:0];
+                                cmd_read <= rx_next[7];
+                                state    <= ST_DATA;
+
+                                if (rx_next[7]) begin
+                                    load_read_data <= 1'b1;
+                                end else begin
+                                    tx_shift <= 8'h00;
+                                    spi_miso <= 1'b0;
+                                end
+                            end
+
+                            ST_DATA: begin
+                                if (!cmd_read) begin
+                                    reg_wdata <= rx_next;
+                                    reg_wr_en <= 1'b1;
+                                end
+
+                                state <= ST_DATA;
+                            end
+
+                            default: begin
+                                state <= ST_CMD;
+                            end
+                        endcase
+                    end else begin
+                        bit_count <= bit_count + 1'b1;
+                    end
+                end
+
+                if (spi_sck_fall) begin
+                    if (load_read_data) begin
+                        spi_miso       <= reg_rdata[7];
+                        tx_shift       <= {reg_rdata[6:0], 1'b0};
+                        load_read_data <= 1'b0;
+                    end else begin
+                        spi_miso <= tx_shift[7];
+                        tx_shift <= {tx_shift[6:0], 1'b0};
+                    end
+                end
+            end
+        end
+    end
+
+`endif
 
 endmodule
 

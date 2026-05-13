@@ -6,6 +6,8 @@
  *
  * file: trng_cfg_ascii_core.v
  *
+ * TODO: rename trng_cfg_reg_core.v with SPI functionality
+ *
  * ASCII command parser and register front-end for the TRNG experiment.
  *
  * Purpose:
@@ -54,7 +56,12 @@ module trng_cfg_ascii_core
 
     input  wire [7:0] reg_status,
     input  wire [7:0] reg_rawlo,
-    input  wire [7:0] reg_rawhi
+    input  wire [7:0] reg_rawhi,
+
+    input  wire       spi_reg_wr_en,
+    input  wire [2:0] spi_reg_addr,
+    input  wire [7:0] spi_reg_wdata,
+    output wire [7:0] spi_reg_rdata
 );
 
     /*
@@ -177,6 +184,8 @@ module trng_cfg_ascii_core
         end
     endfunction
 
+    assign spi_reg_rdata = read_reg(spi_reg_addr);
+
     /* Convert a nibble to ASCII hex for readback replies. */
     function [7:0] to_hex_ascii;
         input [3:0] nib;
@@ -228,6 +237,21 @@ module trng_cfg_ascii_core
                 "W": reg_ctrl[2]   <= value[0];
                 "M": reg_mode      <= value;
                 "O": reg_oscen     <= value;
+                default: begin end
+            endcase
+        end
+    endtask
+
+    task do_spi_write;
+        input [2:0] addr;
+        input [7:0] value;
+        begin
+            case (addr)
+                3'd0: reg_ctrl  <= value;
+                3'd1: reg_src   <= value;
+                3'd2: reg_div   <= value;
+                3'd3: reg_mode  <= value;
+                3'd4: reg_oscen <= value;
                 default: begin end
             endcase
         end
@@ -292,6 +316,10 @@ module trng_cfg_ascii_core
         end else begin
             /* tx_start is a one-clock pulse into uart_tx_min. */
             tx_start <= 1'b0;
+
+            if (spi_reg_wr_en) begin
+                do_spi_write(spi_reg_addr, spi_reg_wdata);
+            end
 
             /*
              * Launch a queued reply byte only when the UART transmitter is free.

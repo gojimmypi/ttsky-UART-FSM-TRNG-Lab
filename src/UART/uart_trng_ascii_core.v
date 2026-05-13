@@ -47,6 +47,13 @@ module uart_trng_ascii_core
     output wire [7:0] reg_rawlo_o,
     output wire [7:0] reg_rawhi_o,
     output wire       trng_bit_o
+`ifdef SPI_REG_ACCESS
+    ,
+    input  wire       spi_reg_wr_en,
+    input  wire [2:0] spi_reg_addr,
+    input  wire [7:0] spi_reg_wdata,
+    output wire [7:0] spi_reg_rdata
+`endif
 );
 
     /* UART receive side: decoded byte plus one-cycle valid pulse. */
@@ -145,6 +152,11 @@ module uart_trng_ascii_core
     assign reg_rawlo  = reg_rawlo_r;
     assign reg_rawhi  = reg_rawhi_r;
     assign trng_bit   = trng_bit_r;
+`ifdef SPI_REG_ACCESS
+    assign spi_reg_rdata = 8'h00;
+
+    wire _unused_spi_loopback = &{spi_reg_wr_en, spi_reg_addr, spi_reg_wdata};
+`endif
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -240,7 +252,19 @@ module uart_trng_ascii_core
 
         .reg_status(reg_status),
         .reg_rawlo(reg_rawlo),
-        .reg_rawhi(reg_rawhi)
+        .reg_rawhi(reg_rawhi),
+
+`ifdef SPI_REG_ACCESS
+        .spi_reg_wr_en(spi_reg_wr_en),
+        .spi_reg_addr(spi_reg_addr),
+        .spi_reg_wdata(spi_reg_wdata),
+        .spi_reg_rdata(spi_reg_rdata)
+`else
+        .spi_reg_wr_en(1'b0),
+        .spi_reg_addr(3'b000),
+        .spi_reg_wdata(8'h00),
+        .spi_reg_rdata()
+`endif
     );
 
 `ifdef TRNG_ENABLED
