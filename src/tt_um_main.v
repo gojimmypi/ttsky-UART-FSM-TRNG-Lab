@@ -71,7 +71,13 @@ module tt_um_main
     wire       spi_reg_wr_en;
     wire [2:0] spi_reg_addr;
     wire [7:0] spi_reg_wdata;
+`ifdef SPI_REG_ACCESS
     wire [7:0] spi_reg_rdata;
+`else
+    wire [7:0] spi_reg_rdata;
+
+    assign spi_reg_rdata = 8'h00;
+`endif
 
 `ifdef SPI_ENABLED
     wire spi_sck;
