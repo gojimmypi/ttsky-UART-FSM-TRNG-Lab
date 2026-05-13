@@ -11,6 +11,7 @@ from cocotb.clock import Clock
 
 CLK_PERIOD_NS = 10
 CLKS_PER_BIT = 217
+SETTLE_TIME_NS = 2
 
 UART_RX_BIT = 3
 UART_TX_BIT = 4
@@ -54,17 +55,28 @@ async def uart_send_bytes(dut, data: bytes) -> None:
         await uart_send_byte(dut, byte_value)
 
 
+def get_uart_tx_bit(dut) -> int:
+    uo_value = dut.uo_out.value
+    tx_value = uo_value[UART_TX_BIT]
+    tx_text = str(tx_value)
+
+    if tx_text not in ("0", "1"):
+        raise ValueError(f"UART TX bit is not 0 or 1: {tx_text}")
+
+    return int(tx_text)
+
+
 async def uart_recv_byte(dut, idle_timeout_ns: int | None = None) -> int:
     bit_time_ns = CLK_PERIOD_NS * CLKS_PER_BIT
     half_bit_time_ns = bit_time_ns // 2
 
-    prev_tx = (int(dut.uo_out.value) >> UART_TX_BIT) & 0x1
+    prev_tx = get_uart_tx_bit(dut)
     waited_ns = 0
 
     while True:
         await Timer(CLK_PERIOD_NS, unit="ns")
-        tx_value = int(dut.uo_out.value)
-        curr_tx = (tx_value >> UART_TX_BIT) & 0x1
+        await Timer(SETTLE_TIME_NS, unit="ns")
+        curr_tx = get_uart_tx_bit(dut)
 
         if prev_tx == 1 and curr_tx == 0:
             break
@@ -75,22 +87,22 @@ async def uart_recv_byte(dut, idle_timeout_ns: int | None = None) -> int:
             raise TimeoutError("UART receive timeout waiting for start bit")
 
     await Timer(half_bit_time_ns, unit="ns")
+    await Timer(SETTLE_TIME_NS, unit="ns")
 
-    tx_value = int(dut.uo_out.value)
-    start_bit = (tx_value >> UART_TX_BIT) & 0x1
+    start_bit = get_uart_tx_bit(dut)
     assert start_bit == 0, f"Expected UART start bit 0, got {start_bit}"
 
     await Timer(bit_time_ns, unit="ns")
+    await Timer(SETTLE_TIME_NS, unit="ns")
 
     result = 0
     for bit_index in range(8):
-        tx_value = int(dut.uo_out.value)
-        bit_value = (tx_value >> UART_TX_BIT) & 0x1
+        bit_value = get_uart_tx_bit(dut)
         result |= (bit_value << bit_index)
         await Timer(bit_time_ns, unit="ns")
+        await Timer(SETTLE_TIME_NS, unit="ns")
 
-    tx_value = int(dut.uo_out.value)
-    stop_bit = (tx_value >> UART_TX_BIT) & 0x1
+    stop_bit = get_uart_tx_bit(dut)
     assert stop_bit == 1, f"Expected UART stop bit 1, got {stop_bit}"
 
     return result
@@ -124,14 +136,16 @@ async def test_version_command_or_absent(dut):
     dut.rst_n.value = 1
 
     await Timer(1000, unit="ns")
+    await Timer(SETTLE_TIME_NS, unit="ns")
 
-    tx_idle = (int(dut.uo_out.value) >> UART_TX_BIT) & 0x1
+    tx_idle = get_uart_tx_bit(dut)
     assert tx_idle == 1, f"UART TX should idle high after reset, got {tx_idle}"
 
     recv_task = cocotb.start_soon(
         uart_recv_until_timeout(dut, max_bytes=64, idle_timeout_bits=200)
     )
 
+    await Timer(CLK_PERIOD_NS // 2, unit="ns")
     await uart_send_bytes(dut, b"V\r")
     response = await recv_task
 
