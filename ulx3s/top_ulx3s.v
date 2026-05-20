@@ -14,13 +14,15 @@
 `default_nettype none
 `timescale 1ns/1ps
 
+`include "../src/project_config.v"
+
 `define ESP32_BOOT_CONTROL_ENABLED
 `define ULX3S_SPI_ENABLED
 //`define ESP32_BOOT_RTS_DTS_ENABLED
 
 module top_ulx3s (
     input  wire        clk_25mhz,
-    input  wire        gn12, /* contains optional 50 MHz clock */
+    input  wire        gn12, /* contains optional 50 MHz clock, see ULX3S_USE_GN12_50MHZ */
     input  wire [6:0]  btn,
     output wire [7:0]  led,
 
@@ -260,7 +262,18 @@ module top_ulx3s (
     `endif /* FORCE_LOOPBACK */
 
     // Optional Debug
+`ifdef ULX3S_CLOCK_TEST
+    reg [24:0] clk_test_count;
+
+    always @(posedge clk_ulx3s) begin
+        clk_test_count <= clk_test_count + 1'b1;
+    end
+
+    assign led = {7'b0000000, clk_test_count[24]};
+`else
     assign led = uo_out;
+`endif
+
     // assign led = 8'h00;
 
 endmodule

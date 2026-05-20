@@ -13,6 +13,7 @@
 `default_nettype none
 
 `include "target_pdk.v"
+`include "project_config.v"
 
 `ifdef ULX3S
     `timescale 1ns/1ps
@@ -128,8 +129,8 @@ module UART_FSM_TRNG_Lab
 `endif
 
 #(
-    parameter [31:0] CLOCK_HZ  = 32'd25000000,  /* default clock is 25 MHz     */
-    parameter [31:0] UART_BAUD = 32'd115200     /* default UART is 115200 baud */
+    parameter [31:0] CLOCK_HZ  = PROJECT_CLOCK_HZ_VALUE,  
+    parameter [31:0] UART_BAUD = PROJECT_UART_BAUD_VALUE    /* default UART is 115200 baud */
 )
 (
     // Optional Analog

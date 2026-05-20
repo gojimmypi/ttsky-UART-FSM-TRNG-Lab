@@ -35,10 +35,12 @@
  */
 `default_nettype none
 
+`include "project_config.v"
+
 module tt_um_main 
 #(
-    parameter [31:0] CLOCK_HZ  = 32'd25000000,
-    parameter [31:0] UART_BAUD = 32'd115200
+    parameter [31:0] CLOCK_HZ  = PROJECT_CLOCK_HZ_VALUE,
+    parameter [31:0] UART_BAUD = PROJECT_UART_BAUD_VALUE
 )
 (
     /* For Tiny Tapeout, these are the only ports you can use. 

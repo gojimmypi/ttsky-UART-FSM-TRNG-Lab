@@ -25,11 +25,12 @@
 **   `define FORCE_DEEP_LOOPBACK
 */
 
+`include "../project_config.v"
 
 module uart_trng_ascii_core
 #(
-    parameter [31:0] CLOCK_HZ  = 32'd25000000,
-    parameter [31:0] UART_BAUD = 32'd115200
+    parameter [31:0] CLOCK_HZ  = PROJECT_CLOCK_HZ_VALUE,
+    parameter [31:0] UART_BAUD = PROJECT_UART_BAUD_VALUE
 )
 (
     input  wire       clk,

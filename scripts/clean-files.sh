@@ -2,6 +2,7 @@
 
 for f in \
   ./project.v \
+  ./project_config.v \
   ./tt_um_main.v \
   ./JTAG/jtag_core.v \
   ./SPI/spi_master.v \
