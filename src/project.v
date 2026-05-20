@@ -26,9 +26,11 @@
 `define USE_LONG_STRINGS
 `define VERSION_STRING_LEN 23 /* 123456789012345678901234 */   
 `define VERSION_STRING          "Version 0.1.3 5/13/2026"   
+
 `define UART_ENABLED
 `define SPI_ENABLED
 `define TRNG_ENABLED
+`define JTAG_ENABLED 
 
 /* SPI_ENABLED selects the register-access SPI slave in SPI/spi_slave.v. */
 `define SPI_TEST_BYTE 8'hD2
@@ -48,11 +50,14 @@
         PROJECT_ULX3S_MUST_NOT_USE_TRNG_ALLOW_REAL_RO u_stop ();
     `endif
 `else
+    /* Not ULXS3. Is this a TT PDK? */
     `ifdef __pnr__
         /* HACK ALERT: __pnr__ does not conclusively prove that we are building for Tiny Tapeout, 
          * but it is a strong indicator that we are in an environment where the real RO-based TRNG can be used. */
         `define TRNG_USE_RO
         `define TRNG_ALLOW_REAL_RO
+
+        /* TODO: detect test modes? add "is submission" macro? */
     `else
         /* some other non ULX3S, non ASIC path. Detect if REAL RO defined externally and abort */
         `ifdef TRNG_USE_RO
@@ -83,6 +88,7 @@
     /* Tiny Tapeout needs to include all the files directly since it doesn't support Makefiles.
      * or list them in /info.yaml file (pick one, don't mix) */
     `include "tt_um_main.v"
+    `include "JTAG/jtag_core.v"
     `include "SPI/spi_slave.v"
     `include "UART/uart_rx_min.v"
     `include "UART/uart_tx_min.v"

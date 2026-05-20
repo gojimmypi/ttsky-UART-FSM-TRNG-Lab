@@ -33,11 +33,18 @@ module top_ulx3s (
 
 `ifdef ULX3S_SPI_ENABLED
     /* Instead of editing reference lpf, we'll use the existing names for SPI. */
-    input  wire wifi_gpio14,  /* ESP32 PIN_NUM_CLK  14, wire spi_sck   */
-    input  wire wifi_gpio15,  /* ESP32 PIN_NUM_MOSI 15, wire spi_mosi  */
-    input  wire wifi_gpio13,  /* ESP32 PIN_NUM_CS   13, wire spi_cs_n */
-    output wire wifi_gpio2,   /* ESP32 PIN_NUM_MISO  2, wire spi_miso  */
+    input  wire wifi_gpio14,  /* ESP32 PIN_NUM_CLK  14, wire spi_sck   JTAG TCK */
+    input  wire wifi_gpio15,  /* ESP32 PIN_NUM_MOSI 15, wire spi_mosi  JTAG TDI */
+    input  wire wifi_gpio13,  /* ESP32 PIN_NUM_CS   13, wire spi_cs_n  JTAG TMS */
+    output wire wifi_gpio2,   /* ESP32 PIN_NUM_MISO  2, wire spi_miso  JTAG TDO */
 `endif
+
+`ifdef ULX3S_JTAG_ENABLED
+
+    /* TODO: ULX3S JTAG wrapper */
+
+`endif
+
 
 /* Experimental RTS/DTS to control ESP32 boot mode during serial programming.
  * See also ESP32_BOOT_CONTROL_ENABLED, below  */
