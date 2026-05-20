@@ -30,7 +30,7 @@
  */
 `default_nettype none
 
-`include "../project_config.v"
+`include "../../project_config.v"
 
 module uart_tx_min
 #(

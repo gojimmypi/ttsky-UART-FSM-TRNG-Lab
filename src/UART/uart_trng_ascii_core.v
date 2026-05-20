@@ -25,7 +25,7 @@
 **   `define FORCE_DEEP_LOOPBACK
 */
 
-`include "../project_config.v"
+`include "../../project_config.v"
 
 module uart_trng_ascii_core
 #(
