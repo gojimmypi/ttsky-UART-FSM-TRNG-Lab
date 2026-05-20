@@ -20,6 +20,7 @@
 
 module top_ulx3s (
     input  wire        clk_25mhz,
+    input  wire        gn12, /* contains optional 50 MHz clock */
     input  wire [6:0]  btn,
     output wire [7:0]  led,
 
@@ -61,6 +62,14 @@ module top_ulx3s (
     /* Keep board powered. */
     output wire        shutdown
 ); /* top_ulx3s input */
+
+    wire clk_ulx3s;
+
+    `ifdef ULX3S_USE_GN12_50MHZ
+        assign clk_ulx3s = gn12;
+    `else
+        assign clk_ulx3s = clk_25mhz;
+    `endif
 
     wire [7:0] ui_in;
     wire [7:0] uio_in;
@@ -187,7 +196,7 @@ module top_ulx3s (
     `ifdef UART_ENABLED
         /* See example UART: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab */
 
-        always @(posedge clk_25mhz) begin
+        always @(posedge clk_ulx3s) begin
             uart_rx_meta <= uart_rx_pin;
             uart_rx_sync <= uart_rx_meta;
         end
@@ -232,7 +241,7 @@ module top_ulx3s (
         .uio_out(uio_out),
         .uio_oe(uio_oe),
         .ena(ena),
-        .clk(clk_25mhz),
+        .clk(clk_ulx3s),
         .rst_n(rst_n)  // TODO - add a reset button and connect it here instead of hardcoding rst_n=1
     );
 

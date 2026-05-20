@@ -75,7 +75,32 @@ YOSYS      := yosys
 NEXTPNR    := nextpnr-ecp5
 ECPPACK    := ecppack
 
-LPF        := ulx3s_v20.lpf
+# ULX3S board LPF selection.
+# Default is v316. Override with:
+#   make bit ULX3S_BOARD_VERSION=v20
+ULX3S_BOARD_VERSION ?= v317
+
+ifeq ($(ULX3S_BOARD_VERSION),v20)
+    LPF := ulx3s_v20.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v314)
+    LPF := ulx3s_v314.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v316)
+    LPF := ulx3s_v316.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v317)
+	# v317 and v316 use the same constraint file
+    LPF := ulx3s_v316.lpf
+else
+    $(error Unsupported ULX3S_BOARD_VERSION "$(ULX3S_BOARD_VERSION)". Use v20 or v314 or v316)
+endif
+
+$(info =====================================)
+$(info ULX3S board version: $(ULX3S_BOARD_VERSION))
+$(info Using LPF file:      $(LPF))
+$(info FPGA device:         $(DEVICE))
+$(info =====================================)
+
+# Pass macros such as ULX3S_BOARD_VERSION_v317 to yosys for conditional verilog
+YOSYS_DEFS += -DULX3S_BOARD_VERSION_$(ULX3S_BOARD_VERSION)
 
 JSON       := project.json
 CONFIG     := ulx3s_out.config
