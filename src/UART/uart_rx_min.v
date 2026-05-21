@@ -31,7 +31,7 @@
  */
 `default_nettype none
 
-`include "../../project_config.v"
+// `include "../../project_config.v"
 
 module uart_rx_min
 #(
