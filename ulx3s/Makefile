@@ -127,8 +127,10 @@ $(VDIR)/$(SIMEXE): $(RTL_SRCS) $(TB_SRCS)
 # -----------------------------
 bit: $(BITFILE)
 
+YOSYS_INCLUDE_DIRS := -I$(SRC_DIR)
+
 $(JSON): $(RTL_SRCS)
-	$(YOSYS) $(YOSYS_DEFS) -p "read_verilog $(RTL_SRCS); synth_ecp5 -top $(RTL_TOP) -json $(JSON)"
+	$(YOSYS) $(YOSYS_DEFS) -p "read_verilog $(YOSYS_INCLUDE_DIRS) $(RTL_SRCS); synth_ecp5 -top $(RTL_TOP) -json $(JSON)"
 
 $(CONFIG): $(JSON)
 	$(NEXTPNR) \
