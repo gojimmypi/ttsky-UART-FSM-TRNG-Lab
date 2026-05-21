@@ -7,6 +7,7 @@
  * file: tt_um_main.v
  *
  * Tiny Tapeout wrapper for the TRNG ASCII core.
+ * Included by project.v and requires project_config.v
  *
  * Purpose:
  * - Exposes the project through the standard Tiny Tapeout pin interface.
@@ -54,6 +55,20 @@ module tt_um_main
     input  wire       clk,
     input  wire       rst_n
 );
+    /* Boilerplate parameter checking */
+    generate
+        if (CLOCK_HZ == 32'd0) begin : gen_bad_clock_hz
+            PROJECT_MUST_NOT_USE_ZERO_CLOCK u_stop ();
+        end
+
+        if (UART_BAUD == 32'd0) begin : gen_bad_uart_baud
+            PROJECT_MUST_NOT_USE_ZERO_UART_BAUD u_stop ();
+        end
+
+        if ((CLOCK_HZ / UART_BAUD) == 32'd0) begin : gen_bad_uart_divider
+            PROJECT_UART_DIVIDER_MUST_NOT_BE_ZERO u_stop ();
+        end
+    endgenerate
 
     /* Internal debug/configuration buses exported by the core. */
     wire [7:0] reg_ctrl;

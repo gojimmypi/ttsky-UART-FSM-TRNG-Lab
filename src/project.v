@@ -13,6 +13,9 @@
 `default_nettype none
 
 `include "target_pdk.v"
+
+/* Higher level wrappers such as ULX3S FPGA test also need to also have project.v included.
+ * Otherwise, only needed here for TT project: */
 `include "project_config.v"
 
 `ifdef ULX3S
@@ -129,7 +132,8 @@ module UART_FSM_TRNG_Lab
 `endif
 
 #(
-    parameter [31:0] CLOCK_HZ  = PROJECT_CLOCK_HZ_VALUE,  
+    /* Get project-wide params from project_config.v */
+    parameter [31:0] CLOCK_HZ  = PROJECT_CLOCK_HZ_VALUE,    /* default clock is 25 MHz */
     parameter [31:0] UART_BAUD = PROJECT_UART_BAUD_VALUE    /* default UART is 115200 baud */
 )
 (
@@ -150,6 +154,21 @@ module UART_FSM_TRNG_Lab
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );
+    /* Boilerplate parameter checking */
+    generate
+        if (CLOCK_HZ == 32'd0) begin : gen_bad_clock_hz
+            PROJECT_MUST_NOT_USE_ZERO_CLOCK u_stop ();
+        end
+
+        if (UART_BAUD == 32'd0) begin : gen_bad_uart_baud
+            PROJECT_MUST_NOT_USE_ZERO_UART_BAUD u_stop ();
+        end
+
+        if ((CLOCK_HZ / UART_BAUD) == 32'd0) begin : gen_bad_uart_divider
+            PROJECT_UART_DIVIDER_MUST_NOT_BE_ZERO u_stop ();
+        end
+    endgenerate
+
 
     wire unused_ok;
 

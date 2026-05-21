@@ -31,7 +31,9 @@
  */
 `default_nettype none
 
-// `include "../../project_config.v"
+/* Although the project config is in a parent directory, the Makefile should include
+ * a proper directory parameter for yoysys to find it with no path: */ 
+`include "project_config.v"
 
 module uart_rx_min
 #(
@@ -45,6 +47,21 @@ module uart_rx_min
     output reg [7:0]  data_out,
     output reg        data_valid
 );
+    /* Boilerplate parameter checking */
+    generate
+        if (CLOCK_HZ == 32'd0) begin : gen_bad_clock_hz
+            PROJECT_MUST_NOT_USE_ZERO_CLOCK u_stop ();
+        end
+
+        if (UART_BAUD == 32'd0) begin : gen_bad_uart_baud
+            PROJECT_MUST_NOT_USE_ZERO_UART_BAUD u_stop ();
+        end
+
+        if ((CLOCK_HZ / UART_BAUD) == 32'd0) begin : gen_bad_uart_divider
+            PROJECT_UART_DIVIDER_MUST_NOT_BE_ZERO u_stop ();
+        end
+    endgenerate
+
     localparam integer CLKS_PER_BIT = CLOCK_HZ / UART_BAUD;
     localparam integer CLKS_PER_BIT_M1  = CLKS_PER_BIT - 1;
     localparam integer CLKS_PER_HALF_M1 = (CLKS_PER_BIT >> 1) - 1;

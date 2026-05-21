@@ -4,6 +4,8 @@
 
  - `src\config.json` - edit with caution
  
+ - `src\project_config.v` - project-wide parameter values and macros
+ 
  - `src\project.v` - the main template shim. Keep it simple for portability.
  - `src\tt_um_main.v` - the main project file, which instantiates the UART and TRNG cores.  
 

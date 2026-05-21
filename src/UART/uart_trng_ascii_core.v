@@ -25,7 +25,9 @@
 **   `define FORCE_DEEP_LOOPBACK
 */
 
-//`include "../../project_config.v"
+/* Although the project config is in a parent directory, the Makefile should include
+ * a proper directory parameter for yoysys to find it with no path: */ 
+`include "project_config.v"
 
 module uart_trng_ascii_core
 #(
@@ -56,6 +58,20 @@ module uart_trng_ascii_core
     output wire [7:0] spi_reg_rdata
 `endif
 );
+    /* Boilerplate parameter checking */
+    generate
+        if (CLOCK_HZ == 32'd0) begin : gen_bad_clock_hz
+            PROJECT_MUST_NOT_USE_ZERO_CLOCK u_stop ();
+        end
+
+        if (UART_BAUD == 32'd0) begin : gen_bad_uart_baud
+            PROJECT_MUST_NOT_USE_ZERO_UART_BAUD u_stop ();
+        end
+
+        if ((CLOCK_HZ / UART_BAUD) == 32'd0) begin : gen_bad_uart_divider
+            PROJECT_UART_DIVIDER_MUST_NOT_BE_ZERO u_stop ();
+        end
+    endgenerate
 
     /* UART receive side: decoded byte plus one-cycle valid pulse. */
     wire [7:0] rx_byte;
