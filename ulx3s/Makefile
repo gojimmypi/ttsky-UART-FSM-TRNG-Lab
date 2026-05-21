@@ -76,11 +76,14 @@ NEXTPNR    := nextpnr-ecp5
 ECPPACK    := ecppack
 
 # ULX3S board LPF selection.
-# Default is v316. Override with:
+# Default is v317. Override with:
 #   make bit ULX3S_BOARD_VERSION=v20
 ULX3S_BOARD_VERSION ?= v317
 
 ifeq ($(ULX3S_BOARD_VERSION),v20)
+    LPF := ulx3s_v20.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v307)
+	# v307 and v20 use the same constraint file
     LPF := ulx3s_v20.lpf
 else ifeq ($(ULX3S_BOARD_VERSION),v314)
     LPF := ulx3s_v314.lpf
@@ -88,6 +91,9 @@ else ifeq ($(ULX3S_BOARD_VERSION),v316)
     LPF := ulx3s_v316.lpf
 else ifeq ($(ULX3S_BOARD_VERSION),v317)
 	# v317 and v316 use the same constraint file
+    LPF := ulx3s_v316.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v318)
+	# v318 and v316 use the same constraint file
     LPF := ulx3s_v316.lpf
 else
     $(error Unsupported ULX3S_BOARD_VERSION "$(ULX3S_BOARD_VERSION)". Use v20 or v314 or v316)
