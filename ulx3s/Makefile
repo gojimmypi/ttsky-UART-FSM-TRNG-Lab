@@ -78,7 +78,7 @@ ECPPACK    := ecppack
 # ULX3S board LPF selection.
 # Default is v316. Override with:
 #   make bit ULX3S_BOARD_VERSION=v20
-ULX3S_BOARD_VERSION ?= v20
+ULX3S_BOARD_VERSION ?= v317
 
 ifeq ($(ULX3S_BOARD_VERSION),v20)
     LPF := ulx3s_v20.lpf
