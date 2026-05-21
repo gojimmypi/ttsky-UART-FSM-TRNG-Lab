@@ -25,7 +25,13 @@
 
 module top_ulx3s (
     input  wire        clk_25mhz,
+`ifdef ULX3S_BOARD_VERSION_v20
+    /* The reference lpf file has an unconnected gn[12] */
+    input  wire       \gn[12] ,
+`else
     input  wire        gn12, /* contains optional 50 MHz clock, see ULX3S_USE_GN12_50MHZ */
+`endif
+
     input  wire [6:0]  btn,
     output wire [7:0]  led,
 
@@ -51,7 +57,6 @@ module top_ulx3s (
 
 `endif
 
-
 /* Experimental RTS/DTS to control ESP32 boot mode during serial programming.
  * See also ESP32_BOOT_CONTROL_ENABLED, below  */
 `ifdef ESP32_BOOT_RTS_DTS_ENABLED
@@ -69,6 +74,12 @@ module top_ulx3s (
 ); /* top_ulx3s input */
 
     wire clk_ulx3s;
+
+`ifdef ULX3S_BOARD_VERSION_v20
+    /* The reference v20 lpf file contains BOTH gn12 AND gn[12]. To avoid complaints: */
+    wire gn12;
+    assign gn12 = \gn[12] ;
+`endif
 
     `ifdef ULX3S_USE_GN12_50MHZ
         assign clk_ulx3s = gn12;
