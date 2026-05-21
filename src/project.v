@@ -29,7 +29,7 @@
  * Currently only the version string is implemented. */
 `define USE_LONG_STRINGS
 `define VERSION_STRING_LEN 23 /* 123456789012345678901234 */   
-`define VERSION_STRING          "Version 0.1.3 5/13/2026"   
+`define VERSION_STRING          "Version 0.1.4 5/21/2026"   
 
 `define UART_ENABLED
 `define SPI_ENABLED
