@@ -17,7 +17,7 @@
 
 /* Although the project config is in a parent directory, the Makefile should include
  * a proper directory parameter for yoysys to find it with no path: */ 
-`include "project_config.v"
+`include "../src/project_config.v"
 
 `define ESP32_BOOT_CONTROL_ENABLED
 `define ULX3S_SPI_ENABLED
