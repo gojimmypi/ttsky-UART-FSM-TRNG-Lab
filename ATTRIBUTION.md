@@ -39,6 +39,11 @@ Numerous design, implementation, and other references created by EMARD:
 - https://github.com/emard/ulx3s-misc
 - https://github.com/emard/esp32ecp5
 
+## Goran Mahovlic
+
+Many thanks to my friend Goran who has publicly and privately helped me understand the ULX3S features since 2019.
+
+
 ## ULX3S Platform Resources
 
 Development and testing were performed using the ULX3S FPGA platform.
@@ -46,6 +51,7 @@ Relevant resources include:
 
 - https://ulx3s.github.io/
 - https://github.com/emard/ulx3s
+- Discord: https://discord.gg/qwMUk6W (problems/question/general chat)
 
 ---
 
