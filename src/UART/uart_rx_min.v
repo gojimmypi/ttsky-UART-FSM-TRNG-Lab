@@ -32,8 +32,17 @@
 `default_nettype none
 
 /* Although the project config is in a parent directory, the Makefile should include
- * a proper directory parameter for yoysys to find it with no path: */ 
-// `include "src/project_config.v"
+ * a proper directory parameter for yoysys to find it with no path:
+ *   `include "project_config.v"
+ *
+ * But the GH FPGA action: python tt/tt_tool.py --create-user-config $FLOW_ARG
+ * does not include the path in the Makefile at this time. So we see an error:
+ *   ERROR: Can't open include file `project_config.v'!
+ *   2026-05-21 07:40:04,633 - project    - ERROR    - yosys port read failed for [000 : unknown]
+ * For example: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/26212459101/job/77126453032 
+ *
+ * Here we assume another file has included the project_config.v, with error checks for zero values.
+ */
 
 module uart_rx_min
 #(
