@@ -14,12 +14,18 @@
 `default_nettype none
 `timescale 1ns/1ps
 
+
+/* Although the project config is in a parent directory, the Makefile should include
+ * a proper directory parameter for yoysys to find it with no path: */ 
+`include "../src/project_config.v"
+
 `define ESP32_BOOT_CONTROL_ENABLED
 `define ULX3S_SPI_ENABLED
 //`define ESP32_BOOT_RTS_DTS_ENABLED
 
 module top_ulx3s (
     input  wire        clk_25mhz,
+    input  wire        gn12, /* contains optional 50 MHz clock, see ULX3S_USE_GN12_50MHZ */
     input  wire [6:0]  btn,
     output wire [7:0]  led,
 
@@ -33,11 +39,18 @@ module top_ulx3s (
 
 `ifdef ULX3S_SPI_ENABLED
     /* Instead of editing reference lpf, we'll use the existing names for SPI. */
-    input  wire wifi_gpio14,  /* ESP32 PIN_NUM_CLK  14, wire spi_sck   */
-    input  wire wifi_gpio15,  /* ESP32 PIN_NUM_MOSI 15, wire spi_mosi  */
-    input  wire wifi_gpio13,  /* ESP32 PIN_NUM_CS   13, wire spi_cs_n */
-    output wire wifi_gpio2,   /* ESP32 PIN_NUM_MISO  2, wire spi_miso  */
+    input  wire wifi_gpio14,  /* ESP32 PIN_NUM_CLK  14, wire spi_sck   JTAG TCK */
+    input  wire wifi_gpio15,  /* ESP32 PIN_NUM_MOSI 15, wire spi_mosi  JTAG TDI */
+    input  wire wifi_gpio13,  /* ESP32 PIN_NUM_CS   13, wire spi_cs_n  JTAG TMS */
+    output wire wifi_gpio2,   /* ESP32 PIN_NUM_MISO  2, wire spi_miso  JTAG TDO */
 `endif
+
+`ifdef ULX3S_JTAG_ENABLED
+
+    /* TODO: ULX3S JTAG wrapper */
+
+`endif
+
 
 /* Experimental RTS/DTS to control ESP32 boot mode during serial programming.
  * See also ESP32_BOOT_CONTROL_ENABLED, below  */
@@ -54,6 +67,14 @@ module top_ulx3s (
     /* Keep board powered. */
     output wire        shutdown
 ); /* top_ulx3s input */
+
+    wire clk_ulx3s;
+
+    `ifdef ULX3S_USE_GN12_50MHZ
+        assign clk_ulx3s = gn12;
+    `else
+        assign clk_ulx3s = clk_25mhz;
+    `endif
 
     wire [7:0] ui_in;
     wire [7:0] uio_in;
@@ -180,7 +201,7 @@ module top_ulx3s (
     `ifdef UART_ENABLED
         /* See example UART: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab */
 
-        always @(posedge clk_25mhz) begin
+        always @(posedge clk_ulx3s) begin
             uart_rx_meta <= uart_rx_pin;
             uart_rx_sync <= uart_rx_meta;
         end
@@ -225,7 +246,7 @@ module top_ulx3s (
         .uio_out(uio_out),
         .uio_oe(uio_oe),
         .ena(ena),
-        .clk(clk_25mhz),
+        .clk(clk_ulx3s),
         .rst_n(rst_n)  // TODO - add a reset button and connect it here instead of hardcoding rst_n=1
     );
 
@@ -244,7 +265,18 @@ module top_ulx3s (
     `endif /* FORCE_LOOPBACK */
 
     // Optional Debug
+`ifdef ULX3S_CLOCK_TEST
+    reg [24:0] clk_test_count;
+
+    always @(posedge clk_ulx3s) begin
+        clk_test_count <= clk_test_count + 1'b1;
+    end
+
+    assign led = {7'b0000000, clk_test_count[24]};
+`else
     assign led = uo_out;
+`endif
+
     // assign led = 8'h00;
 
 endmodule

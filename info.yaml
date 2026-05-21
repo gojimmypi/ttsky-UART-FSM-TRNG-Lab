@@ -4,8 +4,8 @@ project:
   author:       "gojimmypi"      # Your name
   discord:      "gojimmypi"      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
   description:  "Universal Asynchronous Receiver/Transmitter Finite State Machine for Exploring ASIC Hardware Physically Unclonable Function True Random Number Generators"      # One line description of what your project does
-  language:     "Verilog" # other examples include Verilog, Amaranth, VHDL, etc
-  clock_hz:     25000000       # Clock frequency in Hz (or 0 if not applicable)
+  language:     "Verilog"        # other examples include Verilog, Amaranth, VHDL, etc
+  clock_hz:     25000000         # Clock frequency in Hz (or 0 if not applicable); note tests such as ULX3S can specify 50MHz
 
   # How many tiles your design occupies? A single tile is about 167x108 uM.
   # tiles: "1x2"          # Valid values for analog projects: 1x2, 2x2

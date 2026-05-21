@@ -25,11 +25,23 @@
 **   `define FORCE_DEEP_LOOPBACK
 */
 
+/* Although the project config is in a parent directory, the Makefile should include
+ * a proper directory parameter for yoysys to find it with no path:
+ *   `include "project_config.v"
+ *
+ * But the GH FPGA action: python tt/tt_tool.py --create-user-config $FLOW_ARG
+ * does not include the path in the Makefile at this time. So we see an error:
+ *   ERROR: Can't open include file `project_config.v'!
+ *   2026-05-21 07:40:04,633 - project    - ERROR    - yosys port read failed for [000 : unknown]
+ * For example: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/26212459101/job/77126453032 
+ *
+ * Here we assume another file has included the project_config.v, with error checks for zero values.
+ */
 
 module uart_trng_ascii_core
 #(
-    parameter [31:0] CLOCK_HZ  = 32'd25000000,
-    parameter [31:0] UART_BAUD = 32'd115200
+    parameter [31:0] CLOCK_HZ  = PROJECT_CLOCK_HZ_VALUE,
+    parameter [31:0] UART_BAUD = PROJECT_UART_BAUD_VALUE
 )
 (
     input  wire       clk,
@@ -47,7 +59,28 @@ module uart_trng_ascii_core
     output wire [7:0] reg_rawlo_o,
     output wire [7:0] reg_rawhi_o,
     output wire       trng_bit_o
+`ifdef SPI_REG_ACCESS
+    ,
+    input  wire       spi_reg_wr_en,
+    input  wire [2:0] spi_reg_addr,
+    input  wire [7:0] spi_reg_wdata,
+    output wire [7:0] spi_reg_rdata
+`endif
 );
+    /* Boilerplate parameter checking */
+    generate
+        if (CLOCK_HZ == 32'd0) begin : gen_bad_clock_hz
+            PROJECT_MUST_NOT_USE_ZERO_CLOCK u_stop ();
+        end
+
+        if (UART_BAUD == 32'd0) begin : gen_bad_uart_baud
+            PROJECT_MUST_NOT_USE_ZERO_UART_BAUD u_stop ();
+        end
+
+        if ((CLOCK_HZ / UART_BAUD) == 32'd0) begin : gen_bad_uart_divider
+            PROJECT_UART_DIVIDER_MUST_NOT_BE_ZERO u_stop ();
+        end
+    endgenerate
 
     /* UART receive side: decoded byte plus one-cycle valid pulse. */
     wire [7:0] rx_byte;
@@ -145,6 +178,11 @@ module uart_trng_ascii_core
     assign reg_rawlo  = reg_rawlo_r;
     assign reg_rawhi  = reg_rawhi_r;
     assign trng_bit   = trng_bit_r;
+`ifdef SPI_REG_ACCESS
+    assign spi_reg_rdata = 8'h00;
+
+    wire _unused_spi_loopback = &{spi_reg_wr_en, spi_reg_addr, spi_reg_wdata};
+`endif
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -219,6 +257,12 @@ module uart_trng_ascii_core
     wire [7:0] reg_rawlo;
     wire [7:0] reg_rawhi;
     wire       trng_bit;
+`ifndef SPI_REG_ACCESS
+    wire [7:0] unused_spi_reg_rdata;
+    wire       unused_spi_reg_rdata_ok;
+
+    assign unused_spi_reg_rdata_ok = &{1'b0, unused_spi_reg_rdata};
+`endif
 
     trng_cfg_ascii_core u_cfg
     (
@@ -240,7 +284,19 @@ module uart_trng_ascii_core
 
         .reg_status(reg_status),
         .reg_rawlo(reg_rawlo),
-        .reg_rawhi(reg_rawhi)
+        .reg_rawhi(reg_rawhi),
+
+`ifdef SPI_REG_ACCESS
+        .spi_reg_wr_en(spi_reg_wr_en),
+        .spi_reg_addr(spi_reg_addr),
+        .spi_reg_wdata(spi_reg_wdata),
+        .spi_reg_rdata(spi_reg_rdata)
+`else
+        .spi_reg_wr_en(1'b0),
+        .spi_reg_addr(3'b000),
+        .spi_reg_wdata(8'h00),
+        .spi_reg_rdata(unused_spi_reg_rdata)
+`endif
     );
 
 `ifdef TRNG_ENABLED

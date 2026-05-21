@@ -31,10 +31,23 @@
  */
 `default_nettype none
 
+/* Although the project config is in a parent directory, the Makefile should include
+ * a proper directory parameter for yoysys to find it with no path:
+ *   `include "project_config.v"
+ *
+ * But the GH FPGA action: python tt/tt_tool.py --create-user-config $FLOW_ARG
+ * does not include the path in the Makefile at this time. So we see an error:
+ *   ERROR: Can't open include file `project_config.v'!
+ *   2026-05-21 07:40:04,633 - project    - ERROR    - yosys port read failed for [000 : unknown]
+ * For example: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/26212459101/job/77126453032 
+ *
+ * Here we assume another file has included the project_config.v, with error checks for zero values.
+ */
+
 module uart_rx_min
 #(
-    parameter [31:0] CLOCK_HZ  = 32'd25000000,
-    parameter [31:0] UART_BAUD = 32'd115200
+    parameter [31:0] CLOCK_HZ  = PROJECT_CLOCK_HZ_VALUE,
+    parameter [31:0] UART_BAUD = PROJECT_UART_BAUD_VALUE
 )
 (
     input  wire       clk,
@@ -43,6 +56,21 @@ module uart_rx_min
     output reg [7:0]  data_out,
     output reg        data_valid
 );
+    /* Boilerplate parameter checking */
+    generate
+        if (CLOCK_HZ == 32'd0) begin : gen_bad_clock_hz
+            PROJECT_MUST_NOT_USE_ZERO_CLOCK u_stop ();
+        end
+
+        if (UART_BAUD == 32'd0) begin : gen_bad_uart_baud
+            PROJECT_MUST_NOT_USE_ZERO_UART_BAUD u_stop ();
+        end
+
+        if ((CLOCK_HZ / UART_BAUD) == 32'd0) begin : gen_bad_uart_divider
+            PROJECT_UART_DIVIDER_MUST_NOT_BE_ZERO u_stop ();
+        end
+    endgenerate
+
     localparam integer CLKS_PER_BIT = CLOCK_HZ / UART_BAUD;
     localparam integer CLKS_PER_BIT_M1  = CLKS_PER_BIT - 1;
     localparam integer CLKS_PER_HALF_M1 = (CLKS_PER_BIT >> 1) - 1;

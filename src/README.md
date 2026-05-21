@@ -4,8 +4,10 @@
 
  - `src\config.json` - edit with caution
  
+ - `src\project_config.v` - project-wide parameter values and macros. Use by source in other directories requires `Makefile` edits (e.g. `tt/tt_tool.py`)
+ 
  - `src\project.v` - the main template shim. Keep it simple for portability.
- - `src\tt_um_main.v` - the main project file, which instantiates the UART and TRNG cores.  
+ - `src\tt_um_main.v` - the main project file, which instantiates the JTAG, SPI, UART and TRNG cores.  
 
  - `src\UART\uart_rx_min.v` - a simple UART receiver core, which receives ASCII characters and outputs them as 8-bit values.
  - `src\UART\uart_tx_min.v` - a simple UART transmitter core, which sends 8-bit values as ASCII characters.

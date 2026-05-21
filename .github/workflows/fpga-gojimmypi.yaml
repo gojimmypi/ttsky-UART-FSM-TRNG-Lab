@@ -1,4 +1,13 @@
-name: fpga
+name: fpga-gojimmypi
+
+# This is a modified fpga workflow that adds ULX3S ECP5 support
+#
+# See upstream:
+#   https://github.com/TinyTapeout/ttsky-verilog-template/issues/22
+#   https://github.com/TinyTapeout/tt-support-tools/pull/167
+#   https://github.com/TinyTapeout/tt-gds-action/pull/47
+#   https://github.com/TinyTapeout/ttsky-verilog-template/pull/23
+#   https://github.com/TinyTapeout/ttsky-verilog-template/pull/25
 
 on:
   push:

@@ -7,6 +7,7 @@
  * file: tt_um_main.v
  *
  * Tiny Tapeout wrapper for the TRNG ASCII core.
+ * Included by project.v and requires project_config.v
  *
  * Purpose:
  * - Exposes the project through the standard Tiny Tapeout pin interface.
@@ -35,10 +36,12 @@
  */
 `default_nettype none
 
+`include "project_config.v"
+
 module tt_um_main 
 #(
-    parameter [31:0] CLOCK_HZ  = 32'd25000000,
-    parameter [31:0] UART_BAUD = 32'd115200
+    parameter [31:0] CLOCK_HZ  = PROJECT_CLOCK_HZ_VALUE,
+    parameter [31:0] UART_BAUD = PROJECT_UART_BAUD_VALUE
 )
 (
     /* For Tiny Tapeout, these are the only ports you can use. 
@@ -52,6 +55,20 @@ module tt_um_main
     input  wire       clk,
     input  wire       rst_n
 );
+    /* Boilerplate parameter checking */
+    generate
+        if (CLOCK_HZ == 32'd0) begin : gen_bad_clock_hz
+            PROJECT_MUST_NOT_USE_ZERO_CLOCK u_stop ();
+        end
+
+        if (UART_BAUD == 32'd0) begin : gen_bad_uart_baud
+            PROJECT_MUST_NOT_USE_ZERO_UART_BAUD u_stop ();
+        end
+
+        if ((CLOCK_HZ / UART_BAUD) == 32'd0) begin : gen_bad_uart_divider
+            PROJECT_UART_DIVIDER_MUST_NOT_BE_ZERO u_stop ();
+        end
+    endgenerate
 
     /* Internal debug/configuration buses exported by the core. */
     wire [7:0] reg_ctrl;
@@ -68,11 +85,23 @@ module tt_um_main
     reg        uart_rx_meta;
     reg        uart_rx_sync;
 
+`ifdef SPI_REG_ACCESS
+    wire       spi_reg_wr_en;
+    wire [2:0] spi_reg_addr;
+    wire [7:0] spi_reg_wdata;
+    wire [7:0] spi_reg_rdata;
+`endif
+
 `ifdef SPI_ENABLED
     wire spi_sck;
     wire spi_mosi;
     wire spi_cs_n;
     wire spi_miso;
+`ifndef SPI_REG_ACCESS
+    wire       spi_unused_reg_wr_en;
+    wire [2:0] spi_unused_reg_addr;
+    wire [7:0] spi_unused_reg_wdata;
+`endif
 `endif
 
     /* TODO check unused wires when SPI and/or UART not enabled */
@@ -140,6 +169,13 @@ module tt_um_main
         .reg_rawlo_o(reg_rawlo),
         .reg_rawhi_o(reg_rawhi),
         .trng_bit_o(trng_bit)
+`ifdef SPI_REG_ACCESS
+        ,
+        .spi_reg_wr_en(spi_reg_wr_en),
+        .spi_reg_addr(spi_reg_addr),
+        .spi_reg_wdata(spi_reg_wdata),
+        .spi_reg_rdata(spi_reg_rdata)
+`endif
     );
 
     /*
@@ -168,7 +204,19 @@ module tt_um_main
         .spi_sck(spi_sck),
         .spi_cs_n(spi_cs_n),
         .spi_mosi(spi_mosi),
-        .spi_miso(spi_miso)
+        .spi_miso(spi_miso),
+
+`ifdef SPI_REG_ACCESS
+        .reg_wr_en(spi_reg_wr_en),
+        .reg_addr(spi_reg_addr),
+        .reg_wdata(spi_reg_wdata),
+        .reg_rdata(spi_reg_rdata)
+`else
+        .reg_wr_en(spi_unused_reg_wr_en),
+        .reg_addr(spi_unused_reg_addr),
+        .reg_wdata(spi_unused_reg_wdata),
+        .reg_rdata(8'h00)
+`endif
     );
 
     assign uio_out[0]   = 1'b0;
@@ -179,6 +227,14 @@ module tt_um_main
     assign uio_out[7:4] = reg_rawhi[7:4];
 
     assign uio_oe = 8'hF4;
+`ifndef SPI_REG_ACCESS
+    wire _unused_spi_reg_outputs = &{
+        1'b0,
+        spi_unused_reg_wr_en,
+        spi_unused_reg_addr,
+        spi_unused_reg_wdata
+    };
+`endif
 `else
     assign uio_out = reg_rawhi;
     assign uio_oe  = 8'hFF;

@@ -2,7 +2,9 @@
 
 for f in \
   ./project.v \
+  ./project_config.v \
   ./tt_um_main.v \
+  ./JTAG/jtag_core.v \
   ./SPI/spi_master.v \
   ./TRNG/trng_cfg_ascii_core.v \
   ./TRNG/trng_stub.v \

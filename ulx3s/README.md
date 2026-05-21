@@ -13,8 +13,14 @@ See the separate [../test](../test) directory for testing native Tiny Tapeout.
  - `ulx3s\ulx3s.bit`
  - `ulx3s\ulx3s_empty.config`
  - `ulx3s\ulx3s_out.config`
- - `ulx3s\ulx3s_v20.lpf`
+ - `ulx3s\ulx3s_v20.lpf` (older version 2.0 boards)
+ - `ulx3s\ulx3s_v314.lpf` (older 3.14 boards
+ - `ulx3s\ulx3s_v316.lpf` DEFAULT for current 3.16 and 3.17 boards
  - `ulx3s\verilator_lint.sh`
+
+Constraint file are from emard's repo:
+
+https://github.com/emard/ulx3s/tree/master/doc/constraints
 
 Included are scripts to build the project for the ULX3S and flash it to the board:
 

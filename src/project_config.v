@@ -1,0 +1,44 @@
+/*
+ * Copyright (c) 2026 gojimmypi
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * See ATTRIBUTION.md for third-party sources and credits.
+ *
+ * file: project_config.v
+ *
+ * Project-wide configuration settings for the Tiny Tapeout project
+ */
+`default_nettype none
+
+/* We only want to include this file once, but it may be referenced BOTH by:
+ *   - project.v
+ *   - top_ulxs.v
+ *   - other wrappers
+ */
+`ifndef PROJECT_CONFIG_V
+    `define PROJECT_CONFIG_V
+
+    /* Optionally Perform a blinky test on led[0] to confirm we have a working clock */
+    // `define ULX3S_CLOCK_TEST
+
+    /* The 50 MHz clock on gn12 is only available when using HDMI on the ULX3S */
+    // `define ULX3S_USE_GN12_50MHZ
+
+    `ifdef ULX3S_USE_GN12_50MHZ
+        `define PROJECT_CLOCK_HZ 50000000
+    `endif
+
+    `ifndef PROJECT_CLOCK_HZ
+       `define PROJECT_CLOCK_HZ 25000000
+    `endif
+
+    `ifndef PROJECT_UART_BAUD
+        `define PROJECT_UART_BAUD 115200
+    `endif
+
+    localparam [31:0] PROJECT_CLOCK_HZ_VALUE  = 32'd`PROJECT_CLOCK_HZ;
+    localparam [31:0] PROJECT_UART_BAUD_VALUE = 32'd`PROJECT_UART_BAUD;
+
+`endif /* PROJECT_CONFIG_V */
+
+`default_nettype wire

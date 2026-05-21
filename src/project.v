@@ -14,6 +14,10 @@
 
 `include "target_pdk.v"
 
+/* Higher level wrappers such as ULX3S FPGA test also need to also have project.v included.
+ * Otherwise, only needed here for TT project: */
+`include "project_config.v"
+
 `ifdef ULX3S
     `timescale 1ns/1ps
 `else
@@ -25,12 +29,14 @@
  * Currently only the version string is implemented. */
 `define USE_LONG_STRINGS
 `define VERSION_STRING_LEN 23 /* 123456789012345678901234 */   
-`define VERSION_STRING          "Version 0.1.3 5/13/2026"   
+`define VERSION_STRING          "Version 0.1.4 5/21/2026"   
+
 `define UART_ENABLED
 `define SPI_ENABLED
 `define TRNG_ENABLED
+`define JTAG_ENABLED 
 
-/* optionally define an SPI test byte. Default is 0x42 */
+/* SPI_ENABLED selects the register-access SPI slave in SPI/spi_slave.v. */
 `define SPI_TEST_BYTE 8'hD2
 
 /* Pick zero or one of these SPI tests: */
@@ -48,11 +54,14 @@
         PROJECT_ULX3S_MUST_NOT_USE_TRNG_ALLOW_REAL_RO u_stop ();
     `endif
 `else
+    /* Not ULXS3. Is this a TT PDK? */
     `ifdef __pnr__
         /* HACK ALERT: __pnr__ does not conclusively prove that we are building for Tiny Tapeout, 
          * but it is a strong indicator that we are in an environment where the real RO-based TRNG can be used. */
         `define TRNG_USE_RO
         `define TRNG_ALLOW_REAL_RO
+
+        /* TODO: detect test modes? add "is submission" macro? */
     `else
         /* some other non ULX3S, non ASIC path. Detect if REAL RO defined externally and abort */
         `ifdef TRNG_USE_RO
@@ -83,6 +92,7 @@
     /* Tiny Tapeout needs to include all the files directly since it doesn't support Makefiles.
      * or list them in /info.yaml file (pick one, don't mix) */
     `include "tt_um_main.v"
+    `include "JTAG/jtag_core.v"
     `include "SPI/spi_slave.v"
     `include "UART/uart_rx_min.v"
     `include "UART/uart_tx_min.v"
@@ -122,8 +132,9 @@ module UART_FSM_TRNG_Lab
 `endif
 
 #(
-    parameter [31:0] CLOCK_HZ  = 32'd25000000,  /* default clock is 25 MHz     */
-    parameter [31:0] UART_BAUD = 32'd115200     /* default UART is 115200 baud */
+    /* Get project-wide params from project_config.v */
+    parameter [31:0] CLOCK_HZ  = PROJECT_CLOCK_HZ_VALUE,    /* default clock is 25 MHz */
+    parameter [31:0] UART_BAUD = PROJECT_UART_BAUD_VALUE    /* default UART is 115200 baud */
 )
 (
     // Optional Analog
@@ -143,6 +154,21 @@ module UART_FSM_TRNG_Lab
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );
+    /* Boilerplate parameter checking */
+    generate
+        if (CLOCK_HZ == 32'd0) begin : gen_bad_clock_hz
+            PROJECT_MUST_NOT_USE_ZERO_CLOCK u_stop ();
+        end
+
+        if (UART_BAUD == 32'd0) begin : gen_bad_uart_baud
+            PROJECT_MUST_NOT_USE_ZERO_UART_BAUD u_stop ();
+        end
+
+        if ((CLOCK_HZ / UART_BAUD) == 32'd0) begin : gen_bad_uart_divider
+            PROJECT_UART_DIVIDER_MUST_NOT_BE_ZERO u_stop ();
+        end
+    endgenerate
+
 
     wire unused_ok;
 
@@ -185,11 +211,5 @@ module UART_FSM_TRNG_Lab
 
 endmodule
 
-/* Settings Sanity Check */
-`ifdef SPI_TEST_FIXED
-    `ifdef SPI_TEST_ECHO
-        MODULE_SPI_TEST_ECHO_MUST_NOT_BE_ENABLED_WITH_SPI_TEST_FIXED u_stop ();
-    `endif
-`endif
 
 `default_nettype wire
