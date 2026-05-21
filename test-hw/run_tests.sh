@@ -10,6 +10,10 @@
 #                     [--deep-loopback]
 #                     [--ignore-combinational-warning]
 #                     [--no-warning-pause]
+#                     [--ulx3s-board-version <version>]
+#                     [--ulx3s-board-version=<version>]
+#                     [--board-version <version>]
+#                     [--board-version=<version>]
 #                     [--port <port>]
 #
 # Options:
@@ -30,6 +34,13 @@
 #   --no-warning-pause
 #       Pass through to the build script. Do not pause when warnings are found.
 #
+#   --ulx3s-board-version <version>
+#   --ulx3s-board-version=<version>
+#   --board-version <version>
+#   --board-version=<version>
+#       Pass through to the build script. Select the ULX3S board version.
+#       Example values: v20, v316
+#
 #   --port <port>
 #       Serial port to use for tests. If omitted, the default below is used.
 #
@@ -39,6 +50,8 @@
 #   ./run_tests.sh --port /dev/ttyS11
 #   ./run_tests.sh --with-build --loopback --port /dev/ttyS11
 #   ./run_tests.sh --with-build --deep-loopback --ignore-combinational-warning
+#   ./run_tests.sh --with-build --ulx3s-board-version v316
+#   ./run_tests.sh --with-build --board-version=v20
 #
 # Windows: PORT=COM8
 # Linux:   PORT=/dev/ttyUSB0
@@ -64,6 +77,7 @@ IS_LOOPBACK=0
 WITH_BUILD=0
 FOUND_KNOWN_ARG=0
 EXPECT_PORT_VALUE=0
+EXPECT_BOARD_VERSION_VALUE=0
 
 # ------------------------------------------------------------------------------
 # Parameter processing
@@ -72,7 +86,7 @@ for arg in "$@"; do
     FOUND_KNOWN_ARG=0
 
     # --------------------------------------------------------------------------
-    # First look at optiona that require a parameter
+    # First look at options that require a parameter
     # --------------------------------------------------------------------------
     # Handle value for previous --port
     if [ "$EXPECT_PORT_VALUE" -eq 1 ]; then
@@ -84,15 +98,58 @@ for arg in "$@"; do
         continue
     fi
 
+    # Handle value for previous --ulx3s-board-version or --board-version
+    if [ "$EXPECT_BOARD_VERSION_VALUE" -eq 1 ]; then
+        EXPECT_BOARD_VERSION_VALUE=0
+
+        FOUND_KNOWN_ARG=1
+        BUILD_ARGS="$BUILD_ARGS --ulx3s-board-version=$arg"
+        echo "Using ULX3S board version: $arg"
+        continue
+    fi
+
     if [ "$arg" = "--port" ]; then
         echo "Will use specified port instead of $PORT"
         FOUND_KNOWN_ARG=1
-        if [ -z "$1" ]; then
-            echo "Error: --port requires a value"
-            exit 1
-        fi
         EXPECT_PORT_VALUE=1
     fi
+
+    if [ "$arg" = "--ulx3s-board-version" ]; then
+        FOUND_KNOWN_ARG=1
+        EXPECT_BOARD_VERSION_VALUE=1
+    fi
+
+    if [ "$arg" = "--board-version" ]; then
+        FOUND_KNOWN_ARG=1
+        EXPECT_BOARD_VERSION_VALUE=1
+    fi
+
+    case "$arg" in
+        --ulx3s-board-version=*)
+            FOUND_KNOWN_ARG=1
+            BOARD_VERSION="${arg#--ulx3s-board-version=}"
+
+            if [ -z "$BOARD_VERSION" ]; then
+                echo "Error: --ulx3s-board-version requires a value"
+                exit 1
+            fi
+
+            BUILD_ARGS="$BUILD_ARGS --ulx3s-board-version=$BOARD_VERSION"
+            echo "Using ULX3S board version: $BOARD_VERSION"
+            ;;
+        --board-version=*)
+            FOUND_KNOWN_ARG=1
+            BOARD_VERSION="${arg#--board-version=}"
+
+            if [ -z "$BOARD_VERSION" ]; then
+                echo "Error: --board-version requires a value"
+                exit 1
+            fi
+
+            BUILD_ARGS="$BUILD_ARGS --ulx3s-board-version=$BOARD_VERSION"
+            echo "Using ULX3S board version: $BOARD_VERSION"
+            ;;
+    esac
 
     # ----------------------------------------------------------------
     # Non-parameter options follow
@@ -139,6 +196,8 @@ for arg in "$@"; do
         echo ""
         echo "Usage: $0 [--with-build] [--loopback] [--deep-loopback]"
         echo "          [--ignore-combinational-warning] [--no-warning-pause]"
+        echo "          [--ulx3s-board-version <version>] [--ulx3s-board-version=<version>]"
+        echo "          [--board-version <version>] [--board-version=<version>]"
         echo "          [--port <port>]"
         echo ""
         echo "  --with-build: Build and flash before running tests"
@@ -146,6 +205,10 @@ for arg in "$@"; do
         echo "  --deep-loopback: Enable deeper loopback mode for build"
         echo "  --ignore-combinational-warning: Ignore ABC combinational network warning"
         echo "  --no-warning-pause: Do not pause for warnings"
+        echo "  --ulx3s-board-version <version>: Select ULX3S board version for build"
+        echo "  --ulx3s-board-version=<version>: Select ULX3S board version for build"
+        echo "  --board-version <version>: Alias for --ulx3s-board-version"
+        echo "  --board-version=<version>: Alias for --ulx3s-board-version"
         echo "  --port <port>: Serial port to use for tests"
         exit 1
     fi 
@@ -153,6 +216,11 @@ done
 
 if [ "$EXPECT_PORT_VALUE" -eq 1 ]; then
     echo "Error: --port requires a value"
+    exit 1
+fi
+
+if [ "$EXPECT_BOARD_VERSION_VALUE" -eq 1 ]; then
+    echo "Error: --ulx3s-board-version requires a value"
     exit 1
 fi
 
