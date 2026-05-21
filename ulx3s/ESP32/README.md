@@ -17,19 +17,27 @@ Build with ESP-ISF v5.5
 ```
 
   If ESP32_BOOT_CONTROL_ENABLED is defined, BTN0 controls wifi_en and BTN1 controls wifi_gpio0
- 
+
+## Reset and Programming
+
+### Reset and Boot Mode Selection 
+
   To RESET the ESP32 and start the running program in flash:
   
  -    Hold btn[1]
  -    Tap btn[0]
  -    Release btn[1]
- 
+
+### Programming
+
   To PROGRAM the ESP32 in flash:
   
   -   Hold btn[0]
   -     (begin flash upload)
   -   Release btn[0] when "Connecting..." is observed.
  
+ If the above does not work, hold down the Pwr/Reset button and try again.
+
   Should then see something like:
 
 ```text
