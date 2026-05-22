@@ -7,26 +7,26 @@
  * file: main.h
  *
  * ESP32 main app
- * 
+ *
  ***********************************************************************************************
  *                                NOTICE - IMPORTANT
  ***********************************************************************************************
  * The ESP32 on the ULX3S sits behind the FPGA! When using the serial port for programming, the
  * FPGA ** MUST ** be configured in passthru mode. See top_ulx3s.v file. Something like:
- * 
+ *
  *       assign wifi_en    = btn[0];
  *       assign wifi_gpio0 = btn[1];
  *
  * If ESP32_BOOT_CONTROL_ENABLED is defined, BTN0 controls wifi_en and BTN1 controls wifi_gpio0
  *
  * To RESET the ESP32 and start the running program in flash:
- * 
+ *
  *    Hold btn[1]
  *    Tap btn[0]
  *    Release btn[1]
  *
  * To PROGRAM the ESP32 in flash:
- * 
+ *
  *    Hold btn[0]
  *      (begin flash upload)
  *    Release btn[0] when "Connecting..." is observed.
@@ -42,7 +42,7 @@
  *   Changing baud rate to 460800
  *   Changed.
  */
-// #include "main.h"
+#include "main.h"
 
 /* ESP-IDF */
 #include "sdkconfig.h"
@@ -65,7 +65,18 @@
  * particularly after freeRTOS from settings.h */
 // #include <driver/uart.h>
 
-#define ULX3S_SPI_ENABLE_WRITE 0
+/*
+ * SPI write policy:
+ *
+ * 0: monitor only. Never write FPGA registers from ESP32.
+ * 1: boot config once. Write safe defaults once at startup, then monitor only.
+ *
+ * This keeps UART regression tests from being clobbered by periodic SPI writes.
+ */
+#define ULX3S_SPI_WRITE_MODE_MONITOR_ONLY      0
+#define ULX3S_SPI_WRITE_MODE_BOOT_CONFIG_ONCE  1
+
+#define ULX3S_SPI_WRITE_MODE ULX3S_SPI_WRITE_MODE_MONITOR_ONLY
 
 #define THIS_MONITOR_UART_RX_BUFFER_SIZE 200
 
@@ -84,6 +95,7 @@
  */
 #define ULX3S_SPI_HOST      SPI2_HOST
 
+/* Prior testing SPI pins disabled: */
 #if 0
     #define PIN_NUM_MISO        19
     #define PIN_NUM_MOSI        23
@@ -153,8 +165,8 @@ static esp_err_t ulx3s_spi_init(void)
 }
 
 static esp_err_t ulx3s_spi_transfer(
-    const uint8_t *tx_buf,
-    uint8_t *rx_buf,
+    const uint8_t* tx_buf,
+    uint8_t* rx_buf,
     size_t len)
 {
     spi_transaction_t trans;
@@ -209,7 +221,7 @@ static void ulx3s_spi_test_once(void)
 
 static esp_err_t ulx3s_spi_read_reg(
     uint8_t addr,
-    uint8_t *value)
+    uint8_t* value)
 {
     esp_err_t ret;
     uint8_t tx_buf[2];
@@ -291,12 +303,12 @@ static esp_err_t ulx3s_spi_dump_regs(void)
     return ESP_OK;
 }
 
-static void ulx3s_spi_reg_access_once(void)
+static void ulx3s_spi_apply_default_config_once(void)
 {
     esp_err_t ret;
 
     /*
-     * Safe first useful writes:
+     * Optional startup writes:
      * - R2 reg_div   : default/sample divider value
      * - R3 reg_mode  : start from mode 0
      * - R4 reg_oscen : enable oscillator/source bit 0
@@ -378,12 +390,23 @@ void app_main(void)
         return;
     }
 
+#if (ULX3S_SPI_WRITE_MODE == ULX3S_SPI_WRITE_MODE_BOOT_CONFIG_ONCE)
+    ESP_LOGI(TAG, "SPI write mode: boot config once");
+    ulx3s_spi_apply_default_config_once();
+#else
+    ESP_LOGI(TAG, "SPI write mode: monitor only");
+#endif
+
     while (1) {
-#if 0	    
+#if 0
         /* FPGA needs to be in test mode. TODO: detect here */
         ulx3s_spi_test_once();
 #endif
-        ulx3s_spi_reg_access_once();
+        ret = ulx3s_spi_dump_regs();
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "ulx3s_spi_dump_regs failed: %s", esp_err_to_name(ret));
+        }
+
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 
