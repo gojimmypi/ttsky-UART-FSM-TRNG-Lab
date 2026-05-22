@@ -65,6 +65,7 @@
  * particularly after freeRTOS from settings.h */
 // #include <driver/uart.h>
 
+#define ULX3S_SPI_ENABLE_WRITE 0
 
 #define THIS_MONITOR_UART_RX_BUFFER_SIZE 200
 
@@ -215,7 +216,7 @@ static esp_err_t ulx3s_spi_read_reg(
     uint8_t rx_buf[2];
 
     if (value == NULL) {
-	    ESP_LOGE(TAG, "ulx3s_spi_read_reg: invalid argument");
+        ESP_LOGE(TAG, "ulx3s_spi_read_reg: invalid argument");
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -227,7 +228,7 @@ static esp_err_t ulx3s_spi_read_reg(
 
     ret = ulx3s_spi_transfer(tx_buf, rx_buf, sizeof(tx_buf));
     if (ret != ESP_OK) {
-	    ESP_LOGE(TAG, "ulx3s_spi_transfer failed: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "ulx3s_spi_transfer failed: %s", esp_err_to_name(ret));
         return ret;
     }
 
@@ -245,6 +246,7 @@ static esp_err_t ulx3s_spi_write_reg(
     uint8_t addr,
     uint8_t value)
 {
+#if ULX3S_SPI_ENABLE_WRITE
     uint8_t tx_buf[2];
     uint8_t rx_buf[2];
 
@@ -255,6 +257,10 @@ static esp_err_t ulx3s_spi_write_reg(
     rx_buf[1] = 0x00U;
 
     return ulx3s_spi_transfer(tx_buf, rx_buf, sizeof(tx_buf));
+#else
+    ESP_LOGW(TAG, "ulx3s_spi_write_reg: write disabled by compile-time flag");
+    return ESP_ERR_INVALID_STATE;
+#endif /* conditional ULX3S_SPI_ENABLE_WRITE */
 }
 
 static esp_err_t ulx3s_spi_dump_regs(void)
@@ -266,7 +272,7 @@ static esp_err_t ulx3s_spi_dump_regs(void)
     for (addr = 0U; addr < 8U; addr++) {
         ret = ulx3s_spi_read_reg(addr, &regs[addr]);
         if (ret != ESP_OK) {
-	        ESP_LOGE(TAG, "ulx3s_spi_read_reg failed: %s", esp_err_to_name(ret));
+            ESP_LOGE(TAG, "ulx3s_spi_read_reg failed: %s", esp_err_to_name(ret));
             return ret;
         }
     }
@@ -299,25 +305,25 @@ static void ulx3s_spi_reg_access_once(void)
      */
     ret = ulx3s_spi_write_reg(TT_REG_DIV, 0x10U);
     if (ret != ESP_OK) {
-	    ESP_LOGE(TAG, "ulx3s_spi_write_reg failed: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "ulx3s_spi_write_reg failed: %s", esp_err_to_name(ret));
         return;
     }
 
     ret = ulx3s_spi_write_reg(TT_REG_MODE, 0x00U);
     if (ret != ESP_OK) {
-	    ESP_LOGE(TAG, "ulx3s_spi_write_reg failed: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "ulx3s_spi_write_reg failed: %s", esp_err_to_name(ret));
         return;
     }
 
     ret = ulx3s_spi_write_reg(TT_REG_OSCEN, 0x01U);
     if (ret != ESP_OK) {
-	    ESP_LOGE(TAG, "ulx3s_spi_write_reg failed: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "ulx3s_spi_write_reg failed: %s", esp_err_to_name(ret));
         return;
     }
 
     ret = ulx3s_spi_dump_regs();
     if (ret != ESP_OK) {
-	    ESP_LOGE(TAG, "ulx3s_spi_dump_regs failed: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "ulx3s_spi_dump_regs failed: %s", esp_err_to_name(ret));
         return;
     }
 }
@@ -374,14 +380,14 @@ void app_main(void)
 
     while (1) {
 #if 0	    
-	    /* FPGA needs to be in test mode. TODO: detect here */
+        /* FPGA needs to be in test mode. TODO: detect here */
         ulx3s_spi_test_once();
 #endif
         ulx3s_spi_reg_access_once();
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 
-	/* disabled code follows */
+    /* disabled code follows */
     for (int i = 10; i >= 0; i--) {
         printf("Restarting in %d seconds...\n", i);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
