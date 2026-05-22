@@ -80,8 +80,15 @@ ECPPACK    := ecppack
 #   make bit ULX3S_BOARD_VERSION=v20
 ULX3S_BOARD_VERSION ?= v317
 
+# See https://github.com/ulx3s/ulx3s/tree/master/doc/constraints
 ifeq ($(ULX3S_BOARD_VERSION),v20)
+	# This is also the default for v307
     LPF := ulx3s_v20.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v17)
+	# Note the reference file name
+    LPF := ulx3s_v17patch.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v17patch)
+    LPF := ulx3s_v17patch.lpf
 else ifeq ($(ULX3S_BOARD_VERSION),v307)
 	# v307 and v20 use the same constraint file
     LPF := ulx3s_v20.lpf
