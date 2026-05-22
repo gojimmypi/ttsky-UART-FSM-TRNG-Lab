@@ -8,6 +8,7 @@
 # usage: run_tests.sh [--with-build]
 #                     [--loopback]
 #                     [--deep-loopback]
+#                     [--pause-for-test]
 #                     [--ignore-combinational-warning]
 #                     [--no-warning-pause]
 #                     [--ulx3s-board-version <version>]
@@ -78,6 +79,8 @@ WITH_BUILD=0
 FOUND_KNOWN_ARG=0
 EXPECT_PORT_VALUE=0
 EXPECT_BOARD_VERSION_VALUE=0
+PAUSE_FOR_TEST=0
+BUILD_ARGS=""
 
 # ------------------------------------------------------------------------------
 # Parameter processing
@@ -190,6 +193,12 @@ for arg in "$@"; do
         echo "Will not pause for warnings"
     fi
 
+    if [ "$arg" = "--pause-for-test" ]; then
+        FOUND_KNOWN_ARG=1
+        PAUSE_FOR_TEST=1
+        echo "Will prompt to continue tests"
+    fi
+
     if [ "$FOUND_KNOWN_ARG" -eq 0 ]; then
         echo ""
         echo "Unknown argument: $arg"
@@ -242,6 +251,13 @@ if [ "$WITH_BUILD" -eq 1 ]; then
     echo "Flash..."
     ./ulx3s_flash.sh                          || exit 1
     popd                                      || exit 1
+fi
+
+# ------------------------------------------------------------------------------
+# Optionally pause before tests to allow user to connect test equipment, etc.
+# ------------------------------------------------------------------------------
+if [ "$PAUSE_FOR_TEST" -eq 1 ]; then
+    read -r -p "Press Enter to continue..."
 fi
 
 # ------------------------------------------------------------------------------
