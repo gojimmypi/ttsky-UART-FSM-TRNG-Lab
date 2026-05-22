@@ -161,34 +161,125 @@ static esp_err_t ulx3s_spi_transfer(
     return ret;
 }
 
-static void ulx3s_spi_test_once(void)
+#define TT_SPI_READ_FLAG      0x80U
+#define TT_SPI_ADDR_MASK      0x07U
+
+#define TT_REG_CTRL           0U
+#define TT_REG_SRC            1U
+#define TT_REG_DIV            2U
+#define TT_REG_MODE           3U
+#define TT_REG_OSCEN          4U
+#define TT_REG_STATUS         5U
+#define TT_REG_RAWLO          6U
+#define TT_REG_RAWHI          7U
+
+static esp_err_t ulx3s_spi_read_reg(
+    uint8_t addr,
+    uint8_t *value)
 {
     esp_err_t ret;
-
-    /*
-     * Byte 0 is command.
-     * Byte 1 is payload or dummy clocks for readback.
-     *
-     * With many simple SPI slaves, rx[0] is old/stale.
-     * The useful response often appears in rx[1] or later.
-     */
     uint8_t tx_buf[2];
     uint8_t rx_buf[2];
 
-    tx_buf[0] = 0x52U;  /* Example command, ASCII 'R' */
-    tx_buf[1] = 0x00U;  /* Dummy byte to clock response */
+    if (value == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    tx_buf[0] = TT_SPI_READ_FLAG | (addr & TT_SPI_ADDR_MASK);
+    tx_buf[1] = 0x00U;
 
     rx_buf[0] = 0x00U;
     rx_buf[1] = 0x00U;
 
     ret = ulx3s_spi_transfer(tx_buf, rx_buf, sizeof(tx_buf));
     if (ret != ESP_OK) {
+        return ret;
+    }
+
+    /*
+     * The first response byte is not the requested register value.
+     * The slave loads the selected register after the command byte,
+     * then clocks it out during the second byte.
+     */
+    *value = rx_buf[1];
+
+    return ESP_OK;
+}
+
+static esp_err_t ulx3s_spi_write_reg(
+    uint8_t addr,
+    uint8_t value)
+{
+    uint8_t tx_buf[2];
+    uint8_t rx_buf[2];
+
+    tx_buf[0] = addr & TT_SPI_ADDR_MASK;
+    tx_buf[1] = value;
+
+    rx_buf[0] = 0x00U;
+    rx_buf[1] = 0x00U;
+
+    return ulx3s_spi_transfer(tx_buf, rx_buf, sizeof(tx_buf));
+}
+
+static esp_err_t ulx3s_spi_dump_regs(void)
+{
+    esp_err_t ret;
+    uint8_t regs[8];
+    uint8_t addr;
+
+    for (addr = 0U; addr < 8U; addr++) {
+        ret = ulx3s_spi_read_reg(addr, &regs[addr]);
+        if (ret != ESP_OK) {
+            return ret;
+        }
+    }
+
+    ESP_LOGI(TAG,
+             "SPI regs: R0=%02X R1=%02X R2=%02X R3=%02X R4=%02X R5=%02X R6=%02X R7=%02X",
+             regs[0],
+             regs[1],
+             regs[2],
+             regs[3],
+             regs[4],
+             regs[5],
+             regs[6],
+             regs[7]);
+
+    return ESP_OK;
+}
+
+static void ulx3s_spi_reg_access_once(void)
+{
+    esp_err_t ret;
+
+    /*
+     * Safe first useful writes:
+     * - R2 reg_div   : default/sample divider value
+     * - R3 reg_mode  : start from mode 0
+     * - R4 reg_oscen : enable oscillator/source bit 0
+     *
+     * R5..R7 are read-only status/raw outputs.
+     */
+    ret = ulx3s_spi_write_reg(TT_REG_DIV, 0x10U);
+    if (ret != ESP_OK) {
         return;
     }
 
-    ESP_LOGI(TAG, "tx: %02X %02X  rx: %02X %02X",
-             tx_buf[0], tx_buf[1],
-             rx_buf[0], rx_buf[1]);
+    ret = ulx3s_spi_write_reg(TT_REG_MODE, 0x00U);
+    if (ret != ESP_OK) {
+        return;
+    }
+
+    ret = ulx3s_spi_write_reg(TT_REG_OSCEN, 0x01U);
+    if (ret != ESP_OK) {
+        return;
+    }
+
+    ret = ulx3s_spi_dump_regs();
+    if (ret != ESP_OK) {
+        return;
+    }
 }
 
 /* entry point */
@@ -242,7 +333,7 @@ void app_main(void)
     }
 
     while (1) {
-        ulx3s_spi_test_once();
+        ulx3s_spi_reg_access_once();
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 

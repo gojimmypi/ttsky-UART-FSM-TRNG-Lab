@@ -33,14 +33,15 @@
 
 `define UART_ENABLED
 `define SPI_ENABLED
+`define SPI_REG_ACCESS
 `define TRNG_ENABLED
 `define JTAG_ENABLED 
 
-/* SPI_ENABLED selects the register-access SPI slave in SPI/spi_slave.v. */
-`define SPI_TEST_BYTE 8'hD2
+/* SPI_TEST_BYTE is only used when SPI_TEST_FIXED is enabled. */
+// `define SPI_TEST_BYTE 8'hD2
 
-/* Pick zero or one of these SPI tests: */
-`define SPI_TEST_FIXED
+/* Pick zero or one of these SPI tests. Leave both disabled for register access. */
+// `define SPI_TEST_FIXED
 // `define SPI_TEST_ECHO
 
 /* Conditional TRNG settings */
