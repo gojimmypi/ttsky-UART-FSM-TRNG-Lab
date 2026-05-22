@@ -97,6 +97,18 @@
 
 #define SPI_CLOCK_HZ        1000000
 
+#define TT_SPI_READ_FLAG    0x80U
+#define TT_SPI_ADDR_MASK    0x07U
+
+#define TT_REG_CTRL         0U
+#define TT_REG_SRC          1U
+#define TT_REG_DIV          2U
+#define TT_REG_MODE         3U
+#define TT_REG_OSCEN        4U
+#define TT_REG_STATUS       5U
+#define TT_REG_RAWLO        6U
+#define TT_REG_RAWHI        7U
+
 static const char* const TAG = "main";
 
 
@@ -161,17 +173,38 @@ static esp_err_t ulx3s_spi_transfer(
     return ret;
 }
 
-#define TT_SPI_READ_FLAG      0x80U
-#define TT_SPI_ADDR_MASK      0x07U
+    /* FPGA needs to be n test mode. TODO: detect here */
+#if 0
+static void ulx3s_spi_test_once(void)
+{
+    esp_err_t ret;
 
-#define TT_REG_CTRL           0U
-#define TT_REG_SRC            1U
-#define TT_REG_DIV            2U
-#define TT_REG_MODE           3U
-#define TT_REG_OSCEN          4U
-#define TT_REG_STATUS         5U
-#define TT_REG_RAWLO          6U
-#define TT_REG_RAWHI          7U
+    /*
+     * Byte 0 is command.
+     * Byte 1 is payload or dummy clocks for readback.
+     *
+     * With many simple SPI slaves, rx[0] is old/stale.
+     * The useful response often appears in rx[1] or later.
+     */
+    uint8_t tx_buf[2];
+    uint8_t rx_buf[2];
+
+    tx_buf[0] = 0x52U;  /* Example command, ASCII 'R' */
+    tx_buf[1] = 0x00U;  /* Dummy byte to clock response */
+
+    rx_buf[0] = 0x00U;
+    rx_buf[1] = 0x00U;
+
+    ret = ulx3s_spi_transfer(tx_buf, rx_buf, sizeof(tx_buf));
+    if (ret != ESP_OK) {
+        return;
+    }
+
+    ESP_LOGI(TAG, "tx: %02X %02X  rx: %02X %02X",
+             tx_buf[0], tx_buf[1],
+             rx_buf[0], rx_buf[1]);
+}
+#endif /* conditional ulx3s_spi_test_once()  */
 
 static esp_err_t ulx3s_spi_read_reg(
     uint8_t addr,
@@ -182,6 +215,7 @@ static esp_err_t ulx3s_spi_read_reg(
     uint8_t rx_buf[2];
 
     if (value == NULL) {
+	    ESP_LOGE(TAG, "ulx3s_spi_read_reg: invalid argument");
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -193,6 +227,7 @@ static esp_err_t ulx3s_spi_read_reg(
 
     ret = ulx3s_spi_transfer(tx_buf, rx_buf, sizeof(tx_buf));
     if (ret != ESP_OK) {
+	    ESP_LOGE(TAG, "ulx3s_spi_transfer failed: %s", esp_err_to_name(ret));
         return ret;
     }
 
@@ -231,6 +266,7 @@ static esp_err_t ulx3s_spi_dump_regs(void)
     for (addr = 0U; addr < 8U; addr++) {
         ret = ulx3s_spi_read_reg(addr, &regs[addr]);
         if (ret != ESP_OK) {
+	        ESP_LOGE(TAG, "ulx3s_spi_read_reg failed: %s", esp_err_to_name(ret));
             return ret;
         }
     }
@@ -263,21 +299,25 @@ static void ulx3s_spi_reg_access_once(void)
      */
     ret = ulx3s_spi_write_reg(TT_REG_DIV, 0x10U);
     if (ret != ESP_OK) {
+	    ESP_LOGE(TAG, "ulx3s_spi_write_reg failed: %s", esp_err_to_name(ret));
         return;
     }
 
     ret = ulx3s_spi_write_reg(TT_REG_MODE, 0x00U);
     if (ret != ESP_OK) {
+	    ESP_LOGE(TAG, "ulx3s_spi_write_reg failed: %s", esp_err_to_name(ret));
         return;
     }
 
     ret = ulx3s_spi_write_reg(TT_REG_OSCEN, 0x01U);
     if (ret != ESP_OK) {
+	    ESP_LOGE(TAG, "ulx3s_spi_write_reg failed: %s", esp_err_to_name(ret));
         return;
     }
 
     ret = ulx3s_spi_dump_regs();
     if (ret != ESP_OK) {
+	    ESP_LOGE(TAG, "ulx3s_spi_dump_regs failed: %s", esp_err_to_name(ret));
         return;
     }
 }
@@ -333,10 +373,15 @@ void app_main(void)
     }
 
     while (1) {
+#if 0	    
+	    /* FPGA needs to be in test mode. TODO: detect here */
+        ulx3s_spi_test_once();
+#endif
         ulx3s_spi_reg_access_once();
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 
+	/* disabled code follows */
     for (int i = 10; i >= 0; i--) {
         printf("Restarting in %d seconds...\n", i);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
