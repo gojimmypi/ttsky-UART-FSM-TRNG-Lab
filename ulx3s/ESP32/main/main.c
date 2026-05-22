@@ -70,14 +70,18 @@
  *
  * 0: monitor only. Never write FPGA registers from ESP32.
  * 1: boot config once. Write safe defaults once at startup, then monitor only.
+ * 2: self-test once. Save, write, verify, restore, then monitor only.
  *
- * This keeps UART regression tests from being clobbered by periodic SPI writes.
+ * Monitor-only is the safe default for concurrent UART regression tests.
  */
 #define ULX3S_SPI_WRITE_MODE_MONITOR_ONLY       0
 #define ULX3S_SPI_WRITE_MODE_BOOT_CONFIG_ONCE   1
 #define ULX3S_SPI_WRITE_MODE_SELF_TEST_ONCE     2
 
 #define ULX3S_SPI_WRITE_MODE    ULX3S_SPI_WRITE_MODE_MONITOR_ONLY
+
+#define ULX3S_SPI_MONITOR_LOG_CHANGES_ONLY      1
+#define ULX3S_SPI_MONITOR_POLL_DELAY_MS         1000U
 
 #define THIS_MONITOR_UART_RX_BUFFER_SIZE 200
 
@@ -260,7 +264,7 @@ static esp_err_t ulx3s_spi_write_reg(
     uint8_t value)
 {
 #if (ULX3S_SPI_WRITE_MODE != ULX3S_SPI_WRITE_MODE_MONITOR_ONLY)
-	uint8_t tx_buf[2];
+    uint8_t tx_buf[2];
     uint8_t rx_buf[2];
 
     tx_buf[0] = addr & TT_SPI_ADDR_MASK;
@@ -276,11 +280,15 @@ static esp_err_t ulx3s_spi_write_reg(
 #endif /* conditional ULX3S_SPI_WRITE_MODE != ULX3S_SPI_WRITE_MODE_MONITOR_ONLY */
 }
 
-static esp_err_t ulx3s_spi_dump_regs(void)
+static esp_err_t ulx3s_spi_read_regs(uint8_t regs[8])
 {
     esp_err_t ret;
-    uint8_t regs[8];
     uint8_t addr;
+
+    if (regs == NULL) {
+        ESP_LOGE(TAG, "ulx3s_spi_read_regs: invalid argument");
+        return ESP_ERR_INVALID_ARG;
+    }
 
     for (addr = 0U; addr < 8U; addr++) {
         ret = ulx3s_spi_read_reg(addr, &regs[addr]);
@@ -290,8 +298,17 @@ static esp_err_t ulx3s_spi_dump_regs(void)
         }
     }
 
+    return ESP_OK;
+}
+
+static void ulx3s_spi_log_regs(const uint8_t regs[8])
+{
+    uint16_t raw;
+
+    raw = ((uint16_t)regs[TT_REG_RAWHI] << 8) | regs[TT_REG_RAWLO];
+
     ESP_LOGI(TAG,
-             "SPI regs: R0=%02X R1=%02X R2=%02X R3=%02X R4=%02X R5=%02X R6=%02X R7=%02X",
+             "SPI regs: R0=%02X R1=%02X R2=%02X R3=%02X R4=%02X R5=%02X R6=%02X R7=%02X raw=0x%04X status=0x%02X src=%u div=0x%02X mode=0x%02X oscen=0x%02X",
              regs[0],
              regs[1],
              regs[2],
@@ -299,11 +316,59 @@ static esp_err_t ulx3s_spi_dump_regs(void)
              regs[4],
              regs[5],
              regs[6],
-             regs[7]);
+             regs[7],
+             raw,
+             regs[TT_REG_STATUS],
+             regs[TT_REG_SRC],
+             regs[TT_REG_DIV],
+             regs[TT_REG_MODE],
+             regs[TT_REG_OSCEN]);
+}
+
+#if (ULX3S_SPI_WRITE_MODE == ULX3S_SPI_WRITE_MODE_BOOT_CONFIG_ONCE)
+static esp_err_t ulx3s_spi_dump_regs(void)
+{
+    esp_err_t ret;
+    uint8_t regs[8];
+
+    ret = ulx3s_spi_read_regs(regs);
+    if (ret != ESP_OK) {
+        return ret;
+    }
+
+    ulx3s_spi_log_regs(regs);
 
     return ESP_OK;
 }
 
+#endif /* conditional ULX3S_SPI_WRITE_MODE == ULX3S_SPI_WRITE_MODE_BOOT_CONFIG_ONCE */
+
+static esp_err_t ulx3s_spi_monitor_once(void)
+{
+    esp_err_t ret;
+    uint8_t regs[8];
+    static uint8_t previous_regs[8];
+    static uint8_t have_previous;
+
+    ret = ulx3s_spi_read_regs(regs);
+    if (ret != ESP_OK) {
+        return ret;
+    }
+
+#if ULX3S_SPI_MONITOR_LOG_CHANGES_ONLY
+    if ((have_previous == 0U) || (memcmp(previous_regs, regs, sizeof(regs)) != 0)) {
+        ulx3s_spi_log_regs(regs);
+        memcpy(previous_regs, regs, sizeof(previous_regs));
+        have_previous = 1U;
+    }
+#else
+    ulx3s_spi_log_regs(regs);
+#endif
+
+    return ESP_OK;
+}
+
+#if (ULX3S_SPI_WRITE_MODE == ULX3S_SPI_WRITE_MODE_BOOT_CONFIG_ONCE)
 static void ulx3s_spi_apply_default_config_once(void)
 {
     esp_err_t ret;
@@ -340,6 +405,156 @@ static void ulx3s_spi_apply_default_config_once(void)
         return;
     }
 }
+
+#endif /* conditional ULX3S_SPI_WRITE_MODE == ULX3S_SPI_WRITE_MODE_BOOT_CONFIG_ONCE */
+
+#if (ULX3S_SPI_WRITE_MODE == ULX3S_SPI_WRITE_MODE_SELF_TEST_ONCE)
+static esp_err_t ulx3s_spi_expect_reg(
+    uint8_t addr,
+    uint8_t expected,
+    const char* name)
+{
+    esp_err_t ret;
+    uint8_t actual;
+
+    ret = ulx3s_spi_read_reg(addr, &actual);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "SPI self-test read failed for %s: %s",
+                 name,
+                 esp_err_to_name(ret));
+        return ret;
+    }
+
+    if (actual != expected) {
+        ESP_LOGE(TAG, "SPI self-test FAIL %s: expected %02X, actual %02X",
+                 name,
+                 expected,
+                 actual);
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "SPI self-test PASS %s: %02X", name, actual);
+
+    return ESP_OK;
+}
+
+static void ulx3s_spi_self_test_once(void)
+{
+    esp_err_t ret;
+    uint8_t saved_div;
+    uint8_t saved_mode;
+    uint8_t saved_oscen;
+    unsigned int write_pass_count;
+    unsigned int restore_pass_count;
+
+    write_pass_count = 0U;
+    restore_pass_count = 0U;
+
+    ESP_LOGI(TAG, "SPI self-test: saving current writable registers");
+
+    ret = ulx3s_spi_read_reg(TT_REG_DIV, &saved_div);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "SPI self-test failed to save R2: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ret = ulx3s_spi_read_reg(TT_REG_MODE, &saved_mode);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "SPI self-test failed to save R3: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ret = ulx3s_spi_read_reg(TT_REG_OSCEN, &saved_oscen);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "SPI self-test failed to save R4: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ESP_LOGI(TAG, "SPI self-test saved: R2=%02X R3=%02X R4=%02X",
+             saved_div,
+             saved_mode,
+             saved_oscen);
+
+    ret = ulx3s_spi_write_reg(TT_REG_DIV, 0xA5U);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "SPI self-test failed to write R2: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ret = ulx3s_spi_write_reg(TT_REG_MODE, 0x5AU);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "SPI self-test failed to write R3: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ret = ulx3s_spi_write_reg(TT_REG_OSCEN, 0x03U);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "SPI self-test failed to write R4: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ret = ulx3s_spi_expect_reg(TT_REG_DIV, 0xA5U, "R2");
+    if (ret != ESP_OK) {
+        return;
+    }
+    write_pass_count++;
+
+    ret = ulx3s_spi_expect_reg(TT_REG_MODE, 0x5AU, "R3");
+    if (ret != ESP_OK) {
+        return;
+    }
+    write_pass_count++;
+
+    ret = ulx3s_spi_expect_reg(TT_REG_OSCEN, 0x03U, "R4");
+    if (ret != ESP_OK) {
+        return;
+    }
+    write_pass_count++;
+
+    ESP_LOGI(TAG, "SPI self-test: restoring saved writable registers");
+
+    ret = ulx3s_spi_write_reg(TT_REG_DIV, saved_div);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "SPI self-test failed to restore R2: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ret = ulx3s_spi_write_reg(TT_REG_MODE, saved_mode);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "SPI self-test failed to restore R3: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ret = ulx3s_spi_write_reg(TT_REG_OSCEN, saved_oscen);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "SPI self-test failed to restore R4: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ret = ulx3s_spi_expect_reg(TT_REG_DIV, saved_div, "R2 restore");
+    if (ret != ESP_OK) {
+        return;
+    }
+    restore_pass_count++;
+
+    ret = ulx3s_spi_expect_reg(TT_REG_MODE, saved_mode, "R3 restore");
+    if (ret != ESP_OK) {
+        return;
+    }
+    restore_pass_count++;
+
+    ret = ulx3s_spi_expect_reg(TT_REG_OSCEN, saved_oscen, "R4 restore");
+    if (ret != ESP_OK) {
+        return;
+    }
+    restore_pass_count++;
+
+    ESP_LOGI(TAG, "SPI self-test result: PASS, writes=%u, restores=%u",
+             write_pass_count,
+             restore_pass_count);
+}
+
+#endif /* conditional ULX3S_SPI_WRITE_MODE == ULX3S_SPI_WRITE_MODE_SELF_TEST_ONCE */
 
 /* entry point */
 void app_main(void)
@@ -394,6 +609,9 @@ void app_main(void)
 #if (ULX3S_SPI_WRITE_MODE == ULX3S_SPI_WRITE_MODE_BOOT_CONFIG_ONCE)
     ESP_LOGI(TAG, "SPI write mode: boot config once");
     ulx3s_spi_apply_default_config_once();
+#elif (ULX3S_SPI_WRITE_MODE == ULX3S_SPI_WRITE_MODE_SELF_TEST_ONCE)
+    ESP_LOGI(TAG, "SPI write mode: self-test once");
+    ulx3s_spi_self_test_once();
 #else
     ESP_LOGI(TAG, "SPI write mode: monitor only");
 #endif
@@ -403,12 +621,12 @@ void app_main(void)
         /* FPGA needs to be in test mode. TODO: detect here */
         ulx3s_spi_test_once();
 #endif
-        ret = ulx3s_spi_dump_regs();
+        ret = ulx3s_spi_monitor_once();
         if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "ulx3s_spi_dump_regs failed: %s", esp_err_to_name(ret));
+            ESP_LOGE(TAG, "ulx3s_spi_monitor_once failed: %s", esp_err_to_name(ret));
         }
 
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(ULX3S_SPI_MONITOR_POLL_DELAY_MS));
     }
 
     /* disabled code follows */
