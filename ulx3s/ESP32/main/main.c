@@ -73,10 +73,11 @@
  *
  * This keeps UART regression tests from being clobbered by periodic SPI writes.
  */
-#define ULX3S_SPI_WRITE_MODE_MONITOR_ONLY      0
-#define ULX3S_SPI_WRITE_MODE_BOOT_CONFIG_ONCE  1
+#define ULX3S_SPI_WRITE_MODE_MONITOR_ONLY       0
+#define ULX3S_SPI_WRITE_MODE_BOOT_CONFIG_ONCE   1
+#define ULX3S_SPI_WRITE_MODE_SELF_TEST_ONCE     2
 
-#define ULX3S_SPI_WRITE_MODE ULX3S_SPI_WRITE_MODE_MONITOR_ONLY
+#define ULX3S_SPI_WRITE_MODE    ULX3S_SPI_WRITE_MODE_MONITOR_ONLY
 
 #define THIS_MONITOR_UART_RX_BUFFER_SIZE 200
 
@@ -258,8 +259,8 @@ static esp_err_t ulx3s_spi_write_reg(
     uint8_t addr,
     uint8_t value)
 {
-#if ULX3S_SPI_ENABLE_WRITE
-    uint8_t tx_buf[2];
+#if (ULX3S_SPI_WRITE_MODE != ULX3S_SPI_WRITE_MODE_MONITOR_ONLY)
+	uint8_t tx_buf[2];
     uint8_t rx_buf[2];
 
     tx_buf[0] = addr & TT_SPI_ADDR_MASK;
@@ -272,7 +273,7 @@ static esp_err_t ulx3s_spi_write_reg(
 #else
     ESP_LOGW(TAG, "ulx3s_spi_write_reg: write disabled by compile-time flag");
     return ESP_ERR_INVALID_STATE;
-#endif /* conditional ULX3S_SPI_ENABLE_WRITE */
+#endif /* conditional ULX3S_SPI_WRITE_MODE != ULX3S_SPI_WRITE_MODE_MONITOR_ONLY */
 }
 
 static esp_err_t ulx3s_spi_dump_regs(void)
