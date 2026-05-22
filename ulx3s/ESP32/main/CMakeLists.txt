@@ -1,4 +1,4 @@
 idf_component_register(SRCS "main.c"
                        PRIV_REQUIRES spi_flash
                                      esp_driver_spi
-                       INCLUDE_DIRS "")
+                       INCLUDE_DIRS "./include")
