@@ -55,12 +55,12 @@ module top_ulx3s (
 
 `endif /* ULX3S_JTAG_ENABLED */
 
-/* Experimental RTS/DTS to control ESP32 boot mode during serial programming.
- * See also ESP32_BOOT_CONTROL_ENABLED, below  */
-`ifdef ESP32_BOOT_RTS_DTS_ENABLED
+/* Experimental RTS/DTR to control ESP32 boot mode during serial programming.
+ * See also ESP32_BOOT_CONTROL_ENABLED, below. */
+`ifdef ESP32_BOOT_RTS_DTR_ENABLED
     input  wire        ftdi_nrts,
     input  wire        ftdi_ndtr,
-`endif /* ESP32_BOOT_RTS_DTS_ENABLED */
+`endif /* ESP32_BOOT_RTS_DTR_ENABLED */
     /* ESP32 UART and boot control. */
     output wire        wifi_rxd,
     input  wire        wifi_txd,
@@ -152,7 +152,7 @@ module top_ulx3s (
         *   Changing baud rate to 460800
         *   Changed.
         */
-    `ifdef ESP32_BOOT_RTS_DTS_ENABLED
+    `ifdef ESP32_BOOT_RTS_DTR_ENABLED
         wire dtr;
         wire rts;
 
@@ -168,10 +168,10 @@ module top_ulx3s (
         assign wifi_en    = en_auto;
         assign wifi_gpio0 = gpio0_auto;
     `else
-        /* Current default: no RTS / DTS control */
+        /* Current default: no RTS / DTR control */
         assign wifi_en    = btn[0];
         assign wifi_gpio0 = btn[1];
-    `endif /* ESP32_BOOT_RTS_DTS_ENABLED */
+    `endif /* ESP32_BOOT_RTS_DTR_ENABLED */
 `else
     /* Keep ESP32 enabled and in normal boot mode. */
     assign wifi_en    = 1'b1;
