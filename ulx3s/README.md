@@ -63,10 +63,10 @@ Note the `--port` argument to specify the serial port for the test script. This 
 
 The `--port` here is the external,stand-alone UART device connected to the ULX3S FPGA pins, not to be confused with the ESP32 FTDI programming serial port built into the ULX3S board.
 
-The `--ulx3s-board-version` is optional, only needed to force an earlier board version:
+The `--ulx3s-board-version` is optional, only needed to force an earlier board version, shown here for v3.0.7 that uses the v20 lpf:
 
 ```bash
-./run_tests.sh  --with-build  --ulx3s-board-version v20  --ignore-combinational-warning  --no-warning-pause  --port /dev/ttyS12
+./run_tests.sh  --with-build  --ulx3s-board-version v307  --ignore-combinational-warning  --no-warning-pause  --port /dev/ttyS12
 ```
 
 As a reminder: when configured properly, the ULX3S FPGA JTAG programming port does NOT appear as a serial device.

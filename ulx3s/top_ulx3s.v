@@ -19,14 +19,12 @@
  * a proper directory parameter for yoysys to find it with no path: */ 
 `include "../src/project_config.v"
 
-`define ESP32_BOOT_CONTROL_ENABLED
-`define ULX3S_SPI_ENABLED
-//`define ESP32_BOOT_RTS_DTS_ENABLED
-
 module top_ulx3s (
     input  wire        clk_25mhz,
 `ifdef ULX3S_BOARD_VERSION_v20
     /* The reference lpf file has an unconnected gn[12] */
+    input  wire       \gn[12] ,
+`elsif ULX3S_BOARD_VERSION_v307
     input  wire       \gn[12] ,
 `else
     input  wire        gn12, /* contains optional 50 MHz clock, see ULX3S_USE_GN12_50MHZ */
@@ -77,6 +75,10 @@ module top_ulx3s (
 
 `ifdef ULX3S_BOARD_VERSION_v20
     /* The reference v20 lpf file contains BOTH gn12 AND gn[12]. To avoid complaints: */
+    wire gn12;
+    assign gn12 = \gn[12] ;
+`elsif ULX3S_BOARD_VERSION_v307
+    /* The reference v3.07 lpf file contains BOTH gn12 AND gn[12]. (used v20 LPF): */
     wire gn12;
     assign gn12 = \gn[12] ;
 `endif /* ULX3S_BOARD_VERSION_v20 */

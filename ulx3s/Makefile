@@ -2,7 +2,46 @@
 
 .DELETE_ON_ERROR:
 
+# init
+YOSYS_DEFS :=
+
+# This Makefile is for the ULX3S
+YOSYS_DEFS += -DULX3S
+
+# ULX3S board LPF Constraint File selection.
+# Default is v317. Override with:
+#   make bit ULX3S_BOARD_VERSION=v20
+ULX3S_BOARD_VERSION ?= v317
+
+# See https://github.com/ulx3s/ulx3s/tree/master/doc/constraints
+ifeq ($(ULX3S_BOARD_VERSION),v20)
+	# This is also the default for v307
+    LPF := ulx3s_v20.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v17)
+	# Note the reference file name
+    LPF := ulx3s_v17patch.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v17patch)
+    LPF := ulx3s_v17patch.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v307)
+	# v307 and v20 use the same constraint file
+    LPF := ulx3s_v20.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v314)
+    LPF := ulx3s_v314.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v316)
+    LPF := ulx3s_v316.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v317)
+	# v317 and v316 use the same constraint file
+    LPF := ulx3s_v316.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v318)
+	# v318 and v316 use the same constraint file
+    LPF := ulx3s_v316.lpf
+else
+    $(error Unsupported ULX3S_BOARD_VERSION "$(ULX3S_BOARD_VERSION)". Use v17 or v20 or v307 or v314 or v316 or v318)
+endif
+
+# --package options for nextpnr-ecp5. See below
 PACKAGE := CABGA381
+
 # -------------------------------------
 # 3 flavors of ULX3S, pick ONE DEVICE
 # or specify: 
@@ -19,21 +58,37 @@ DEVICE ?= 85k
 
 FREQ := 25
 
-# Optionally force a loopback
+# Optionally force a UART loopback
 FORCE_LOOPBACK ?= 0
-
-# Optionally force a deep loopback
-FORCE_DEEP_LOOPBACK ?= 0
-
-YOSYS_DEFS :=
-YOSYS_DEFS += -DULX3S
-
 ifeq ($(FORCE_LOOPBACK),1)
     YOSYS_DEFS += -DFORCE_LOOPBACK
 endif
 
+# Optionally force a deep UART loopback
+FORCE_DEEP_LOOPBACK ?= 0
 ifeq ($(FORCE_DEEP_LOOPBACK),1)
     YOSYS_DEFS += -DFORCE_DEEP_LOOPBACK
+endif
+
+# The ESP32 on the ULX3S sits *behind* the FPGA and needs Pass-Through mode to control it.
+# If ESP32_BOOT_CONTROL_ENABLED is defined, BTN0 controls wifi_en and BTN1 controls wifi_gpio0 
+# See top_ulx3s.v for details.
+ESP32_BOOT_CONTROL_ENABLED ?= 1
+ifeq ($(ESP32_BOOT_CONTROL_ENABLED),1)
+    YOSYS_DEFS += -DESP32_BOOT_CONTROL_ENABLED
+endif
+
+# Does the ULX3S have a soft SPI implemented for the ESP32?
+# Enabled by default to the TT project.
+ULX3S_SPI_ENABLED ?= 1
+ifeq ($(ULX3S_SPI_ENABLED),1)
+    YOSYS_DEFS += -DULX3S_SPI_ENABLED
+endif
+
+# 
+ESP32_BOOT_RTS_DTS_ENABLED ?= 0
+ifeq ($(ESP32_BOOT_RTS_DTS_ENABLED),1)
+    YOSYS_DEFS += -DESP32_BOOT_RTS_DTS_ENABLED
 endif
 
 ROOT     := ..
@@ -75,36 +130,6 @@ YOSYS      := yosys
 NEXTPNR    := nextpnr-ecp5
 ECPPACK    := ecppack
 
-# ULX3S board LPF selection.
-# Default is v317. Override with:
-#   make bit ULX3S_BOARD_VERSION=v20
-ULX3S_BOARD_VERSION ?= v317
-
-# See https://github.com/ulx3s/ulx3s/tree/master/doc/constraints
-ifeq ($(ULX3S_BOARD_VERSION),v20)
-	# This is also the default for v307
-    LPF := ulx3s_v20.lpf
-else ifeq ($(ULX3S_BOARD_VERSION),v17)
-	# Note the reference file name
-    LPF := ulx3s_v17patch.lpf
-else ifeq ($(ULX3S_BOARD_VERSION),v17patch)
-    LPF := ulx3s_v17patch.lpf
-else ifeq ($(ULX3S_BOARD_VERSION),v307)
-	# v307 and v20 use the same constraint file
-    LPF := ulx3s_v20.lpf
-else ifeq ($(ULX3S_BOARD_VERSION),v314)
-    LPF := ulx3s_v314.lpf
-else ifeq ($(ULX3S_BOARD_VERSION),v316)
-    LPF := ulx3s_v316.lpf
-else ifeq ($(ULX3S_BOARD_VERSION),v317)
-	# v317 and v316 use the same constraint file
-    LPF := ulx3s_v316.lpf
-else ifeq ($(ULX3S_BOARD_VERSION),v318)
-	# v318 and v316 use the same constraint file
-    LPF := ulx3s_v316.lpf
-else
-    $(error Unsupported ULX3S_BOARD_VERSION "$(ULX3S_BOARD_VERSION)". Use v20 or v314 or v316)
-endif
 
 $(info =====================================)
 $(info ULX3S board version: $(ULX3S_BOARD_VERSION))
