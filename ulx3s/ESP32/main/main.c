@@ -67,6 +67,7 @@
 // #include <driver/uart.h>
 
 #define THIS_MONITOR_UART_RX_BUFFER_SIZE 200
+#define TRNG_DEMO_SAMPLE_COUNT 8
 
 #ifdef CONFIG_ESP8266_XTAL_FREQ_26
     /* 26MHz crystal: 74880 bps */
@@ -78,7 +79,7 @@
 
 static const char* const TAG = "main";
 
-static esp_err_t trng_demo(void)
+static esp_err_t trng_lfsr_demo(void)
 {
     esp_err_t err;
     fpga_trng_sample_t sample;
@@ -87,23 +88,89 @@ static esp_err_t trng_demo(void)
     sample.status = 0U;
     sample.raw = 0U;
 
+    ESP_LOGI(TAG, "TRNG deterministic LFSR test");
+
     err = fpga_trng_configure_lfsr_test_mode();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "fpga_trng_configure_lfsr_test_mode failed: %s", esp_err_to_name(err));
         return err;
     }
 
-    for (i = 0; i < 16; i++) {
+    for (i = 0; i < TRNG_DEMO_SAMPLE_COUNT; i++) {
         err = fpga_trng_read_lfsr_sample(&sample);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "fpga_trng_read_lfsr_sample failed: %s", esp_err_to_name(err));
             return err;
         }
 
-        ESP_LOGI(TAG, "trng sample %02d: raw=0x%04X status=0x%02X",
+        ESP_LOGI(TAG, "lfsr test sample %02d: raw=0x%04X status=0x%02X",
                  i,
                  sample.raw,
                  sample.status);
+    }
+
+    return ESP_OK;
+} /* trng_lfsr_demo */
+
+static esp_err_t trng_live_source_demo(
+    const char *name,
+    fpga_trng_source_t source,
+    uint8_t oscillator_mask)
+{
+    esp_err_t err;
+    fpga_trng_sample_t sample;
+    int i;
+
+    sample.status = 0U;
+    sample.raw = 0U;
+
+    ESP_LOGI(TAG, "TRNG live source test: %s", name);
+
+    err = fpga_trng_configure_live(source, 0x01U, oscillator_mask);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "fpga_trng_configure_live failed: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    for (i = 0; i < TRNG_DEMO_SAMPLE_COUNT; i++) {
+        err = fpga_trng_read_live_sample(&sample);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "fpga_trng_read_live_sample failed: %s", esp_err_to_name(err));
+            return err;
+        }
+
+        ESP_LOGI(TAG, "%s sample %02d: raw=0x%04X status=0x%02X",
+                 name,
+                 i,
+                 sample.raw,
+                 sample.status);
+    }
+
+    return ESP_OK;
+} /* trng_live_source_demo */
+
+static esp_err_t trng_demo(void)
+{
+    esp_err_t err;
+
+    err = trng_lfsr_demo();
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    err = trng_live_source_demo("S1 RO0/fallback", FPGA_TRNG_SOURCE_RO0, 0x01U);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    err = trng_live_source_demo("S2 ROX/fallback", FPGA_TRNG_SOURCE_ROX, 0xFFU);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    err = trng_live_source_demo("S3 MIX/fallback", FPGA_TRNG_SOURCE_MIX, 0xFFU);
+    if (err != ESP_OK) {
+        return err;
     }
 
     return ESP_OK;
@@ -175,6 +242,7 @@ void app_main(void)
     if (ret != ESP_OK) {
         return;
     }
+
     ret = ulx3s_spi_reset_config_registers();
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "ulx3s_spi_reset_config_registers failed: %s", esp_err_to_name(ret));
