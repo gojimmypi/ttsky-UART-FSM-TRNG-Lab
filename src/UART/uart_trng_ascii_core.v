@@ -97,6 +97,15 @@ module uart_trng_ascii_core
      * Writing this as OR logic also masks gate-level simulation X values on the
      * raw TX flop while the transmitter is idle. In normal 2-state hardware logic,
      * this is equivalent to: tx_busy ? uart_tx_raw : 1'b1.
+     *
+     * Truth table:
+     *     tx_busy  uart_tx_raw  uart_tx_o
+     *        0        0            1
+     *        0        1            1
+     *        0        X            1
+     *        1        0            0
+     *        1        1            1
+     *        1        X            X
      */
     assign uart_tx_o = (~tx_busy) | uart_tx_raw;
 
