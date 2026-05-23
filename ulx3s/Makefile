@@ -9,9 +9,9 @@ YOSYS_DEFS :=
 YOSYS_DEFS += -DULX3S
 
 # ULX3S board LPF Constraint File selection.
-# Default is v317. Override with:
+# Default is v316 (v317 and v318 use same lpf). Override with:
 #   make bit ULX3S_BOARD_VERSION=v20
-ULX3S_BOARD_VERSION ?= v317
+ULX3S_BOARD_VERSION ?= v316
 
 # See https://github.com/ulx3s/ulx3s/tree/master/doc/constraints
 ifeq ($(ULX3S_BOARD_VERSION),v20)
@@ -36,7 +36,8 @@ else ifeq ($(ULX3S_BOARD_VERSION),v318)
 	# v318 and v316 use the same constraint file
     LPF := ulx3s_v316.lpf
 else
-    $(error Unsupported ULX3S_BOARD_VERSION "$(ULX3S_BOARD_VERSION)". Use v17 or v20 or v307 or v314 or v316 or v318)
+	# some specific versions of boards use a common LPF file, grouped here in parenthesis:
+	$(error Unsupported ULX3S_BOARD_VERSION "$(ULX3S_BOARD_VERSION)". Use (v17, v17patch), (v20, v307), (v314), or (v316, v317, v318))
 endif
 
 # --package options for nextpnr-ecp5. See below
@@ -80,15 +81,16 @@ endif
 
 # Does the ULX3S have a soft SPI implemented for the ESP32?
 # Enabled by default to the TT project.
+# Enables the ULX3S ESP32 SPI path into the TT uio[3:0] SPI pins.
 ULX3S_SPI_ENABLED ?= 1
 ifeq ($(ULX3S_SPI_ENABLED),1)
     YOSYS_DEFS += -DULX3S_SPI_ENABLED
 endif
 
-# 
-ESP32_BOOT_RTS_DTS_ENABLED ?= 0
-ifeq ($(ESP32_BOOT_RTS_DTS_ENABLED),1)
-    YOSYS_DEFS += -DESP32_BOOT_RTS_DTS_ENABLED
+# Experimental FTDI RTS/DTR auto-boot control for ESP32 programming.
+ESP32_BOOT_RTS_DTR_ENABLED ?= 0
+ifeq ($(ESP32_BOOT_RTS_DTR_ENABLED),1)
+    YOSYS_DEFS += -DESP32_BOOT_RTS_DTR_ENABLED
 endif
 
 ROOT     := ..
@@ -98,7 +100,9 @@ TEST_DIR := $(ROOT)/test
 # Get the TOP_MODULE from the info.yaml file, and pass it as a define. 
 INFO_YAML ?= ../info.yaml
 TOP_MODULE := $(shell sed -n 's/^[[:space:]]*top_module:[[:space:]]*"\?\([^"]*\)"\?/\1/p' $(INFO_YAML))
-COMPILE_ARGS += -DTT_TOP_MODULE=$(TOP_MODULE)
+
+# unused?
+# COMPILE_ARGS += -DTT_TOP_MODULE=$(TOP_MODULE)
 
 ifeq ($(TOP_MODULE),)
 $(error Could not find top_module in $(INFO_YAML))
@@ -118,7 +122,7 @@ TB_SRCS  := $(TEST_DIR)/tb.v
 # Verilator (simulation)
 # -----------------------------
 VERILATOR := verilator
-VFLAGS    := -Wall --trace --timing -Wno-fatal -DULX3S
+VFLAGS    := -Wall --trace --timing -Wno-fatal
 
 VDIR      := obj_dir
 SIMEXE    := V$(TB_TOP)
@@ -135,6 +139,7 @@ $(info =====================================)
 $(info ULX3S board version: $(ULX3S_BOARD_VERSION))
 $(info Using LPF file:      $(LPF))
 $(info FPGA device:         $(DEVICE))
+$(info FPGA package:        $(PACKAGE))
 $(info =====================================)
 
 # Pass macros such as ULX3S_BOARD_VERSION_v317 to yosys for conditional verilog
@@ -156,9 +161,9 @@ test: $(VDIR)/$(SIMEXE)
 	./$(VDIR)/$(SIMEXE)
 
 $(VDIR)/$(SIMEXE): $(RTL_SRCS) $(TB_SRCS)
-	$(VERILATOR) $(VFLAGS) --binary \
-	    --top-module $(TB_TOP) \
-	    $(RTL_SRCS) $(TB_SRCS)
+	$(VERILATOR) $(VFLAGS) $(YOSYS_DEFS) --binary \
+		--top-module $(TB_TOP) \
+		$(RTL_SRCS) $(TB_SRCS)
 
 # -----------------------------
 # ULX3S synthesis flow
