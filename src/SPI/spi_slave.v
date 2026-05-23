@@ -159,7 +159,10 @@ module tt_spi_slave
     reg [2:0] spi_sck_sync;
     reg [2:0] spi_cs_sync;
 
+    /* rx_shift[7] is intentionally shifted out when building rx_next. */
+    /* verilator lint_off UNUSEDSIGNAL */
     reg [7:0] rx_shift;
+    /* verilator lint_on UNUSEDSIGNAL */
     reg [7:0] tx_shift;
 
     reg [2:0] bit_count;
@@ -173,7 +176,6 @@ module tt_spi_slave
     wire spi_cs_active;
 
     wire [7:0] rx_next;
-    wire       rx_shift_msb_drop; /* introduced only for clean linting; functionally the same as rx_next[6:0] */
     wire byte_done;
 
     assign spi_sck_rise  = spi_sck_sync[2:1] == 2'b01;
@@ -181,9 +183,7 @@ module tt_spi_slave
     assign spi_cs_start  = spi_cs_sync[2:1] == 2'b10;
     assign spi_cs_active = !spi_cs_sync[2];
 
-    assign rx_shift_msb_drop = rx_shift[7];
-    assign rx_next       = {rx_shift[6:0], spi_mosi} |
-                           {8{rx_shift_msb_drop & 1'b0}};
+    assign rx_next       = {rx_shift[6:0], spi_mosi};
     assign byte_done     = bit_count == 3'd7;
 
     always @(posedge clk) begin
