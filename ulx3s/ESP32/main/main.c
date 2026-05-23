@@ -45,6 +45,7 @@
 #include "main.h"
 
 #include "ulx3s_spi_lib.h"
+#include "fpga_trng.h"
 
 /* ESP-IDF */
 #include "sdkconfig.h"
@@ -53,13 +54,13 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
-#include "sdkconfig.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_chip_info.h"
-#include "esp_flash.h"
-#include "esp_system.h"
-#include "esp_err.h"
+#include <sdkconfig.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <esp_chip_info.h>
+#include <esp_flash.h>
+#include <esp_system.h>
+#include <esp_err.h>
 
 /* Hardware; include after other libraries,
  * particularly after freeRTOS from settings.h */
@@ -76,6 +77,40 @@
 #endif
 
 static const char* const TAG = "main";
+
+static esp_err_t trng_demo(void)
+{
+    esp_err_t err;
+    fpga_trng_sample_t sample;
+    int i;
+
+    sample.status = 0U;
+    sample.raw = 0U;
+
+//    err = fpga_trng_init_defaults();
+//    if (err != ESP_OK) {
+//        ESP_LOGE(TAG, "fpga_trng_init_defaults failed: %s", esp_err_to_name(err));
+//        return err;
+//    }
+
+    for (i = 0; i < 16; i++) {
+        /* debug: avoid sampling immediately after changing TRNG configuration */
+        vTaskDelay(pdMS_TO_TICKS(100));
+        
+        err = fpga_trng_read_sample(&sample);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "fpga_trng_read_sample failed: %s", esp_err_to_name(err));
+            return err;
+        }
+
+        ESP_LOGI(TAG, "trng sample %02d: raw=0x%04X status=0x%02X",
+                 i,
+                 sample.raw,
+                 sample.status);
+    }
+
+    return ESP_OK;
+} /* trng_demo */
 
 /* entry point */
 void app_main(void)
@@ -95,7 +130,7 @@ void app_main(void)
     ESP_LOGI(TAG, "Stack HWM: %d\n", uxTaskGetStackHighWaterMark(NULL));
 
 
-    printf("Hello world 2!\n");
+    printf("Hello world 3!\n");
 
     /* Print chip information */
     esp_chip_info_t chip_info;
@@ -136,7 +171,14 @@ void app_main(void)
 #else
     ESP_LOGI(TAG, "SPI write mode: monitor only");
 #endif
-
+    
+    vTaskDelay(pdMS_TO_TICKS(100));
+    
+    ret = trng_demo();
+    if (ret != ESP_OK) {
+        return;
+    }
+    
     while (1) {
         ret = ulx3s_spi_monitor_once();
         if (ret != ESP_OK) {
