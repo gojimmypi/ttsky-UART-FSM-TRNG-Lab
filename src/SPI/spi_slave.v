@@ -159,7 +159,7 @@ module tt_spi_slave
     reg [2:0] spi_sck_sync;
     reg [2:0] spi_cs_sync;
 
-    reg [6:0] rx_shift;
+    reg [7:0] rx_shift;
     reg [7:0] tx_shift;
     reg [2:0] bit_count;
     reg [1:0] state;
@@ -177,15 +177,15 @@ module tt_spi_slave
     assign spi_sck_fall  = spi_sck_sync[2:1] == 2'b10;
     assign spi_cs_start  = spi_cs_sync[2:1] == 2'b10;
     assign spi_cs_active = !spi_cs_sync[2];
-    assign rx_next       = {rx_shift, spi_mosi};
+    assign rx_next       = {rx_shift[6:0], spi_mosi};
     assign byte_done     = bit_count == 3'd7;
 
     always @(posedge clk) begin
         if (!rst_n) begin
             spi_sck_sync   <= 3'b000;
             spi_cs_sync    <= 3'b111;
-            rx_shift       <= 7'h00;
-            tx_shift       <= 7'h00;
+            rx_shift       <= 8'h00;
+            tx_shift       <= 8'h00;
             bit_count      <= 3'd0;
             state          <= ST_CMD;
             cmd_read       <= 1'b0;
@@ -211,7 +211,7 @@ module tt_spi_slave
                 spi_miso <= SPI_IDLE_MISO;
             end else begin
                 if (spi_sck_rise) begin
-                    rx_shift <= rx_next[6:0];
+                    rx_shift <= rx_next;
 
                     if (byte_done) begin
                         bit_count <= 3'd0;
