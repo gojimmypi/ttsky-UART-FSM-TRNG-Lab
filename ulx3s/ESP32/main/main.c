@@ -87,19 +87,16 @@ static esp_err_t trng_demo(void)
     sample.status = 0U;
     sample.raw = 0U;
 
-//    err = fpga_trng_init_defaults();
-//    if (err != ESP_OK) {
-//        ESP_LOGE(TAG, "fpga_trng_init_defaults failed: %s", esp_err_to_name(err));
-//        return err;
-//    }
+    err = fpga_trng_configure_lfsr_test_mode();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "fpga_trng_configure_lfsr_test_mode failed: %s", esp_err_to_name(err));
+        return err;
+    }
 
     for (i = 0; i < 16; i++) {
-        /* debug: avoid sampling immediately after changing TRNG configuration */
-        vTaskDelay(pdMS_TO_TICKS(100));
-        
-        err = fpga_trng_read_sample(&sample);
+        err = fpga_trng_read_lfsr_sample(&sample);
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "fpga_trng_read_sample failed: %s", esp_err_to_name(err));
+            ESP_LOGE(TAG, "fpga_trng_read_lfsr_sample failed: %s", esp_err_to_name(err));
             return err;
         }
 

@@ -30,9 +30,17 @@ extern "C" {
 #define FPGA_TRNG_REG_RAWLO      0x06U
 #define FPGA_TRNG_REG_RAWHI      0x07U
 
-#define FPGA_TRNG_DEFAULT_DIV    0x10U
-#define FPGA_TRNG_DEFAULT_MODE   0x00U
-#define FPGA_TRNG_DEFAULT_OSCEN  0x01U
+#define FPGA_TRNG_CTRL_NONE         0x00U
+#define FPGA_TRNG_CTRL_ENABLE       0x01U
+#define FPGA_TRNG_CTRL_SINGLE_STEP  0x02U
+#define FPGA_TRNG_CTRL_RESET        0x04U
+
+#define FPGA_TRNG_SOURCE_LFSR       0x00U
+#define FPGA_TRNG_BITS_PER_SAMPLE   16U
+
+#define FPGA_TRNG_DEFAULT_DIV       0x10U
+#define FPGA_TRNG_DEFAULT_MODE      0x00U
+#define FPGA_TRNG_DEFAULT_OSCEN     0x01U
 
 typedef struct fpga_trng_sample {
     uint8_t status;
@@ -40,6 +48,9 @@ typedef struct fpga_trng_sample {
 } fpga_trng_sample_t;
 
 esp_err_t fpga_trng_init_defaults(void);
+esp_err_t fpga_trng_configure_lfsr_test_mode(void);
+esp_err_t fpga_trng_pulse_single_step(void);
+esp_err_t fpga_trng_read_lfsr_sample(fpga_trng_sample_t *sample);
 esp_err_t fpga_trng_read_sample(fpga_trng_sample_t *sample);
 esp_err_t fpga_trng_read_raw(uint16_t *raw);
 esp_err_t fpga_trng_fill(uint8_t *buffer, size_t length);
@@ -48,4 +59,4 @@ esp_err_t fpga_trng_fill(uint8_t *buffer, size_t length);
 }
 #endif
 
-#endif /* _FPGA_TRNG_H_ */
+#endif /* FPGA_TRNG_H */

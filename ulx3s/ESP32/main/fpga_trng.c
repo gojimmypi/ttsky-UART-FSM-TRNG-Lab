@@ -34,6 +34,76 @@ esp_err_t fpga_trng_init_defaults(void)
     return ESP_OK;
 }
 
+esp_err_t fpga_trng_configure_lfsr_test_mode(void)
+{
+    esp_err_t err;
+
+    /* Disable sampling and clear single-step/reset control bits. */
+    err = ulx3s_spi_write_reg(FPGA_TRNG_REG_CTRL, FPGA_TRNG_CTRL_NONE);
+    ESP_RETURN_ON_ERROR(err, TAG, "failed to clear TRNG control register");
+
+    /* Pulse TRNG internal reset through reg_ctrl[2]. */
+    err = ulx3s_spi_write_reg(FPGA_TRNG_REG_CTRL, FPGA_TRNG_CTRL_RESET);
+    ESP_RETURN_ON_ERROR(err, TAG, "failed to assert TRNG reset");
+
+    err = ulx3s_spi_write_reg(FPGA_TRNG_REG_CTRL, FPGA_TRNG_CTRL_NONE);
+    ESP_RETURN_ON_ERROR(err, TAG, "failed to release TRNG reset");
+
+    /* Source 0 is the deterministic LFSR test source. */
+    err = ulx3s_spi_write_reg(FPGA_TRNG_REG_SRC, FPGA_TRNG_SOURCE_LFSR);
+    ESP_RETURN_ON_ERROR(err, TAG, "failed to select TRNG LFSR source");
+
+    /* Keep this test purely digital and deterministic. */
+    err = ulx3s_spi_write_reg(FPGA_TRNG_REG_OSCEN, 0x00U);
+    ESP_RETURN_ON_ERROR(err, TAG, "failed to disable TRNG oscillators");
+
+    /* Match the UART regression test setup. */
+    err = ulx3s_spi_write_reg(FPGA_TRNG_REG_DIV, 0x01U);
+    ESP_RETURN_ON_ERROR(err, TAG, "failed to write TRNG divider");
+
+    err = ulx3s_spi_write_reg(FPGA_TRNG_REG_MODE, 0x00U);
+    ESP_RETURN_ON_ERROR(err, TAG, "failed to write TRNG mode");
+
+    return ESP_OK;
+}
+
+esp_err_t fpga_trng_pulse_single_step(void)
+{
+    esp_err_t err;
+
+    err = ulx3s_spi_write_reg(FPGA_TRNG_REG_CTRL, FPGA_TRNG_CTRL_SINGLE_STEP);
+    ESP_RETURN_ON_ERROR(err, TAG, "failed to assert TRNG single-step bit");
+
+    err = ulx3s_spi_write_reg(FPGA_TRNG_REG_CTRL, FPGA_TRNG_CTRL_NONE);
+    ESP_RETURN_ON_ERROR(err, TAG, "failed to release TRNG single-step bit");
+
+    return ESP_OK;
+}
+
+esp_err_t fpga_trng_read_lfsr_sample(fpga_trng_sample_t *sample)
+{
+    esp_err_t err;
+    unsigned int bit_index;
+
+    if (sample == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    /* Keep free-running sampling disabled while building a deterministic sample. */
+    err = ulx3s_spi_write_reg(FPGA_TRNG_REG_CTRL, FPGA_TRNG_CTRL_NONE);
+    ESP_RETURN_ON_ERROR(err, TAG, "failed to disable TRNG sampling");
+
+    for (bit_index = 0U; bit_index < FPGA_TRNG_BITS_PER_SAMPLE; bit_index++) {
+        err = fpga_trng_pulse_single_step();
+        ESP_RETURN_ON_ERROR(err, TAG, "failed to pulse TRNG single-step bit");
+    }
+
+    err = fpga_trng_read_sample(sample);
+    ESP_RETURN_ON_ERROR(err, TAG, "failed to read stepped TRNG sample");
+
+    return ESP_OK;
+}
+
 esp_err_t fpga_trng_read_sample(fpga_trng_sample_t *sample)
 {
     esp_err_t err;
@@ -82,7 +152,7 @@ esp_err_t fpga_trng_read_raw(uint16_t *raw)
     sample.status = 0U;
     sample.raw = 0U;
 
-    err = fpga_trng_read_sample(&sample);
+    err = fpga_trng_read_lfsr_sample(&sample);
     ESP_RETURN_ON_ERROR(err, TAG, "failed to read TRNG sample");
 
     *raw = sample.raw;
