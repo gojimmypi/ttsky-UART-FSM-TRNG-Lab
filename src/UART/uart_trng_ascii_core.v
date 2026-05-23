@@ -86,10 +86,19 @@ module uart_trng_ascii_core
     wire [7:0] rx_byte;
     wire       rx_valid;
 
-    /* UART transmit side: byte, launch pulse, and busy indication. */
+    /* UART transmit side: byte, launch pulse, busy indication, and raw TX line. */
     wire [7:0] tx_byte;
     wire       tx_start;
     wire       tx_busy;
+    wire       uart_tx_raw;
+
+    /*
+     * The external UART TX line must idle high whenever the transmitter is not busy.
+     * Writing this as OR logic also masks gate-level simulation X values on the
+     * raw TX flop while the transmitter is idle. In normal 2-state hardware logic,
+     * this is equivalent to: tx_busy ? uart_tx_raw : 1'b1.
+     */
+    assign uart_tx_o = (~tx_busy) | uart_tx_raw;
 
     uart_rx_min
     #(
@@ -116,7 +125,7 @@ module uart_trng_ascii_core
         .rst_n(rst_n),
         .data_in(tx_byte),
         .start(tx_start),
-        .tx(uart_tx_o),
+        .tx(uart_tx_raw),
         .busy(tx_busy)
     );
 
