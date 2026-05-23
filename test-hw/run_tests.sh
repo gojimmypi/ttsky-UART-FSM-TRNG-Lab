@@ -208,6 +208,7 @@ for arg in "$@"; do
         echo "          [--ulx3s-board-version <version>] [--ulx3s-board-version=<version>]"
         echo "          [--board-version <version>] [--board-version=<version>]"
         echo "          [--port <port>]"
+        echo "          [--pause-for-test]"
         echo ""
         echo "  --with-build: Build and flash before running tests"
         echo "  --loopback: Enable basic loopback mode for build"
@@ -219,6 +220,7 @@ for arg in "$@"; do
         echo "  --board-version <version>: Alias for --ulx3s-board-version"
         echo "  --board-version=<version>: Alias for --ulx3s-board-version"
         echo "  --port <port>: Serial port to use for tests"
+        echo "  --pause-for-test: Pause before tests to allow setup"
         exit 1
     fi 
 done
