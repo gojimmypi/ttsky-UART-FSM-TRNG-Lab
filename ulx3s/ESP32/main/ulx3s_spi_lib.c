@@ -233,8 +233,44 @@ void ulx3s_spi_log_regs(const uint8_t regs[ULX3S_SPI_REG_COUNT])
              regs[TT_REG_OSCEN]);
 }
 
-#if (ULX3S_SPI_WRITE_MODE == ULX3S_SPI_WRITE_MODE_BOOT_CONFIG_ONCE)
-static esp_err_t ulx3s_spi_dump_regs(void)
+esp_err_t ulx3s_spi_reset_config_registers(void)
+{
+    esp_err_t ret;
+
+    ret = ulx3s_spi_write_reg(TT_REG_CTRL, ULX3S_REG_CTRL_DEFAULT);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "failed to reset R0: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    ret = ulx3s_spi_write_reg(TT_REG_SRC, ULX3S_REG_SRC_DEFAULT);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "failed to reset R1: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    ret = ulx3s_spi_write_reg(TT_REG_DIV, ULX3S_REG_DIV_DEFAULT);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "failed to reset R2: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    ret = ulx3s_spi_write_reg(TT_REG_MODE, ULX3S_REG_MODE_DEFAULT);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "failed to reset R3: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    ret = ulx3s_spi_write_reg(TT_REG_OSCEN, ULX3S_REG_OSCEN_DEFAULT);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "failed to reset R4: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    return ESP_OK;
+}
+
+esp_err_t ulx3s_spi_dump_regs(void)
 {
     esp_err_t ret;
     uint8_t regs[ULX3S_SPI_REG_COUNT];
@@ -248,7 +284,6 @@ static esp_err_t ulx3s_spi_dump_regs(void)
 
     return ESP_OK;
 }
-#endif /* conditional ULX3S_SPI_WRITE_MODE == ULX3S_SPI_WRITE_MODE_BOOT_CONFIG_ONCE */
 
 esp_err_t ulx3s_spi_monitor_once(void)
 {

@@ -168,14 +168,25 @@ void app_main(void)
 #else
     ESP_LOGI(TAG, "SPI write mode: monitor only");
 #endif
-    
+
     vTaskDelay(pdMS_TO_TICKS(100));
-    
+
     ret = trng_demo();
     if (ret != ESP_OK) {
         return;
     }
-    
+    ret = ulx3s_spi_reset_config_registers();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "ulx3s_spi_reset_config_registers failed: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ret = ulx3s_spi_dump_regs();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "ulx3s_spi_dump_regs failed: %s", esp_err_to_name(ret));
+        return;
+    }
+
     while (1) {
         ret = ulx3s_spi_monitor_once();
         if (ret != ESP_OK) {

@@ -47,7 +47,18 @@
 #define TT_REG_RAWLO                            6U
 #define TT_REG_RAWHI                            7U
 
+#define ULX3S_REG_CTRL_DEFAULT     0x00U
+#define ULX3S_REG_SRC_DEFAULT      0x00U
+#define ULX3S_REG_DIV_DEFAULT      0x10U
+#define ULX3S_REG_MODE_DEFAULT     0x00U
+#define ULX3S_REG_OSCEN_DEFAULT    0x01U
+
+
 esp_err_t ulx3s_spi_init(void);
+
+esp_err_t ulx3s_spi_reset_config_registers(void);
+
+esp_err_t ulx3s_spi_dump_regs(void);
 
 esp_err_t ulx3s_spi_read_reg(
     uint8_t addr,
