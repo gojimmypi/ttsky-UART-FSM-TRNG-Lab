@@ -19,7 +19,9 @@
  *
  *   3. ESP32_BOOT_CONTROL_ENABLED and ESP32_BOOT_RTS_DTR_ENABLED defined:
  *      Use FTDI active-low DTR/RTS signals for hands-off esptool style
- *      programming. This follows the common ULX3S ESP32 passthru mapping:
+ *      programming only when select_usb_uart is asserted. Otherwise use
+ *      manual button control. This follows the common ULX3S ESP32 passthru
+ *      mapping:
  *
  *          DTR RTS -> EN GPIO0
  *           1   1      1   1
@@ -40,6 +42,8 @@ module esp32_prog_ctrl
     input  wire ftdi_nrts,
     input  wire ftdi_ndtr,
 
+    input  wire select_usb_uart,
+
     output wire wifi_en,
     output wire wifi_gpio0
 );
@@ -56,8 +60,14 @@ module esp32_prog_ctrl
                           prog_in == 2'b01 ? 2'b10 :
                                               2'b11;
 
-        assign wifi_en    = prog_out[1];
-        assign wifi_gpio0 = prog_out[0] & btn_boot_n;
+        wire ftdi_wifi_en;
+        wire ftdi_wifi_gpio0;
+
+        assign ftdi_wifi_en = prog_out[1];
+        assign ftdi_wifi_gpio0 = prog_out[0] & ~btn_boot_n;
+
+        assign wifi_en = select_usb_uart ? ftdi_wifi_en : btn_reset_n;
+        assign wifi_gpio0 = select_usb_uart ? ftdi_wifi_gpio0 : btn_boot_n;
     `else
         /* Manual ESP32 reset and boot-mode control. */
         assign wifi_en    = btn_reset_n;

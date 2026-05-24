@@ -71,8 +71,13 @@ ifeq ($(FORCE_DEEP_LOOPBACK),1)
     YOSYS_DEFS += -DFORCE_DEEP_LOOPBACK
 endif
 
-# The ESP32 on the ULX3S sits *behind* the FPGA and needs Pass-Through mode to control it.
-# If ESP32_BOOT_CONTROL_ENABLED is defined, BTN0 controls wifi_en and BTN1 controls wifi_gpio0 
+# The ESP32 on the ULX3S sits behind the FPGA and needs pass-through logic to control it.
+# ESP32_BOOT_CONTROL_ENABLED enables ESP32 EN/GPIO0 control from the FPGA.
+#
+# ESP32_BOOT_RTS_DTR_ENABLED enables hands-off esptool reset/boot control from US1 FTDI.
+# Without ESP32_BOOT_RTS_DTR_ENABLED, BTN0 controls wifi_en and BTN1 controls wifi_gpio0.
+#   - Hold PWR/Reset then press BTN1 to enter ESP32 bootloader mode for flashing.
+#
 # See top_ulx3s.v for details.
 ESP32_BOOT_CONTROL_ENABLED ?= 1
 ifeq ($(ESP32_BOOT_CONTROL_ENABLED),1)
@@ -88,7 +93,7 @@ ifeq ($(ULX3S_SPI_ENABLED),1)
 endif
 
 # Experimental FTDI RTS/DTR auto-boot control for ESP32 programming.
-ESP32_BOOT_RTS_DTR_ENABLED ?= 0
+ESP32_BOOT_RTS_DTR_ENABLED ?= 1
 ifeq ($(ESP32_BOOT_RTS_DTR_ENABLED),1)
     YOSYS_DEFS += -DESP32_BOOT_RTS_DTR_ENABLED
 endif

@@ -108,6 +108,10 @@ module top_ulx3s (
     wire uart_rx_pin;
     wire uart_tx_pin;
 
+    wire esp32_select_usb_uart;
+    wire esp32_select_external_uart;
+    wire esp32_external_uart_rxd;
+
     /* See https://tinytapeout.com/specs/pinouts/#spi
      * SPI uses CS, MOSI, MISO and SCK and therefore requires only one row of pins of the Pmod connector, preferably the upper row. Since standard SPI has to send and receive, the bidirectional Pmod is used:
      *
@@ -131,6 +135,51 @@ module top_ulx3s (
 
     assign ena   = 1'b1;
 
+`ifdef HAS_ESP32_UART_AUTO_MUX
+    `ifdef ESP32_UART_ENABLED
+        assign esp32_select_usb_uart     = 1'b0;
+        assign esp32_select_external_uart = 1'b0;
+        assign esp32_external_uart_rxd    = 1'b1;
+    `else
+        wire esp32_external_prog_request;
+
+        assign esp32_external_prog_request = ~btn[1];
+
+        esp32_uart_auto_mux esp32_uart_auto_mux_inst
+        (
+            .clk(clk_ulx3s),
+            .rst_n(rst_n),
+
+            .ftdi_txd(ftdi_txd),
+            .ftdi_rxd(ftdi_rxd),
+
+        `ifdef ESP32_BOOT_RTS_DTR_ENABLED
+            .ftdi_nrts(ftdi_nrts),
+            .ftdi_ndtr(ftdi_ndtr),
+        `else
+            .ftdi_nrts(1'b1),
+            .ftdi_ndtr(1'b1),
+        `endif
+
+            .ext_uart_txd(gp0),
+            .ext_uart_rxd(esp32_external_uart_rxd),
+
+            .external_prog_request(esp32_external_prog_request),
+
+            .wifi_txd(wifi_txd),
+            .wifi_rxd(wifi_rxd),
+
+            .select_usb_uart(esp32_select_usb_uart),
+            .select_external_uart(esp32_select_external_uart),
+            .uart_select_locked()
+        );
+    `endif
+`else
+    assign esp32_select_usb_uart     = 1'b1;
+    assign esp32_select_external_uart = 1'b0;
+    assign esp32_external_uart_rxd    = 1'b1;
+`endif
+
 `ifdef HAS_ESP32_PROG_CTRL
     esp32_prog_ctrl esp32_prog_ctrl_inst
     (
@@ -143,6 +192,8 @@ module top_ulx3s (
         .ftdi_nrts(1'b1),
         .ftdi_ndtr(1'b1),
     `endif
+        .select_usb_uart(esp32_select_usb_uart),
+
         .wifi_en(wifi_en),
         .wifi_gpio0(wifi_gpio0)
     );
@@ -155,7 +206,11 @@ module top_ulx3s (
      * UART source selection.
      *
      * Define ESP32_UART_ENABLED to connect the TT UART to the onboard ESP32.
-     * Otherwise, keep using gp0/gp1 for the external UART path.
+     * Otherwise, keep using gp0/gp1 for the external TT UART path. When
+     * HAS_ESP32_UART_AUTO_MUX is enabled, gp0 can also become the ESP32
+     * programming TX path. The mux does not lock on gp0 activity. It locks
+     * the external ESP32 programming path only when btn[1] requests ESP32
+     * boot mode.
      */
 `ifdef ESP32_UART_ENABLED
     assign uart_rx_pin = wifi_txd;
@@ -172,13 +227,15 @@ module top_ulx3s (
     `ifdef NO_ESP32_PASSTHRU_ENABLED
         /* The ULX3S US1 USB port is NOT connected to the ESP32 */
     `else
-        /* Unless explicitly disabled or otherwise assigned, connect the ESP32 to the ULX3S port */
         assign uart_rx_pin = gp0;
-        assign gp1         = uart_tx_pin;
+        assign gp1 = esp32_select_external_uart ? esp32_external_uart_rxd :
+                                                   uart_tx_pin;
 
-        /* Leave USB FTDI connected to ESP32 when not using ESP32 for TT UART. (see above) */
-        assign wifi_rxd = ftdi_txd;
-        assign ftdi_rxd = wifi_txd;
+        `ifndef HAS_ESP32_UART_AUTO_MUX
+            /* Legacy passthru: leave USB FTDI connected to ESP32. */
+            assign wifi_rxd = ftdi_txd;
+            assign ftdi_rxd = wifi_txd;
+        `endif
     `endif /* ESP32_PASSTHRU_ENABLED */
 `endif /* ESP32_UART_ENABLED */
 
