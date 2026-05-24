@@ -63,11 +63,11 @@ module esp32_prog_ctrl
         wire ftdi_wifi_en;
         wire ftdi_wifi_gpio0;
 
-        assign ftdi_wifi_en = prog_out[1];
-        assign ftdi_wifi_gpio0 = prog_out[0] & ~btn_boot_n;
+        assign ftdi_wifi_en = select_usb_uart ? prog_out[1] : 1'b1;
+        assign ftdi_wifi_gpio0 = select_usb_uart ? prog_out[0] : 1'b1;
 
-        assign wifi_en = select_usb_uart ? ftdi_wifi_en : btn_reset_n;
-        assign wifi_gpio0 = select_usb_uart ? ftdi_wifi_gpio0 : btn_boot_n;
+        assign wifi_en = ftdi_wifi_en & btn_reset_n;
+        assign wifi_gpio0 = ftdi_wifi_gpio0 & btn_boot_n;
     `else
         /* Manual ESP32 reset and boot-mode control. */
         assign wifi_en    = btn_reset_n;
