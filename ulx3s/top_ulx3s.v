@@ -14,7 +14,6 @@
 `default_nettype none
 `timescale 1ns/1ps
 
-
 /* Although the project config is in a parent directory, the Makefile should include
  * a proper directory parameter for yoysys to find it with no path: */ 
 `include "../src/project_config.v"
@@ -64,8 +63,12 @@ module top_ulx3s (
     /* ESP32 UART and boot control. */
     output wire        wifi_rxd,
     input  wire        wifi_txd,
+
+    /* Optional ESP32 programming control signals. See esp32_prog_ctrl.v for details. */
+`ifdef HAS_ESP32_PROG_CTRL
     output wire        wifi_en,
     output wire        wifi_gpio0,
+`endif /* HAS_ESP32_PROG_CTRL */
 
     /* Keep board powered. */
     output wire        shutdown
@@ -128,55 +131,22 @@ module top_ulx3s (
 
     assign ena   = 1'b1;
 
-`ifdef ESP32_BOOT_CONTROL_ENABLED
-    /* If ESP32_BOOT_CONTROL_ENABLED is defined, BTN0 controls wifi_en and BTN1 controls wifi_gpio0 
-        *
-        * To RESET the ESP32 and start the running program in flash:
-        *    Hold btn[1]
-        *    Tap btn[0]
-        *    Release btn[1] 
-        *
-        * To PROGRAM the ESP32 in flash:
-        *    Hold btn[0]
-        *      (begin flash upload)
-        *    Release btn[0] when "Connecting..." is observed.
-        * 
-        * Should then see something like:
-        *
-        *   Chip is ESP32-D0WDQ6 (revision v1.0)
-        *   Features: WiFi, BT, Dual Core, 240MHz, VRef calibration in efuse, Coding Scheme None
-        *   Crystal is 40MHz
-        *   Uploading stub...
-        *   Running stub...
-        *   Stub running...
-        *   Changing baud rate to 460800
-        *   Changed.
-        */
+`ifdef HAS_ESP32_PROG_CTRL
+    esp32_prog_ctrl esp32_prog_ctrl_inst
+    (
+        .btn_reset_n(btn[0]),
+        .btn_boot_n(btn[1]),
     `ifdef ESP32_BOOT_RTS_DTR_ENABLED
-        wire dtr;
-        wire rts;
-
-        wire en_auto;
-        wire gpio0_auto;
-
-        assign dtr = ~ftdi_ndtr;
-        assign rts = ~ftdi_nrts;
-
-        assign en_auto    = ~(rts & ~dtr);
-        assign gpio0_auto = ~(dtr & ~rts);
-
-        assign wifi_en    = en_auto;
-        assign wifi_gpio0 = gpio0_auto;
+        .ftdi_nrts(ftdi_nrts),
+        .ftdi_ndtr(ftdi_ndtr),
     `else
-        /* Current default: no RTS / DTR control */
-        assign wifi_en    = btn[0];
-        assign wifi_gpio0 = btn[1];
-    `endif /* ESP32_BOOT_RTS_DTR_ENABLED */
-`else
-    /* Keep ESP32 enabled and in normal boot mode. */
-    assign wifi_en    = 1'b1;
-    assign wifi_gpio0 = 1'b1;
-`endif /* ESP32_BOOT_CONTROL_ENABLED */
+        .ftdi_nrts(1'b1),
+        .ftdi_ndtr(1'b1),
+    `endif
+        .wifi_en(wifi_en),
+        .wifi_gpio0(wifi_gpio0)
+    );
+`endif
 
     /* Do not shut down ULX3S power. */
     assign shutdown = 1'b0;

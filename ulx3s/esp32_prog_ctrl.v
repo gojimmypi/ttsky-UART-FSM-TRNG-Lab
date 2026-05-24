@@ -1,0 +1,74 @@
+/*
+ * Copyright (c) 2026 gojimmypi
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * See ATTRIBUTION.md for third-party sources and credits.
+ *
+ * file: esp32_prog_ctrl.v
+ *
+ * ESP32 programming and boot-control helper for the ULX3S wrapper.
+ *
+ * This module controls ESP32 EN and GPIO0. It supports three build modes:
+ *
+ *   1. ESP32_BOOT_CONTROL_ENABLED undefined:
+ *      Keep ESP32 enabled and in normal flash boot mode.
+ *
+ *   2. ESP32_BOOT_CONTROL_ENABLED defined, ESP32_BOOT_RTS_DTR_ENABLED undefined:
+ *      Manual button control. btn_reset_n drives ESP32 EN and btn_boot_n
+ *      drives ESP32 GPIO0.
+ *
+ *   3. ESP32_BOOT_CONTROL_ENABLED and ESP32_BOOT_RTS_DTR_ENABLED defined:
+ *      Use FTDI active-low DTR/RTS signals for hands-off esptool style
+ *      programming. This follows the common ULX3S ESP32 passthru mapping:
+ *
+ *          DTR RTS -> EN GPIO0
+ *           1   1      1   1
+ *           0   0      1   1
+ *           1   0      0   1
+ *           0   1      1   0
+ */
+`default_nettype none
+`timescale 1ns/1ps
+
+/* Ensure the file is included in Makefile and HAS_ESP32_PROG_CTRL is defined. */
+
+module esp32_prog_ctrl
+(
+    input  wire btn_reset_n,
+    input  wire btn_boot_n,
+
+    input  wire ftdi_nrts,
+    input  wire ftdi_ndtr,
+
+    output wire wifi_en,
+    output wire wifi_gpio0
+);
+
+`ifdef ESP32_BOOT_CONTROL_ENABLED
+    `ifdef ESP32_BOOT_RTS_DTR_ENABLED
+        wire [1:0] prog_in;
+        wire [1:0] prog_out;
+
+        assign prog_in[1] = ftdi_ndtr;
+        assign prog_in[0] = ftdi_nrts;
+
+        assign prog_out = prog_in == 2'b10 ? 2'b01 :
+                          prog_in == 2'b01 ? 2'b10 :
+                                              2'b11;
+
+        assign wifi_en    = prog_out[1];
+        assign wifi_gpio0 = prog_out[0] & btn_boot_n;
+    `else
+        /* Manual ESP32 reset and boot-mode control. */
+        assign wifi_en    = btn_reset_n;
+        assign wifi_gpio0 = btn_boot_n;
+    `endif
+`else
+    /* Keep ESP32 enabled and in normal flash boot mode. */
+    assign wifi_en    = 1'b1;
+    assign wifi_gpio0 = 1'b1;
+`endif
+
+endmodule /* esp32_prog_ctrl */
+
+`default_nettype wire
