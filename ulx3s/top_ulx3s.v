@@ -265,7 +265,10 @@ module top_ulx3s (
         // assign wifi_gpio2 = 1'b1;  /* ESP32 should return rx: FF FF */
     `else
         assign spi_miso   = uio_out[2];
-        assign wifi_gpio2 = spi_miso;
+
+        // assign wifi_gpio2 = spi_miso;
+        // Fix for initial state freshly programmed FPGA to flash ESP32:
+        assign wifi_gpio2 = (ftdi_ndtr ^ ftdi_nrts) ? 1'b0 : spi_miso;
     `endif
 `else
     /* ULX3S_SPI_ENABLED not enabled. TODO what about JTAG?  */
