@@ -120,6 +120,7 @@ TB_SRCS  := $(TEST_DIR)/tb.v
 
 # ESP32 support could be optional for the ULX3S and is not needed for the TT, so we put it in a separate file.
 RTL_SRCS += ./esp32_prog_ctrl.v
+RTL_SRCS += ./esp32_uart_auto_mux.v
 YOSYS_DEFS += -DHAS_ESP32_PROG_CTRL
 
 # -----------------------------

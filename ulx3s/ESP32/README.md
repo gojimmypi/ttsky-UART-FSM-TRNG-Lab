@@ -2,6 +2,18 @@
 
 Build with ESP-ISF v5.5
 
+## Program with US1
+
+```
+cd /mnt/c/SysGCC/esp32-master/esp-idf/v5.5
+
+. ./export.sh
+
+cd /mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/ulx3s/ESP32
+idf.py build
+idf.py -p /dev/ttyS3 flash
+```
+
 - The C compiler identification is GNU 14.2.0
 - The CXX compiler identification is GNU 14.2.0
 
