@@ -22,14 +22,19 @@
  * See also: https://github.com/espressif/esp-idf/blob/master/examples/storage/sd_card/sdmmc/README.md
  * https://github.com/espressif/openocd-esp32/issues/90#issuecomment-570537168
  *
- * shared_spi_jtag_select = 0:
+ *
+ * Note in lpf constraint: IOBUF PORT "gp[4]" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+ *
+ * When unconnected gp4, assume SPI.
+ *
+ * shared_spi_jtag_select = 1:
  *     ESP32 pins are connected:
  *     wifi_gpio13 -> uio[0]
  *     wifi_gpio15 -> uio[1]
  *     wifi_gpio2  <- uio[2]
  *     wifi_gpio14 -> uio[3]
  * 
- * shared_spi_jtag_select = 1:
+ * shared_spi_jtag_select = 0:
  *     Header pins are connected:
  *     gn[2] -> uio[0] JTAG TMS
  *     gp[2] -> uio[1] JTAG TDI
@@ -182,8 +187,8 @@ module top_ulx3s (
     wire shared_spi_jtag_select;
 `ifdef SHARED_SPI_JTAG_IO
     /* WARNING: don't leave gp4 floating!!! */
-    // assign shared_spi_jtag_select = gp4;
-    assign shared_spi_jtag_select = 1'b0;
+    // assign shared_spi_jtag_select = 1'b0;
+    assign shared_spi_jtag_select = gp4;
 `else
     assign shared_spi_jtag_select = 1'b0;
 `endif
@@ -314,19 +319,19 @@ module top_ulx3s (
 
 `ifdef SHARED_SPI_JTAG_IO
     /*
-     * shared_spi_jtag_select = 0:
+     * shared_spi_jtag_select = 1:
      *     ESP32 SPI pins drive TT uio[3:0].
      *
-     * shared_spi_jtag_select = 1:
+     * shared_spi_jtag_select = 0:
      *     Header pins drive TT uio[3:0] for external JTAG testing.
      */
 `ifdef ULX3S_SPI_ENABLED
     assign uio_in = shared_spi_jtag_select ?
-                    {4'b0000, gp3, 1'b0, gp2, gn2} :
-                    {4'b0000, spi_sck, 1'b0, spi_mosi, spi_cs_n};
+                    {4'b0000, spi_sck, 1'b0, spi_mosi, spi_cs_n} :
+                    {4'b0000, gp3, 1'b0, gp2, gn2};
 
     assign spi_miso = uio_out[2];
-    assign gn3 = shared_spi_jtag_select ? uio_out[2] : 1'b0;
+    assign gn3 = shared_spi_jtag_select ? 1'b0 : uio_out[2];
 
     assign spi_sck    = wifi_gpio14;
     assign spi_mosi   = wifi_gpio15;
@@ -340,10 +345,10 @@ module top_ulx3s (
         // Fix for initial state freshly programmed FPGA to flash ESP32.
         `ifdef ESP32_BOOT_RTS_DTR_ENABLED
             assign wifi_gpio2 = shared_spi_jtag_select ?
-                                1'b0 :
-                                ((ftdi_ndtr ^ ftdi_nrts) ? 1'b0 : spi_miso);
+                                ((ftdi_ndtr ^ ftdi_nrts) ? 1'b0 : spi_miso) :
+                                1'b0;
         `else
-            assign wifi_gpio2 = shared_spi_jtag_select ? 1'b0 : spi_miso;
+            assign wifi_gpio2 = shared_spi_jtag_select ? spi_miso : 1'b0;
         `endif
     `endif
 `else

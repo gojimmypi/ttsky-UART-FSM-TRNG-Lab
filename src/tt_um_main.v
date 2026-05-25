@@ -221,9 +221,11 @@ module tt_um_main
     assign uo_out[7] = reg_rawlo[2];
 
 `ifdef JTAG_ENABLED
-    /* ui_in[4] = 0: ESP32 SPI owns uio[3:0]
-     * ui_in[4] = 1: external JTAG header owns uio[3:0] */
-    assign debug_is_jtag = ui_in[4];
+    /* ui_in[4] = 1: ESP32 SPI owns uio[3:0] (default, unconnected = 1: PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;)
+     * ui_in[4] = 0: external JTAG header owns uio[3:0] */
+    assign debug_is_jtag = ~ui_in[4]; /* invert logic since pull-up default on ULX3S wrapper means unconnected = SPI (not JTAG)  */
+
+    /* TODO: what happens with unconnected TT pim? */
 
     assign jtag_tms = uio_in[0];
     assign jtag_tdi = uio_in[1];
