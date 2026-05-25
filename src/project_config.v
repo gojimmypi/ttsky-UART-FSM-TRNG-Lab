@@ -18,6 +18,12 @@
 `ifndef PROJECT_CONFIG_V
     `define PROJECT_CONFIG_V
 
+    /* There's about a 5% (~ 100 cells) increase in the number of cells when using long strings.
+     * Currently only the version string is implemented. */
+    `define USE_LONG_STRINGS
+    `define VERSION_STRING_LEN 24 /* 123456789012345678901234 */   
+    `define VERSION_STRING          "Version 0.1.5a 5/25/2026"   
+
     /* Optionally Perform a blinky test on led[0] to confirm we have a working clock */
     // `define ULX3S_CLOCK_TEST
 
