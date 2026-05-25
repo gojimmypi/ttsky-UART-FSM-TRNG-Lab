@@ -15,7 +15,8 @@
  * - Surfaces a few internal status bits on GPIOs for simple board-level debug.
  *
  * Pin usage in this wrapper:
- * - ui_in[7:4]   : reserved for future use, currently ignored
+ * - ui_in[7:5]   : reserved for future use, currently ignored
+ * - ui_in[4]     : SPI/JTAG select, 1 = SPI, 0 = JTAG
  * - ui_in[3]     : UART RX input to the core
  * - ui_in[2:0]   : reserved for future use, currently ignored
  *

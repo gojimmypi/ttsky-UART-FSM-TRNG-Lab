@@ -14,7 +14,7 @@
  * - default: SPI register-access slave
  * - SPI_TEST_FIXED: prior transmit-only fixed-byte test path
  *
- * Pin convention:
+ * Pin convention: Shared by SPI and JTAG; see shared_spi_jtag_select 
  * - uio[0] = CS_N
  * - uio[1] = MOSI
  * - uio[2] = MISO

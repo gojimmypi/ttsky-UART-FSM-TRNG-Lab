@@ -152,8 +152,9 @@ The TRNG lab core internally resets the LFSR to `0x1ACE`, clears `sample_shift`,
 
 | Pin | Direction | Function |
 | --- | --- | --- |
-| `ui_in[3]` | Input | UART RX |
-| `ui_in[7:4]` | Input | Reserved / unused |
+| `ui_in[7:5]` | Input | Reserved / unused |
+| `ui_in[4]`   | Input | SPI/JTAG select, 1 = SPI, 0 = JTAG |
+| `ui_in[3]`   | Input | UART RX |
 | `ui_in[2:0]` | Input | Reserved / unused |
 
 The UART RX input is synchronized through a two-stage synchronizer before it enters the UART receive logic.
