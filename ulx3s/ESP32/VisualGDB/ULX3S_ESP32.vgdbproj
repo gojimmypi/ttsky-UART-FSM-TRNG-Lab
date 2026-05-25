@@ -106,7 +106,7 @@
     <LastConnectionTime>0</LastConnectionTime>
     <EchoTypedCharacters>false</EchoTypedCharacters>
     <ClearContentsWhenReconnecting>true</ClearContentsWhenReconnecting>
-    <ReconnectAutomatically>false</ReconnectAutomatically>
+    <ReconnectAutomatically>true</ReconnectAutomatically>
     <DisplayMode>ASCII</DisplayMode>
     <Colors>
       <Background>

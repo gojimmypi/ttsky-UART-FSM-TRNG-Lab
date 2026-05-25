@@ -43,6 +43,11 @@ Numerous design, implementation, and other references created by EMARD:
 
 Many thanks to my friend Goran who has publicly and privately helped me understand the ULX3S features since 2019.
 
+## Julia Desmazes, see:
+
+Informative blog on JTAG TAP design and implementation:
+
+- https://essenceia.github.io/projects/two_weeks_until_tapeout/#jtag-tap-design
 
 ## ULX3S Platform Resources
 
