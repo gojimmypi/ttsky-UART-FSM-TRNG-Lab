@@ -14,11 +14,19 @@ See the separate [../test](../test) directory for testing native Tiny Tapeout.
  - `ulx3s\ulx3s_empty.config`
  - `ulx3s\ulx3s_out.config`
  - `ulx3s\ulx3s_v20.lpf` (older version 2.0 boards)
- - `ulx3s\ulx3s_v314.lpf` (older 3.14 boards
- - `ulx3s\ulx3s_v316.lpf` DEFAULT for current 3.16 and 3.17 boards
+ - `ulx3s\ulx3s_v314.lpf` (older 3.14 boards; ESP32 pinout changed more generally)
+ - `ulx3s\ulx3s_v316.lpf` GPIO0 routed to FPGA clock-capable pin; EN and GPIO22 changed
  - `ulx3s\verilator_lint.sh`
 
-Constraint file are from emard's repo:
+For v3.0.7 boards, use the `ulx3s_v20.lpf`.
+
+DEFAULT for current 3.16, 3.17 and 3.18 boards: `ulx3s_v316.lpf`
+
+ULX3S versions 3.1.8 and 3.1.7 are identical - only difference is move to 6 layer board.
+
+v3.1.8. board is under [github.com/ulx3s/ulx3s](https://github.com/ulx3s/ulx3s/tree/master/doc/constraints) repository.
+
+Constraint files are from emard's repo:
 
 https://github.com/emard/ulx3s/tree/master/doc/constraints
 
@@ -55,8 +63,10 @@ Note the `--port` argument to specify the serial port for the test script. This 
 
 The `--port` here is the external,stand-alone UART device connected to the ULX3S FPGA pins, not to be confused with the ESP32 FTDI programming serial port built into the ULX3S board.
 
-```
-./run_tests.sh --with-build --ignore-combinational-warning --no-warning-pause --port /dev/ttyS11
+The `--ulx3s-board-version` is optional, only needed to force an earlier board version, shown here for v3.0.7 that uses the v20 lpf:
+
+```bash
+./run_tests.sh  --with-build  --ulx3s-board-version v307  --ignore-combinational-warning  --no-warning-pause  --port /dev/ttyS12
 ```
 
 As a reminder: when configured properly, the ULX3S FPGA JTAG programming port does NOT appear as a serial device.
@@ -131,6 +141,7 @@ Cannot find JTAG cable.
 ```
 
 #### 
+
 If the ESP32 is running and spewing data to the SPI, UART, etc, consider pressing `rst` (`btn[0]`) to pause and quiet the 
 ESP32 in bootloader mode. Otherwise this error may be encountered:
 
@@ -139,3 +150,9 @@ Found unknown (FFFFFFFF) device, but the bitstream is for LFE5U-85F.
 
 Failed.
 ```
+
+#### No ESP32 output
+
+Was it previously working? Trying power cycling the entire board.
+
+Never working? Check lp and try a different one.

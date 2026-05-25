@@ -7,26 +7,26 @@
  * file: main.h
  *
  * ESP32 main app
- * 
+ *
  ***********************************************************************************************
  *                                NOTICE - IMPORTANT
  ***********************************************************************************************
  * The ESP32 on the ULX3S sits behind the FPGA! When using the serial port for programming, the
  * FPGA ** MUST ** be configured in passthru mode. See top_ulx3s.v file. Something like:
- * 
+ *
  *       assign wifi_en    = btn[0];
  *       assign wifi_gpio0 = btn[1];
  *
  * If ESP32_BOOT_CONTROL_ENABLED is defined, BTN0 controls wifi_en and BTN1 controls wifi_gpio0
  *
  * To RESET the ESP32 and start the running program in flash:
- * 
+ *
  *    Hold btn[1]
  *    Tap btn[0]
  *    Release btn[1]
  *
  * To PROGRAM the ESP32 in flash:
- * 
+ *
  *    Hold btn[0]
  *      (begin flash upload)
  *    Release btn[0] when "Connecting..." is observed.
@@ -42,7 +42,10 @@
  *   Changing baud rate to 460800
  *   Changed.
  */
-// #include "main.h"
+#include "main.h"
+
+#include "ulx3s_spi_lib.h"
+#include "fpga_trng.h"
 
 /* ESP-IDF */
 #include "sdkconfig.h"
@@ -50,23 +53,21 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <string.h>
 #include <inttypes.h>
-#include "sdkconfig.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_chip_info.h"
-#include "esp_flash.h" 
-#include "esp_system.h"
-#include "driver/spi_master.h"
-#include "esp_err.h"
+#include <sdkconfig.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <esp_chip_info.h>
+#include <esp_flash.h>
+#include <esp_system.h>
+#include <esp_err.h>
 
 /* Hardware; include after other libraries,
  * particularly after freeRTOS from settings.h */
 // #include <driver/uart.h>
 
-
 #define THIS_MONITOR_UART_RX_BUFFER_SIZE 200
+#define TRNG_DEMO_SAMPLE_COUNT 8
 
 #ifdef CONFIG_ESP8266_XTAL_FREQ_26
     /* 26MHz crystal: 74880 bps */
@@ -76,120 +77,104 @@
     #define THIS_MONITOR_UART_BAUD_DATE 115200
 #endif
 
-
-/*
- * Set these to match the ESP32 pins wired to the ULX3S FPGA.
- * Avoid SPI1 unless you specifically know you need it.
- */
-#define ULX3S_SPI_HOST      SPI2_HOST
-
-#if 0
-    #define PIN_NUM_MISO        19
-    #define PIN_NUM_MOSI        23
-    #define PIN_NUM_CLK         18
-    #define PIN_NUM_CS          5
-#endif
-
-#define PIN_NUM_MISO        2
-#define PIN_NUM_MOSI        15
-#define PIN_NUM_CLK         14
-#define PIN_NUM_CS          13
-
-#define SPI_CLOCK_HZ        1000000
-
 static const char* const TAG = "main";
 
-
-static spi_device_handle_t ulx3s_spi;
-
-static esp_err_t ulx3s_spi_init(void)
+static esp_err_t trng_lfsr_demo(void)
 {
-    esp_err_t ret;
+    esp_err_t err;
+    fpga_trng_sample_t sample;
+    int i;
 
-    spi_bus_config_t buscfg;
-    spi_device_interface_config_t devcfg;
+    sample.status = 0U;
+    sample.raw = 0U;
 
-    memset(&buscfg, 0, sizeof(buscfg));
-    memset(&devcfg, 0, sizeof(devcfg));
+    ESP_LOGI(TAG, "TRNG deterministic LFSR test");
 
-    buscfg.miso_io_num = PIN_NUM_MISO;
-    buscfg.mosi_io_num = PIN_NUM_MOSI;
-    buscfg.sclk_io_num = PIN_NUM_CLK;
-    buscfg.quadwp_io_num = -1;
-    buscfg.quadhd_io_num = -1;
-    buscfg.max_transfer_sz = 32;
-
-    devcfg.clock_speed_hz = SPI_CLOCK_HZ;
-    devcfg.mode = 0;
-    devcfg.spics_io_num = PIN_NUM_CS;
-    devcfg.queue_size = 1;
-
-    ret = spi_bus_initialize(ULX3S_SPI_HOST, &buscfg, SPI_DMA_DISABLED);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "spi_bus_initialize failed: %s", esp_err_to_name(ret));
-        return ret;
+    err = fpga_trng_configure_lfsr_test_mode();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "fpga_trng_configure_lfsr_test_mode failed: %s", esp_err_to_name(err));
+        return err;
     }
 
-    ret = spi_bus_add_device(ULX3S_SPI_HOST, &devcfg, &ulx3s_spi);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "spi_bus_add_device failed: %s", esp_err_to_name(ret));
-        return ret;
+    for (i = 0; i < TRNG_DEMO_SAMPLE_COUNT; i++) {
+        err = fpga_trng_read_lfsr_sample(&sample);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "fpga_trng_read_lfsr_sample failed: %s", esp_err_to_name(err));
+            return err;
+        }
+
+        ESP_LOGI(TAG, "lfsr test sample %02d: raw=0x%04X status=0x%02X",
+                 i,
+                 sample.raw,
+                 sample.status);
     }
 
     return ESP_OK;
-}
+} /* trng_lfsr_demo */
 
-static esp_err_t ulx3s_spi_transfer(
-    const uint8_t *tx_buf,
-    uint8_t *rx_buf,
-    size_t len)
+static esp_err_t trng_live_source_demo(
+    const char *name,
+    fpga_trng_source_t source,
+    uint8_t oscillator_mask)
 {
-    spi_transaction_t trans;
-    esp_err_t ret;
+    esp_err_t err;
+    fpga_trng_sample_t sample;
+    int i;
 
-    memset(&trans, 0, sizeof(trans));
+    sample.status = 0U;
+    sample.raw = 0U;
 
-    trans.length = len * 8U;
-    trans.tx_buffer = tx_buf;
-    trans.rx_buffer = rx_buf;
+    ESP_LOGI(TAG, "TRNG live source test: %s", name);
 
-    ret = spi_device_transmit(ulx3s_spi, &trans);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "spi_device_transmit failed: %s", esp_err_to_name(ret));
+    err = fpga_trng_configure_live(source, 0x01U, oscillator_mask);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "fpga_trng_configure_live failed: %s", esp_err_to_name(err));
+        return err;
     }
 
-    return ret;
-}
+    for (i = 0; i < TRNG_DEMO_SAMPLE_COUNT; i++) {
+        err = fpga_trng_read_live_sample(&sample);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "fpga_trng_read_live_sample failed: %s", esp_err_to_name(err));
+            return err;
+        }
 
-static void ulx3s_spi_test_once(void)
-{
-    esp_err_t ret;
-
-    /*
-     * Byte 0 is command.
-     * Byte 1 is payload or dummy clocks for readback.
-     *
-     * With many simple SPI slaves, rx[0] is old/stale.
-     * The useful response often appears in rx[1] or later.
-     */
-    uint8_t tx_buf[2];
-    uint8_t rx_buf[2];
-
-    tx_buf[0] = 0x52U;  /* Example command, ASCII 'R' */
-    tx_buf[1] = 0x00U;  /* Dummy byte to clock response */
-
-    rx_buf[0] = 0x00U;
-    rx_buf[1] = 0x00U;
-
-    ret = ulx3s_spi_transfer(tx_buf, rx_buf, sizeof(tx_buf));
-    if (ret != ESP_OK) {
-        return;
+        ESP_LOGI(TAG, "%s sample %02d: raw=0x%04X status=0x%02X",
+                 name,
+                 i,
+                 sample.raw,
+                 sample.status);
     }
 
-    ESP_LOGI(TAG, "tx: %02X %02X  rx: %02X %02X",
-             tx_buf[0], tx_buf[1],
-             rx_buf[0], rx_buf[1]);
-}
+    return ESP_OK;
+} /* trng_live_source_demo */
+
+static esp_err_t trng_demo(void)
+{
+    esp_err_t err;
+
+    err = trng_lfsr_demo();
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    err = trng_live_source_demo("S1 RO0/fallback", FPGA_TRNG_SOURCE_RO0, 0x01U);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    err = trng_live_source_demo("S2 ROX/fallback", FPGA_TRNG_SOURCE_ROX, 0xFFU);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    err = trng_live_source_demo("S3 MIX/fallback", FPGA_TRNG_SOURCE_MIX, 0xFFU);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    return ESP_OK;
+} /* trng_demo */
 
 /* entry point */
 void app_main(void)
@@ -209,7 +194,7 @@ void app_main(void)
     ESP_LOGI(TAG, "Stack HWM: %d\n", uxTaskGetStackHighWaterMark(NULL));
 
 
-    printf("Hello world 2!\n");
+    printf("Hello world 3!\n");
 
     /* Print chip information */
     esp_chip_info_t chip_info;
@@ -241,11 +226,45 @@ void app_main(void)
         return;
     }
 
-    while (1) {
-        ulx3s_spi_test_once();
-        vTaskDelay(pdMS_TO_TICKS(1000));
+#if (ULX3S_SPI_WRITE_MODE == ULX3S_SPI_WRITE_MODE_BOOT_CONFIG_ONCE)
+    ESP_LOGI(TAG, "SPI write mode: boot config once");
+    ulx3s_spi_apply_default_config_once();
+#elif (ULX3S_SPI_WRITE_MODE == ULX3S_SPI_WRITE_MODE_SELF_TEST_ONCE)
+    ESP_LOGI(TAG, "SPI write mode: self-test once");
+    ulx3s_spi_self_test_once();
+#else
+    ESP_LOGI(TAG, "SPI write mode: monitor only");
+#endif
+
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    ret = trng_demo();
+    if (ret != ESP_OK) {
+        return;
     }
 
+    ret = ulx3s_spi_reset_config_registers();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "ulx3s_spi_reset_config_registers failed: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ret = ulx3s_spi_dump_regs();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "ulx3s_spi_dump_regs failed: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    while (1) {
+        ret = ulx3s_spi_monitor_once();
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "ulx3s_spi_monitor_once failed: %s", esp_err_to_name(ret));
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(ULX3S_SPI_MONITOR_POLL_DELAY_MS));
+    }
+
+    /* disabled code follows */
     for (int i = 10; i >= 0; i--) {
         printf("Restarting in %d seconds...\n", i);
         vTaskDelay(1000 / portTICK_PERIOD_MS);

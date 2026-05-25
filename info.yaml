@@ -29,34 +29,34 @@ project:
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
 pinout:
 # Inputs
-  ui[0]: "clk_ext_enable"      # unused_tied_low proposed: Optional external enable (gate core activity)
-  ui[1]: "rst_n"               # Active-low reset
-  ui[2]: "uart_rx"             # UART receive input
-  ui[3]: "mode_sel0"           # unused_tied_low proposed: Mode select bit 0
-  ui[4]: "mode_sel1"           # unused_tied_low proposed: Mode select bit 1
-  ui[5]: "mode_sel2"           # unused_tied_low proposed: Mode select bit 2
-  ui[6]: "trng_enable"         # unused_tied_low proposed: Enable TRNG / ring oscillator block
-  ui[7]: "reserved_in"         # unused_tied_low proposed: Future use (keep flexible)
+  ui[0]: "reserved_in0"        # Currently unused by RTL
+  ui[1]: "reserved_in1"        # Currently unused by RTL
+  ui[2]: "reserved_in2"        # Currently unused by RTL
+  ui[3]: "uart_rx"             # UART receive input to the core
+  ui[4]: "reserved_in4"        # Currently unused by RTL
+  ui[5]: "reserved_in5"        # Currently unused by RTL
+  ui[6]: "reserved_in6"        # Currently unused by RTL
+  ui[7]: "reserved_in7"        # Currently unused by RTL
 
   # Outputs
-  uo[0]: "heartbeat"           # Slow toggle (alive indicator)
-  uo[1]: "trng_bit"            # Raw TRNG bit
-  uo[2]: "trng_valid"          # TRNG valid strobe
-  uo[3]: "ro_out0"             # Ring oscillator 0 (divided or sampled)
-  uo[4]: "ro_out1"             # Ring oscillator 1 (divided or sampled)
-  uo[5]: "uart_tx"             # UART transmit output
-  uo[6]: "fsm_state0"          # FSM debug bit 0
-  uo[7]: "fsm_state1"          # FSM debug bit 1
+  uo[0]: "trng_bit"            # Raw/sample TRNG bit output
+  uo[1]: "status0"             # reg_status[0]
+  uo[2]: "status1"             # reg_status[1]
+  uo[3]: "status2"             # reg_status[2]
+  uo[4]: "uart_tx"             # UART transmit output from the core
+  uo[5]: "rawlo0"              # reg_rawlo[0]
+  uo[6]: "rawlo1"              # reg_rawlo[1]
+  uo[7]: "rawlo2"              # reg_rawlo[2]
 
   # Bidirectional pins
-  uio[0]: "cfg_data0"          # Config / register interface bit 0
-  uio[1]: "cfg_data1"          # Config / register interface bit 1
-  uio[2]: "cfg_data2"          # Config / register interface bit 2
-  uio[3]: "cfg_data3"          # Config / register interface bit 3
-  uio[4]: "debug_out0"         # Optional debug output
-  uio[5]: "debug_out1"         # Optional debug output
-  uio[6]: "ext_entropy_in"     # External entropy injection (future)
-  uio[7]: "reserved_io"        # Keep free for later
+  uio[0]: "spi_cs_n"           # SPI chip-select input, active low
+  uio[1]: "spi_mosi"           # SPI MOSI input
+  uio[2]: "spi_miso"           # SPI MISO output
+  uio[3]: "spi_sck"            # SPI clock input
+  uio[4]: "rawhi4"             # reg_rawhi[4] output
+  uio[5]: "rawhi5"             # reg_rawhi[5] output
+  uio[6]: "rawhi6"             # reg_rawhi[6] output
+  uio[7]: "rawhi7"             # reg_rawhi[7] output
 
   # Analog pins - make sure to also set "analog_pins" above, else the pins won't be connected
   # ua[0]: ""

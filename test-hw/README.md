@@ -13,15 +13,26 @@ specifically the ULX3S FPGA board.
 
 Run tests with `run_tests.sh`:
 
-```
-Usage: ./run_tests.sh [--loopback] [--deep-loopback]
+```text
+Usage: ./run_tests.sh [--with-build] [--loopback] [--deep-loopback]
           [--ignore-combinational-warning] [--no-warning-pause]
+          [--ulx3s-board-version <version>] [--ulx3s-board-version=<version>]
+          [--board-version <version>] [--board-version=<version>]
+          [--port <port>]
+          [--pause-for-test]
 
+  --with-build: Build and flash before running tests
   --loopback: Enable basic loopback mode for build
   --deep-loopback: Enable deeper loopback mode for build
-  --ignore-combinational-warning: Ignore ABC combinational network warning (not recommended)
+  --ignore-combinational-warning: Ignore ABC combinational network warning
   --no-warning-pause: Do not pause for warnings
-```
+  --ulx3s-board-version <version>: Select ULX3S board version for build
+  --ulx3s-board-version=<version>: Select ULX3S board version for build
+  --board-version <version>: Alias for --ulx3s-board-version
+  --board-version=<version>: Alias for --ulx3s-board-version
+  --port <port>: Serial port to use for tests
+  --pause-for-test: Pause before tests to allow setup
+  ```
 
 Examples:
 

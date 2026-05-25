@@ -14,6 +14,8 @@
 # ./ulx3s_build.sh
 # ./ulx3s_build.sh --loopback
 # ./ulx3s_build.sh --deep-loopback
+# ./ulx3s_build.sh --ulx3s-board-version=v20
+# ./ulx3s_build.sh --ulx3s-board-version=v316
 #
 set -e
 set -o pipefail
@@ -38,11 +40,43 @@ FOUND_KNOWN_ARG=0
 IGNORE_COMBINATIONAL_WARNING=0
 NO_WARNING_PAUSE=0
 REMINDER_COMPLETE=1
+ORIGINAL_ARGS=("$@")
 
-for arg in "$@"; do
+print_usage() {
+    echo "Usage: $0 [--loopback] [--deep-loopback] [--ulx3s-board-version=VERSION]"
+    echo "  --loopback: Enable basic loopback mode for build"
+    echo "  --deep-loopback: Enable deeper loopback mode for build"
+    echo "  --ulx3s-board-version=VERSION: Pass ULX3S_BOARD_VERSION=VERSION to make"
+    echo "  --board-version=VERSION: Short alias for --ulx3s-board-version=VERSION"
+    echo "  --ignore-combinational-warning: Ignore ABC combinational network warning (not recommended)"
+    echo "  --no-warning-pause: Do not pause to review ignored warnings"
+}
+
+validate_board_version() {
+    local board_version
+
+    board_version="$1"
+
+    if [ -z "$board_version" ]; then
+        echo "Error: ULX3S board version must not be empty"
+        print_usage
+        exit 1
+    fi
+
+    case "$board_version" in
+        *[!A-Za-z0-9_]*)
+            echo "Error: ULX3S board version may contain only letters, numbers, and underscores"
+            echo "For example: v20, v307, or v316"
+            exit 1
+            ;;
+    esac
+}
+
+while [ "$#" -gt 0 ]; do
+    arg="$1"
     FOUND_KNOWN_ARG=0
 
-    # When editing MAKE_ARGS, don't forget to edit the Makefile!
+    # When editing MAKE_ARGS, remember to keep the Makefile arguments in sync.
 
     # A basic loopback that tests high level tx/rx communication
     if [ "$arg" = "--loopback" ]; then
@@ -65,25 +99,48 @@ for arg in "$@"; do
         IGNORE_COMBINATIONAL_WARNING=1
         echo "Ignoring combinational network message for build"
     fi
-    
+
     if [ "$arg" = "--no-warning-pause" ]; then
         FOUND_KNOWN_ARG=1
         NO_WARNING_PAUSE=1
         echo "Will not pause to review warnings"
     fi
 
+    if [ "$arg" = "--ulx3s-board-version" ] || [ "$arg" = "--board-version" ]; then
+        FOUND_KNOWN_ARG=1
+        shift
+
+        if [ "$#" -eq 0 ]; then
+            echo "Error: $arg requires a value"
+            print_usage
+            exit 1
+        fi
+
+        validate_board_version "$1"
+
+        echo "Using ULX3S board version: $1"
+        MAKE_ARGS="$MAKE_ARGS ULX3S_BOARD_VERSION=$1"
+    fi
+
+    case "$arg" in
+        --ulx3s-board-version=*|--board-version=*)
+            FOUND_KNOWN_ARG=1
+            ULX3S_BOARD_VERSION_ARG="${arg#*=}"
+
+            validate_board_version "$ULX3S_BOARD_VERSION_ARG"
+
+            echo "Using ULX3S board version: $ULX3S_BOARD_VERSION_ARG"
+            MAKE_ARGS="$MAKE_ARGS ULX3S_BOARD_VERSION=$ULX3S_BOARD_VERSION_ARG"
+            ;;
+    esac
+
     if [ "$FOUND_KNOWN_ARG" -eq 0 ]; then
         echo "Unknown argument: $arg"
+        print_usage
         exit 1
     fi
 
-    if [ "$FOUND_KNOWN_ARG" -eq 0 ]; then 
-        echo "Usage: $0 [--loopback] [--deep-loopback]"
-        echo "  --loopback: Enable basic loopback mode for build"
-        echo "  --deep-loopback: Enable deeper loopback mode for build"
-        echo "  --ignore-combinational-warning: Ignore ABC combinational network warning (not recommended)"
-        exit 1
-    fi 
+    shift
 done
 
 make clean || exit 1
@@ -144,7 +201,7 @@ fi
 
 echo "Build PASSED"
 
-for arg in "$@"; do
+for arg in "${ORIGINAL_ARGS[@]}"; do
     if [ "$arg" = "--loopback" ]; then
         REMINDER_COMPLETE=1
         echo "Reminder: Enabling loopback mode for build"

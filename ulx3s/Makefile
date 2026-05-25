@@ -2,7 +2,47 @@
 
 .DELETE_ON_ERROR:
 
+# init
+YOSYS_DEFS :=
+
+# This Makefile is for the ULX3S
+YOSYS_DEFS += -DULX3S
+
+# ULX3S board LPF Constraint File selection.
+# Default is v316 (v317 and v318 use same lpf). Override with:
+#   make bit ULX3S_BOARD_VERSION=v20
+ULX3S_BOARD_VERSION ?= v316
+
+# See https://github.com/ulx3s/ulx3s/tree/master/doc/constraints
+ifeq ($(ULX3S_BOARD_VERSION),v20)
+	# This is also the default for v307
+    LPF := ulx3s_v20.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v17)
+	# Note the reference file name
+    LPF := ulx3s_v17patch.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v17patch)
+    LPF := ulx3s_v17patch.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v307)
+	# v307 and v20 use the same constraint file
+    LPF := ulx3s_v20.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v314)
+    LPF := ulx3s_v314.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v316)
+    LPF := ulx3s_v316.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v317)
+	# v317 and v316 use the same constraint file
+    LPF := ulx3s_v316.lpf
+else ifeq ($(ULX3S_BOARD_VERSION),v318)
+	# v318 and v316 use the same constraint file
+    LPF := ulx3s_v316.lpf
+else
+	# some specific versions of boards use a common LPF file, grouped here in parenthesis:
+	$(error Unsupported ULX3S_BOARD_VERSION "$(ULX3S_BOARD_VERSION)". Use (v17, v17patch), (v20, v307), (v314), or (v316, v317, v318))
+endif
+
+# --package options for nextpnr-ecp5. See below
 PACKAGE := CABGA381
+
 # -------------------------------------
 # 3 flavors of ULX3S, pick ONE DEVICE
 # or specify: 
@@ -19,21 +59,43 @@ DEVICE ?= 85k
 
 FREQ := 25
 
-# Optionally force a loopback
+# Optionally force a UART loopback
 FORCE_LOOPBACK ?= 0
-
-# Optionally force a deep loopback
-FORCE_DEEP_LOOPBACK ?= 0
-
-YOSYS_DEFS :=
-YOSYS_DEFS += -DULX3S
-
 ifeq ($(FORCE_LOOPBACK),1)
     YOSYS_DEFS += -DFORCE_LOOPBACK
 endif
 
+# Optionally force a deep UART loopback
+FORCE_DEEP_LOOPBACK ?= 0
 ifeq ($(FORCE_DEEP_LOOPBACK),1)
     YOSYS_DEFS += -DFORCE_DEEP_LOOPBACK
+endif
+
+# The ESP32 on the ULX3S sits behind the FPGA and needs pass-through logic to control it.
+# ESP32_BOOT_CONTROL_ENABLED enables ESP32 EN/GPIO0 control from the FPGA.
+#
+# ESP32_BOOT_RTS_DTR_ENABLED enables hands-off esptool reset/boot control from US1 FTDI.
+# Without ESP32_BOOT_RTS_DTR_ENABLED, BTN0 controls wifi_en and BTN1 controls wifi_gpio0.
+#   - Hold PWR/Reset then press BTN1 to enter ESP32 bootloader mode for flashing.
+#
+# See top_ulx3s.v for details.
+ESP32_BOOT_CONTROL_ENABLED ?= 1
+ifeq ($(ESP32_BOOT_CONTROL_ENABLED),1)
+    YOSYS_DEFS += -DESP32_BOOT_CONTROL_ENABLED
+endif
+
+# Does the ULX3S have a soft SPI implemented for the ESP32?
+# Enabled by default to the TT project.
+# Enables the ULX3S ESP32 SPI path into the TT uio[3:0] SPI pins.
+ULX3S_SPI_ENABLED ?= 1
+ifeq ($(ULX3S_SPI_ENABLED),1)
+    YOSYS_DEFS += -DULX3S_SPI_ENABLED
+endif
+
+# Experimental FTDI RTS/DTR auto-boot control for ESP32 programming.
+ESP32_BOOT_RTS_DTR_ENABLED ?= 1
+ifeq ($(ESP32_BOOT_RTS_DTR_ENABLED),1)
+    YOSYS_DEFS += -DESP32_BOOT_RTS_DTR_ENABLED
 endif
 
 ROOT     := ..
@@ -43,7 +105,9 @@ TEST_DIR := $(ROOT)/test
 # Get the TOP_MODULE from the info.yaml file, and pass it as a define. 
 INFO_YAML ?= ../info.yaml
 TOP_MODULE := $(shell sed -n 's/^[[:space:]]*top_module:[[:space:]]*"\?\([^"]*\)"\?/\1/p' $(INFO_YAML))
-COMPILE_ARGS += -DTT_TOP_MODULE=$(TOP_MODULE)
+
+# unused?
+# COMPILE_ARGS += -DTT_TOP_MODULE=$(TOP_MODULE)
 
 ifeq ($(TOP_MODULE),)
 $(error Could not find top_module in $(INFO_YAML))
@@ -59,11 +123,15 @@ TB_TOP   := tb
 RTL_SRCS := $(SRC_DIR)/*.v  $(SRC_DIR)/UART/*.v  $(SRC_DIR)/TRNG/*.v $(SRC_DIR)/SPI/*.v  $(SRC_DIR)/JTAG/*.v ./top_ulx3s.v
 TB_SRCS  := $(TEST_DIR)/tb.v
 
+# ESP32 support could be optional for the ULX3S and is not needed for the TT, so we put it in a separate file.
+RTL_SRCS += ./esp32_prog_ctrl.v
+YOSYS_DEFS += -DHAS_ESP32_PROG_CTRL
+
 # -----------------------------
 # Verilator (simulation)
 # -----------------------------
 VERILATOR := verilator
-VFLAGS    := -Wall --trace --timing -Wno-fatal -DULX3S
+VFLAGS    := -Wall --trace --timing -Wno-fatal
 
 VDIR      := obj_dir
 SIMEXE    := V$(TB_TOP)
@@ -75,28 +143,12 @@ YOSYS      := yosys
 NEXTPNR    := nextpnr-ecp5
 ECPPACK    := ecppack
 
-# ULX3S board LPF selection.
-# Default is v316. Override with:
-#   make bit ULX3S_BOARD_VERSION=v20
-ULX3S_BOARD_VERSION ?= v317
-
-ifeq ($(ULX3S_BOARD_VERSION),v20)
-    LPF := ulx3s_v20.lpf
-else ifeq ($(ULX3S_BOARD_VERSION),v314)
-    LPF := ulx3s_v314.lpf
-else ifeq ($(ULX3S_BOARD_VERSION),v316)
-    LPF := ulx3s_v316.lpf
-else ifeq ($(ULX3S_BOARD_VERSION),v317)
-	# v317 and v316 use the same constraint file
-    LPF := ulx3s_v316.lpf
-else
-    $(error Unsupported ULX3S_BOARD_VERSION "$(ULX3S_BOARD_VERSION)". Use v20 or v314 or v316)
-endif
 
 $(info =====================================)
 $(info ULX3S board version: $(ULX3S_BOARD_VERSION))
 $(info Using LPF file:      $(LPF))
 $(info FPGA device:         $(DEVICE))
+$(info FPGA package:        $(PACKAGE))
 $(info =====================================)
 
 # Pass macros such as ULX3S_BOARD_VERSION_v317 to yosys for conditional verilog
@@ -118,9 +170,9 @@ test: $(VDIR)/$(SIMEXE)
 	./$(VDIR)/$(SIMEXE)
 
 $(VDIR)/$(SIMEXE): $(RTL_SRCS) $(TB_SRCS)
-	$(VERILATOR) $(VFLAGS) --binary \
-	    --top-module $(TB_TOP) \
-	    $(RTL_SRCS) $(TB_SRCS)
+	$(VERILATOR) $(VFLAGS) $(YOSYS_DEFS) --binary \
+		--top-module $(TB_TOP) \
+		$(RTL_SRCS) $(TB_SRCS)
 
 # -----------------------------
 # ULX3S synthesis flow

@@ -28,19 +28,20 @@
 /* There's about a 5% (~ 100 cells) increase in the number of cells when using long strings.
  * Currently only the version string is implemented. */
 `define USE_LONG_STRINGS
-`define VERSION_STRING_LEN 23 /* 123456789012345678901234 */   
-`define VERSION_STRING          "Version 0.1.4 5/21/2026"   
+`define VERSION_STRING_LEN 24 /* 123456789012345678901234 */   
+`define VERSION_STRING          "Version 0.1.5  5/24/2026"   
 
 `define UART_ENABLED
 `define SPI_ENABLED
+`define SPI_REG_ACCESS
 `define TRNG_ENABLED
 `define JTAG_ENABLED 
 
-/* SPI_ENABLED selects the register-access SPI slave in SPI/spi_slave.v. */
-`define SPI_TEST_BYTE 8'hD2
+/* SPI_TEST_BYTE is only used when SPI_TEST_FIXED is enabled. */
+// `define SPI_TEST_BYTE 8'hD2
 
-/* Pick zero or one of these SPI tests: */
-`define SPI_TEST_FIXED
+/* Pick zero or one of these SPI tests. Leave both disabled for register access. */
+// `define SPI_TEST_FIXED
 // `define SPI_TEST_ECHO
 
 /* Conditional TRNG settings */
