@@ -39,6 +39,7 @@
 
 module esp32_prog_ctrl
 (
+    input  wire clk,
     input  wire btn_reset_n,
     input  wire btn_boot_n,
 
@@ -67,51 +68,69 @@ module esp32_prog_ctrl
     assign btn_boot_released = ~btn_boot_n;
 
     `ifdef ESP32_BOOT_RTS_DTR_ENABLED
-        localparam [1:0] PROG_FTDI_NORMAL     = 2'b11;
-        localparam [1:0] PROG_FTDI_RESET      = 2'b10;
-        localparam [1:0] PROG_FTDI_BOOTLOAD   = 2'b01;
+        /*
+         * Hands-off ESP32 programming:
+         *
+         * DTR is used only as an edge-triggered request to hold GPIO0 low
+         * for a limited bootloader-entry window. GPIO0 is then released high
+         * even if the host terminal keeps DTR asserted.
+         *
+         * RTS continues to control EN/reset using the ULX3S passthru behavior:
+         *
+         *     ftdi_ndtr ftdi_nrts -> wifi_en
+         *          1         0         0
+         *          other               1
+         *
+         * This lets esptool enter the ROM bootloader hands-off, but also lets
+         * the ESP32 app start after esptool's final hard reset.
+         */
+        localparam [29:0] ESP32_POST_CONFIG_RESET_CLKS = 30'd1_250_000;
+        localparam [29:0] ESP32_BOOT_HOLD_CLKS         = 30'd50_000_000;
+        localparam [29:0] ESP32_BOOT_LOCKOUT_CLKS      = 30'd750_000_000;
 
-        function [1:0] map_ftdi_prog_out;
-            input [1:0] ftdi_prog_in;
+        reg [29:0] esp32_reset_delay = 30'd0;
+        reg [29:0] esp32_boot_hold_count = 30'd0;
+        reg [29:0] esp32_boot_lockout_count = 30'd0;
+        reg        ftdi_ndtr_d = 1'b1;
 
-            begin
-                case (ftdi_prog_in) 
+        wire fpga_reset_done;
+        wire ftdi_dtr_falling;
+        wire ftdi_reset_request;
+        wire ftdi_boot_hold_active;
+        wire ftdi_boot_lockout_active;
+        wire ftdi_boot_request;
 
-                    PROG_FTDI_RESET: 
-                        begin
-                            map_ftdi_prog_out = PROG_FTDI_BOOTLOAD;
-                        end
+        assign fpga_reset_done = esp32_reset_delay == ESP32_POST_CONFIG_RESET_CLKS;
+        assign ftdi_dtr_falling = ftdi_ndtr_d & ~ftdi_ndtr;
+        assign ftdi_reset_request = select_usb_uart & ftdi_ndtr & ~ftdi_nrts;
+        assign ftdi_boot_hold_active = esp32_boot_hold_count != 30'd0;
+        assign ftdi_boot_lockout_active = esp32_boot_lockout_count != 30'd0;
+        assign ftdi_boot_request = select_usb_uart & ftdi_dtr_falling & ~ftdi_boot_lockout_active;
 
-                    PROG_FTDI_BOOTLOAD: 
-                        begin
-                            map_ftdi_prog_out = PROG_FTDI_RESET;
-                        end
+        always @(posedge clk) begin
+            ftdi_ndtr_d <= ftdi_ndtr;
 
-                    default: 
-                        begin
-                            map_ftdi_prog_out = PROG_FTDI_NORMAL;
-                        end
-                endcase
+            if (esp32_reset_delay != ESP32_POST_CONFIG_RESET_CLKS) begin
+                esp32_reset_delay <= esp32_reset_delay + 30'd1;
             end
-        endfunction
 
-        wire [1:0] prog_in;
-        wire [1:0] prog_out;
+            if (ftdi_boot_request) begin
+                esp32_boot_hold_count <= ESP32_BOOT_HOLD_CLKS;
+                esp32_boot_lockout_count <= ESP32_BOOT_LOCKOUT_CLKS;
+            end
+            else begin
+                if (esp32_boot_hold_count != 30'd0) begin
+                    esp32_boot_hold_count <= esp32_boot_hold_count - 30'd1;
+                end
 
-        wire ftdi_wifi_en;
-        wire ftdi_wifi_gpio0;
+                if (esp32_boot_lockout_count != 30'd0) begin
+                    esp32_boot_lockout_count <= esp32_boot_lockout_count - 30'd1;
+                end
+            end
+        end
 
-        assign prog_in[1] = ftdi_ndtr;
-        assign prog_in[0] = ftdi_nrts;
-
-        assign prog_out = map_ftdi_prog_out(prog_in);
-
-        assign ftdi_wifi_en = prog_out[1];
-        assign ftdi_wifi_gpio0 = prog_out[0];
-
-        assign wifi_en    = prog_out[1] & btn_reset_n;
-        assign wifi_gpio0 = prog_out[0] & btn_boot_released;
-
+        assign wifi_en = fpga_reset_done & ~ftdi_reset_request & btn_reset_n;
+        assign wifi_gpio0 = (ftdi_boot_hold_active ? 1'b0 : 1'b1) & btn_boot_released;
     `else
         /* Manual ESP32 reset and boot-mode control. */
         assign wifi_en    = btn_reset_n;

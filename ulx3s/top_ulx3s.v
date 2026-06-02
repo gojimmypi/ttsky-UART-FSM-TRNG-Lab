@@ -200,6 +200,7 @@ module top_ulx3s (
     assign ena   = 1'b1;
 
 `ifdef HAS_ESP32_UART_AUTO_MUX
+    /* TODO is this section ever used? */
     `ifdef ESP32_UART_ENABLED
         assign esp32_select_usb_uart     = 1'b0;
         assign esp32_select_external_uart = 1'b0;
@@ -247,6 +248,8 @@ module top_ulx3s (
 `ifdef HAS_ESP32_PROG_CTRL
     esp32_prog_ctrl esp32_prog_ctrl_inst
     (
+        .clk(clk_ulx3s),
+
         .btn_reset_n(btn[0]),
         .btn_boot_n(btn[1]),
     `ifdef ESP32_BOOT_RTS_DTR_ENABLED
