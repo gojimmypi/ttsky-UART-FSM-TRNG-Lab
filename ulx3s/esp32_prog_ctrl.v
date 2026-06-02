@@ -69,68 +69,65 @@ module esp32_prog_ctrl
 
     `ifdef ESP32_BOOT_RTS_DTR_ENABLED
         /*
-         * Hands-off ESP32 programming:
+         * Hands-off ESP32 programming.
          *
-         * DTR is used only as an edge-triggered request to hold GPIO0 low
-         * for a limited bootloader-entry window. GPIO0 is then released high
-         * even if the host terminal keeps DTR asserted.
+         * EN/reset uses the standard ULX3S passthru mapping.
          *
-         * RTS continues to control EN/reset using the ULX3S passthru behavior:
-         *
-         *     ftdi_ndtr ftdi_nrts -> wifi_en
-         *          1         0         0
-         *          other               1
-         *
-         * This lets esptool enter the ROM bootloader hands-off, but also lets
-         * the ESP32 app start after esptool's final hard reset.
+         * GPIO0 does not directly follow DTR forever. Instead, when the
+         * passthru mapping requests GPIO0 low, hold GPIO0 low for a limited
+         * boot-entry window, then release it high even if the host keeps DTR
+         * asserted. This prevents PuTTY/idf_monitor from trapping the ESP32
+         * in ROM download mode after flashing.
          */
-        localparam [29:0] ESP32_POST_CONFIG_RESET_CLKS = 30'd1_250_000;
-        localparam [29:0] ESP32_BOOT_HOLD_CLKS         = 30'd50_000_000;
-        localparam [29:0] ESP32_BOOT_LOCKOUT_CLKS      = 30'd750_000_000;
+        localparam [23:0] ESP32_POST_CONFIG_RESET_CLKS = 24'd1_250_000;
+        localparam [23:0] ESP32_GPIO0_LOW_CLKS         = 24'd5_000_000;
 
-        reg [29:0] esp32_reset_delay = 30'd0;
-        reg [29:0] esp32_boot_hold_count = 30'd0;
-        reg [29:0] esp32_boot_lockout_count = 30'd0;
-        reg        ftdi_ndtr_d = 1'b1;
+        reg [23:0] esp32_reset_delay = 24'd0;
+        reg [23:0] esp32_gpio0_low_count = 24'd0;
+        reg        ftdi_gpio0_request_low_d = 1'b0;
+
+        wire [1:0] prog_in;
+        wire [1:0] prog_out;
 
         wire fpga_reset_done;
-        wire ftdi_dtr_falling;
-        wire ftdi_reset_request;
-        wire ftdi_boot_hold_active;
-        wire ftdi_boot_lockout_active;
-        wire ftdi_boot_request;
+        wire ftdi_gpio0_request_low;
+        wire ftdi_gpio0_request_start;
+        wire ftdi_gpio0_low_active;
+
+        assign prog_in[1] = ftdi_ndtr;
+        assign prog_in[0] = ftdi_nrts;
+
+        assign prog_out = prog_in == 2'b10 ? 2'b01 :
+                          prog_in == 2'b01 ? 2'b10 :
+                                              2'b11;
 
         assign fpga_reset_done = esp32_reset_delay == ESP32_POST_CONFIG_RESET_CLKS;
-        assign ftdi_dtr_falling = ftdi_ndtr_d & ~ftdi_ndtr;
-        assign ftdi_reset_request = select_usb_uart & ftdi_ndtr & ~ftdi_nrts;
-        assign ftdi_boot_hold_active = esp32_boot_hold_count != 30'd0;
-        assign ftdi_boot_lockout_active = esp32_boot_lockout_count != 30'd0;
-        assign ftdi_boot_request = select_usb_uart & ftdi_dtr_falling & ~ftdi_boot_lockout_active;
+
+        /*
+         * prog_out[0] == 0 is the passthru request for ESP32 GPIO0 low.
+         * Convert that level request into a one-shot timed low pulse.
+         */
+        assign ftdi_gpio0_request_low = select_usb_uart & ~prog_out[0];
+        assign ftdi_gpio0_request_start = ftdi_gpio0_request_low & ~ftdi_gpio0_request_low_d;
+        assign ftdi_gpio0_low_active = esp32_gpio0_low_count != 24'd0;
 
         always @(posedge clk) begin
-            ftdi_ndtr_d <= ftdi_ndtr;
+            ftdi_gpio0_request_low_d <= ftdi_gpio0_request_low;
 
             if (esp32_reset_delay != ESP32_POST_CONFIG_RESET_CLKS) begin
-                esp32_reset_delay <= esp32_reset_delay + 30'd1;
+                esp32_reset_delay <= esp32_reset_delay + 24'd1;
             end
 
-            if (ftdi_boot_request) begin
-                esp32_boot_hold_count <= ESP32_BOOT_HOLD_CLKS;
-                esp32_boot_lockout_count <= ESP32_BOOT_LOCKOUT_CLKS;
+            if (ftdi_gpio0_request_start) begin
+                esp32_gpio0_low_count <= ESP32_GPIO0_LOW_CLKS;
             end
-            else begin
-                if (esp32_boot_hold_count != 30'd0) begin
-                    esp32_boot_hold_count <= esp32_boot_hold_count - 30'd1;
-                end
-
-                if (esp32_boot_lockout_count != 30'd0) begin
-                    esp32_boot_lockout_count <= esp32_boot_lockout_count - 30'd1;
-                end
+            else if (esp32_gpio0_low_count != 24'd0) begin
+                esp32_gpio0_low_count <= esp32_gpio0_low_count - 24'd1;
             end
         end
 
-        assign wifi_en = fpga_reset_done & ~ftdi_reset_request & btn_reset_n;
-        assign wifi_gpio0 = (ftdi_boot_hold_active ? 1'b0 : 1'b1) & btn_boot_released;
+        assign wifi_en = fpga_reset_done & (select_usb_uart ? prog_out[1] : 1'b1) & btn_reset_n;
+        assign wifi_gpio0 = (ftdi_gpio0_low_active ? 1'b0 : 1'b1) & btn_boot_released;
     `else
         /* Manual ESP32 reset and boot-mode control. */
         assign wifi_en    = btn_reset_n;
