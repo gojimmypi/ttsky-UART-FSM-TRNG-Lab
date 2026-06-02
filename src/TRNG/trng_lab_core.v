@@ -255,6 +255,11 @@ module trng_ro_inverter_cell
     /* See target.pdk.v included at the top-level project.v for the PDK selection. 
      * The cells instantiated here must match the selected PDK. */ 
     `ifdef PDK_TARGET_SKY130
+        `ifdef SCL_sky130_fd_sc_hd
+            /* if a macro, we found it, success! */
+            PROJECT_FOUND_PDF u_stop ();
+        `endif
+        /* See https://sky130-unofficial.readthedocs.io/en/latest/contents/libraries/sky130_fd_sc_hd/cells/inv/README.html */
         (* keep_hierarchy *) sky130_fd_sc_hd__inv_2 u_inv
         (
             .A(a),
