@@ -71,63 +71,156 @@ module esp32_prog_ctrl
         /*
          * Hands-off ESP32 programming.
          *
-         * EN/reset uses the standard ULX3S passthru mapping.
+         * The FTDI RTS/DTR inputs are not passed directly to ESP32 EN/GPIO0.
+         * They are treated as requests. The FPGA generates clean pulses:
          *
-         * GPIO0 does not directly follow DTR forever. Instead, when the
-         * passthru mapping requests GPIO0 low, hold GPIO0 low for a limited
-         * boot-entry window, then release it high even if the host keeps DTR
-         * asserted. This prevents PuTTY/idf_monitor from trapping the ESP32
-         * in ROM download mode after flashing.
+         *     - bootloader entry: EN low with GPIO0 low, then EN high with
+         *       GPIO0 still low briefly, then GPIO0 high.
+         *
+         *     - app reset: EN low with GPIO0 high, then EN high.
+         *
+         * This prevents PuTTY/idf_monitor DTR or RTS state from trapping the
+         * ESP32 in ROM download mode.
          */
-        localparam [23:0] ESP32_POST_CONFIG_RESET_CLKS = 24'd1_250_000;
-        localparam [23:0] ESP32_GPIO0_LOW_CLKS         = 24'd5_000_000;
+        localparam [29:0] ESP32_POST_CONFIG_RESET_CLKS = 30'd1_250_000;
+        localparam [29:0] ESP32_RESET_LOW_CLKS         = 30'd2_500_000;
+        localparam [29:0] ESP32_GPIO0_HOLD_CLKS        = 30'd2_500_000;
+        localparam [29:0] ESP32_BOOT_INHIBIT_CLKS      = 30'd750_000_000;
 
-        reg [23:0] esp32_reset_delay = 24'd0;
-        reg [23:0] esp32_gpio0_low_count = 24'd0;
-        reg        ftdi_gpio0_request_low_d = 1'b0;
+        localparam [2:0] ESP32_STATE_IDLE              = 3'd0;
+        localparam [2:0] ESP32_STATE_BOOT_RESET        = 3'd1;
+        localparam [2:0] ESP32_STATE_BOOT_HOLD         = 3'd2;
+        localparam [2:0] ESP32_STATE_APP_RESET         = 3'd3;
 
-        wire [1:0] prog_in;
-        wire [1:0] prog_out;
+        reg [29:0] esp32_post_config_count = 30'd0;
+        reg [29:0] esp32_state_count = 30'd0;
+        reg [29:0] esp32_boot_inhibit_count = 30'd0;
+        reg [2:0]  esp32_state = ESP32_STATE_IDLE;
+
+        reg ftdi_nrts_d = 1'b1;
+        reg ftdi_ndtr_d = 1'b1;
 
         wire fpga_reset_done;
-        wire ftdi_gpio0_request_low;
-        wire ftdi_gpio0_request_start;
-        wire ftdi_gpio0_low_active;
+        wire ftdi_rts_asserted;
+        wire ftdi_dtr_asserted;
+        wire ftdi_rts_falling;
+        wire ftdi_boot_request;
+        wire ftdi_app_reset_request;
+        wire boot_inhibit_active;
 
-        assign prog_in[1] = ftdi_ndtr;
-        assign prog_in[0] = ftdi_nrts;
+        wire state_boot_reset;
+        wire state_boot_hold;
+        wire state_app_reset;
 
-        assign prog_out = prog_in == 2'b10 ? 2'b01 :
-                          prog_in == 2'b01 ? 2'b10 :
-                                              2'b11;
-
-        assign fpga_reset_done = esp32_reset_delay == ESP32_POST_CONFIG_RESET_CLKS;
+        assign fpga_reset_done = esp32_post_config_count == ESP32_POST_CONFIG_RESET_CLKS;
 
         /*
-         * prog_out[0] == 0 is the passthru request for ESP32 GPIO0 low.
-         * Convert that level request into a one-shot timed low pulse.
+         * Active-low FTDI modem-control inputs.
          */
-        assign ftdi_gpio0_request_low = select_usb_uart & ~prog_out[0];
-        assign ftdi_gpio0_request_start = ftdi_gpio0_request_low & ~ftdi_gpio0_request_low_d;
-        assign ftdi_gpio0_low_active = esp32_gpio0_low_count != 24'd0;
+        assign ftdi_rts_asserted = select_usb_uart & ~ftdi_nrts;
+        assign ftdi_dtr_asserted = select_usb_uart & ~ftdi_ndtr;
+        assign ftdi_rts_falling = select_usb_uart & ftdi_nrts_d & ~ftdi_nrts;
+
+        assign boot_inhibit_active = esp32_boot_inhibit_count != 30'd0;
+
+        /*
+         * Treat "DTR low and RTS low" as a bootloader-entry request, but only
+         * when not inhibited. During inhibit, the same RTS activity becomes an
+         * app reset with GPIO0 high.
+         */
+        assign ftdi_boot_request = ftdi_dtr_asserted & ftdi_rts_asserted & ~boot_inhibit_active;
+//      assign ftdi_app_reset_request = ftdi_rts_falling & (boot_inhibit_active | ~ftdi_dtr_asserted);
+        assign ftdi_app_reset_request = ftdi_rts_falling & boot_inhibit_active;
+
+        assign state_boot_reset = esp32_state == ESP32_STATE_BOOT_RESET;
+        assign state_boot_hold = esp32_state == ESP32_STATE_BOOT_HOLD;
+        assign state_app_reset = esp32_state == ESP32_STATE_APP_RESET;
 
         always @(posedge clk) begin
-            ftdi_gpio0_request_low_d <= ftdi_gpio0_request_low;
+            ftdi_nrts_d <= ftdi_nrts;
+            ftdi_ndtr_d <= ftdi_ndtr;
 
-            if (esp32_reset_delay != ESP32_POST_CONFIG_RESET_CLKS) begin
-                esp32_reset_delay <= esp32_reset_delay + 24'd1;
+            if (esp32_post_config_count != ESP32_POST_CONFIG_RESET_CLKS) begin
+                esp32_post_config_count <= esp32_post_config_count + 30'd1;
             end
 
-            if (ftdi_gpio0_request_start) begin
-                esp32_gpio0_low_count <= ESP32_GPIO0_LOW_CLKS;
+            if (esp32_boot_inhibit_count != 30'd0) begin
+                esp32_boot_inhibit_count <= esp32_boot_inhibit_count - 30'd1;
             end
-            else if (esp32_gpio0_low_count != 24'd0) begin
-                esp32_gpio0_low_count <= esp32_gpio0_low_count - 24'd1;
+
+            case (esp32_state)
+                ESP32_STATE_IDLE: begin
+                    esp32_state_count <= 30'd0;
+
+                    if (ftdi_boot_request) begin
+                        esp32_state <= ESP32_STATE_BOOT_RESET;
+                        esp32_state_count <= ESP32_RESET_LOW_CLKS;
+                        esp32_boot_inhibit_count <= ESP32_BOOT_INHIBIT_CLKS;
+                    end
+                    else if (ftdi_app_reset_request) begin
+                        esp32_state <= ESP32_STATE_APP_RESET;
+                        esp32_state_count <= ESP32_RESET_LOW_CLKS;
+                    end
+                end
+
+                ESP32_STATE_BOOT_RESET: begin
+                    if (esp32_state_count != 30'd0) begin
+                        esp32_state_count <= esp32_state_count - 30'd1;
+                    end
+                    else begin
+                        esp32_state <= ESP32_STATE_BOOT_HOLD;
+                        esp32_state_count <= ESP32_GPIO0_HOLD_CLKS;
+                    end
+                end
+
+                ESP32_STATE_BOOT_HOLD: begin
+                    if (esp32_state_count != 30'd0) begin
+                        esp32_state_count <= esp32_state_count - 30'd1;
+                    end
+                    else begin
+                        esp32_state <= ESP32_STATE_IDLE;
+                    end
+                end
+
+                ESP32_STATE_APP_RESET: begin
+                    if (esp32_state_count != 30'd0) begin
+                        esp32_state_count <= esp32_state_count - 30'd1;
+                    end
+                    else begin
+                        esp32_state <= ESP32_STATE_IDLE;
+                    end
+                end
+
+                default: begin
+                    esp32_state <= ESP32_STATE_IDLE;
+                    esp32_state_count <= 30'd0;
+                end
+            endcase
+
+            if (!select_usb_uart) begin
+                esp32_state <= ESP32_STATE_IDLE;
+                esp32_state_count <= 30'd0;
             end
         end
 
-        assign wifi_en = fpga_reset_done & (select_usb_uart ? prog_out[1] : 1'b1) & btn_reset_n;
-        assign wifi_gpio0 = (ftdi_gpio0_low_active ? 1'b0 : 1'b1) & btn_boot_released;
+        /*
+         * Output rules:
+         *
+         *     BOOT_RESET: EN low,  GPIO0 low
+         *     BOOT_HOLD:  EN high, GPIO0 low
+         *     APP_RESET:  EN low,  GPIO0 high
+         *     IDLE:       EN high, GPIO0 high
+         *
+         * The reset button always forces EN low. The boot button can still
+         * force GPIO0 low, but is not required for programming.
+         */
+        assign wifi_en = fpga_reset_done &
+                         ~state_boot_reset &
+                         ~state_app_reset &
+                         btn_reset_n;
+
+        assign wifi_gpio0 = ~(state_boot_reset | state_boot_hold) &
+                            btn_boot_released;
     `else
         /* Manual ESP32 reset and boot-mode control. */
         assign wifi_en    = btn_reset_n;
