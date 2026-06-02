@@ -67,24 +67,51 @@ module esp32_prog_ctrl
     assign btn_boot_released = ~btn_boot_n;
 
     `ifdef ESP32_BOOT_RTS_DTR_ENABLED
+        localparam [1:0] PROG_FTDI_NORMAL     = 2'b11;
+        localparam [1:0] PROG_FTDI_RESET      = 2'b10;
+        localparam [1:0] PROG_FTDI_BOOTLOAD   = 2'b01;
+
+        function [1:0] map_ftdi_prog_out;
+            input [1:0] ftdi_prog_in;
+
+            begin
+                case (ftdi_prog_in) 
+
+                    PROG_FTDI_RESET: 
+                        begin
+                            map_ftdi_prog_out = PROG_FTDI_BOOTLOAD;
+                        end
+
+                    PROG_FTDI_BOOTLOAD: 
+                        begin
+                            map_ftdi_prog_out = PROG_FTDI_RESET;
+                        end
+
+                    default: 
+                        begin
+                            map_ftdi_prog_out = PROG_FTDI_NORMAL;
+                        end
+                endcase
+            end
+        endfunction
+
         wire [1:0] prog_in;
         wire [1:0] prog_out;
-
-        assign prog_in[1] = ftdi_ndtr;
-        assign prog_in[0] = ftdi_nrts;
-
-        assign prog_out = prog_in == 2'b10 ? 2'b01 :
-                          prog_in == 2'b01 ? 2'b10 :
-                                              2'b11;
 
         wire ftdi_wifi_en;
         wire ftdi_wifi_gpio0;
 
-        assign ftdi_wifi_en = select_usb_uart ? prog_out[1] : 1'b1;
-        assign ftdi_wifi_gpio0 = select_usb_uart ? prog_out[0] : 1'b1;
+        assign prog_in[1] = ftdi_ndtr;
+        assign prog_in[0] = ftdi_nrts;
 
-        assign wifi_en = ftdi_wifi_en & btn_reset_n;
-        assign wifi_gpio0 = ftdi_wifi_gpio0 & btn_boot_released;
+        assign prog_out = map_ftdi_prog_out(prog_in);
+
+        assign ftdi_wifi_en = prog_out[1];
+        assign ftdi_wifi_gpio0 = prog_out[0];
+
+        assign wifi_en    = prog_out[1] & btn_reset_n;
+        assign wifi_gpio0 = prog_out[0] & btn_boot_released;
+
     `else
         /* Manual ESP32 reset and boot-mode control. */
         assign wifi_en    = btn_reset_n;
