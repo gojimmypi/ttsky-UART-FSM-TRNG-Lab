@@ -76,16 +76,17 @@ module esp32_prog_ctrl
         /*
          * Hands-off ESP32 programming.
          *
-         * The FTDI RTS/DTR inputs are not passed directly to ESP32 EN/GPIO0.
-         * They are treated as requests. The FPGA generates clean pulses:
+         * Do not remember a GPIO0-low request and apply it to a later reset.
+         * A normal reset must always release GPIO0 high.
          *
-         *     - bootloader entry: EN low with GPIO0 low, then EN high with
-         *       GPIO0 still low briefly, then GPIO0 high.
+         * Bootloader entry is recognized only as the esptool sequence:
          *
-         *     - app reset: EN low with GPIO0 high, then EN high.
+         *     1. reset request:       nDTR=1, nRTS=0
+         *     2. boot release request nDTR=0, nRTS=1 while that reset is active
          *
-         * This prevents PuTTY/idf_monitor DTR or RTS state from trapping the
-         * ESP32 in ROM download mode.
+         * A standalone nDTR=0, nRTS=1 state is ignored. This prevents
+         * idf_monitor or terminal open/close side effects from arming a later
+         * reset into ROM download mode.
          */
 
         /*
@@ -94,25 +95,10 @@ module esp32_prog_ctrl
          *     ESP32_POST_CONFIG_RESET_CLKS = 50 ms   (1,250,000 ticks)
          *     ESP32_RESET_LOW_CLKS         = 100 ms  (2,500,000 ticks)
          *     ESP32_GPIO0_HOLD_CLKS        = 100 ms  (2,500,000 ticks)
-         *     ESP32_BOOT_INHIBIT_CLKS      = 30 s    (750,000,000 ticks)
-         *
-         * POST_CONFIG_RESET holds ESP32 EN low after FPGA configuration so the
-         * ESP32 starts from a known state after FPGA-controlled pins are valid.
-         *
-         * RESET_LOW is the generated ESP32 reset pulse width used by the FSM.
-         *
-         * GPIO0_HOLD keeps GPIO0 low briefly after EN is released during
-         * bootloader entry, giving the ESP32 time to sample the boot strap.
-         *
-         * BOOT_INHIBIT prevents later RTS/DTR activity from causing another
-         * bootloader-entry sequence after programming has started. This lets
-         * esptool's final hard reset restart the ESP32 app instead of returning
-         * to ROM download mode.
          */
         localparam [29:0] ESP32_POST_CONFIG_RESET_CLKS = 30'd1_250_000;
         localparam [29:0] ESP32_RESET_LOW_CLKS         = 30'd2_500_000;
         localparam [29:0] ESP32_GPIO0_HOLD_CLKS        = 30'd2_500_000;
-        localparam [29:0] ESP32_BOOT_INHIBIT_CLKS      = 30'd750_000_000;
 
         /* We have 4 possible boot states for the ESP32. */
         /* BOOT_RESET: EN low,  GPIO0 low  */
@@ -126,21 +112,14 @@ module esp32_prog_ctrl
 
         reg [29:0] esp32_post_config_count  = 30'd0;
         reg [29:0] esp32_state_count        = 30'd0;
-        reg [29:0] esp32_boot_inhibit_count = 30'd0;
         reg  [2:0] esp32_state              = ESP32_STATE_RUN;
 
-        reg ftdi_reset_level_d = 1'b0;
-        reg boot_armed         = 1'b0;
+        reg ftdi_reset_active               = 1'b0;
 
         wire fpga_reset_done;          /* FPGA startup delay is complete; ESP32 EN may be released. */
 
         wire ftdi_boot_level;          /* Active-high request for GPIO0 low, decoded from nDTR low and nRTS high. */
         wire ftdi_reset_level;         /* Active-high reset request, decoded from nDTR high and nRTS low. */
-        wire ftdi_reset_start;         /* Start of a decoded reset request. */
-
-        wire ftdi_boot_request;        /* Request a controlled GPIO0-low bootloader-entry reset. */
-        wire ftdi_app_reset_request;   /* Request a GPIO0-high app reset after programming. */
-        wire boot_inhibit_active;      /* Block repeated bootloader entry after the first boot pulse. */
 
         wire state_boot_reset;         /* FSM is holding EN low and GPIO0 low. */
         wire state_boot_hold;          /* FSM has released EN and is briefly holding GPIO0 low. */
@@ -161,56 +140,40 @@ module esp32_prog_ctrl
          */
         assign ftdi_boot_level  = (select_usb_uart & ~ftdi_ndtr &  ftdi_nrts);
         assign ftdi_reset_level = (select_usb_uart &  ftdi_ndtr & ~ftdi_nrts);
-        assign ftdi_reset_start = (ftdi_reset_level & ~ftdi_reset_level_d);
-
-        assign boot_inhibit_active = (esp32_boot_inhibit_count != 30'd0);
-
-        /*
-         * A bootloader entry requires the host to request boot mode first,
-         * then request reset. PuTTY/idf_monitor opening the port with both
-         * nDTR and nRTS asserted low must not start bootloader entry.
-         */
-        assign ftdi_boot_request = (boot_armed & ftdi_reset_start & ~boot_inhibit_active);
-
-        /*
-         * During the inhibit window, reset requests are app resets only:
-         * EN low with GPIO0 high. This lets esptool's final hard reset start
-         * the flashed application.
-         */
-        assign ftdi_app_reset_request = (ftdi_reset_start & boot_inhibit_active);
 
         assign state_boot_reset = (esp32_state == ESP32_STATE_BOOT_RESET);
         assign state_boot_hold  = (esp32_state == ESP32_STATE_BOOT_HOLD);
         assign state_app_reset  = (esp32_state == ESP32_STATE_APP_RESET);
 
         always @(posedge clk) begin
-            ftdi_reset_level_d <= ftdi_reset_level;
-
             if (esp32_post_config_count != ESP32_POST_CONFIG_RESET_CLKS) begin
                 esp32_post_config_count <= esp32_post_config_count + 30'd1;
             end
 
-            if (esp32_boot_inhibit_count != 30'd0) begin
-                esp32_boot_inhibit_count <= esp32_boot_inhibit_count - 30'd1;
-            end
-
-            if (ftdi_boot_level && !boot_inhibit_active) begin
-                boot_armed <= 1'b1;
-            end
-
             case (esp32_state)
                 ESP32_STATE_RUN: begin
-                    esp32_state_count <= 30'd0;
+                    esp32_state_count            <= 30'd0;
+                    ftdi_reset_active            <= 1'b0;
 
-                    if (ftdi_boot_request) begin
-                        esp32_state              <= ESP32_STATE_BOOT_RESET;
-                        esp32_state_count        <= ESP32_RESET_LOW_CLKS;
-                        esp32_boot_inhibit_count <= ESP32_BOOT_INHIBIT_CLKS;
-                        boot_armed               <= 1'b0;
-                    end
-                    else if (ftdi_app_reset_request) begin
+                    if (ftdi_reset_level) begin
                         esp32_state              <= ESP32_STATE_APP_RESET;
                         esp32_state_count        <= ESP32_RESET_LOW_CLKS;
+                        ftdi_reset_active        <= 1'b1;
+                    end
+                end
+
+                ESP32_STATE_APP_RESET: begin
+                    if (ftdi_reset_active && ftdi_boot_level) begin
+                        esp32_state              <= ESP32_STATE_BOOT_RESET;
+                        esp32_state_count        <= ESP32_RESET_LOW_CLKS;
+                        ftdi_reset_active        <= 1'b0;
+                    end
+                    else if (esp32_state_count != 30'd0) begin
+                        esp32_state_count        <= esp32_state_count - 30'd1;
+                    end
+                    else begin
+                        esp32_state              <= ESP32_STATE_RUN;
+                        ftdi_reset_active        <= 1'b0;
                     end
                 end
 
@@ -233,26 +196,25 @@ module esp32_prog_ctrl
                     end
                 end
 
-                ESP32_STATE_APP_RESET: begin
-                    if (esp32_state_count != 30'd0) begin
-                        esp32_state_count        <= esp32_state_count - 30'd1;
-                    end
-                    else begin
-                        esp32_state              <= ESP32_STATE_RUN;
-                    end
-                end
-
                 default: begin
                     esp32_state                  <= ESP32_STATE_RUN;
                     esp32_state_count            <= 30'd0;
-                    boot_armed                   <= 1'b0;
+                    ftdi_reset_active            <= 1'b0;
                 end
             endcase
+
+            if (!btn_reset_n) begin
+                esp32_state                      <= btn_boot_released ?
+                                                        ESP32_STATE_APP_RESET :
+                                                        ESP32_STATE_BOOT_RESET;
+                esp32_state_count                <= ESP32_RESET_LOW_CLKS;
+                ftdi_reset_active                <= 1'b0;
+            end
 
             if (!select_usb_uart) begin
                 esp32_state                      <= ESP32_STATE_RUN;
                 esp32_state_count                <= 30'd0;
-                boot_armed                       <= 1'b0;
+                ftdi_reset_active                <= 1'b0;
             end
         end
 
@@ -264,16 +226,16 @@ module esp32_prog_ctrl
          *     APP_RESET:  EN low,  GPIO0 high
          *     RUN:        EN high, GPIO0 high
          *
-         * The reset button always forces EN low. The boot button can still
-         * force GPIO0 low, but is not required for programming.
+         * The reset button always forces app reset behavior. In USB programming
+         * mode, the boot button is intentionally not combined into GPIO0.
          */
         assign wifi_en = fpga_reset_done &
                          ~state_boot_reset &
                          ~state_app_reset &
                          btn_reset_n;
 
-        assign wifi_gpio0 = ~(state_boot_reset | state_boot_hold) &
-                            btn_boot_released;
+        assign wifi_gpio0 = ~(state_boot_reset | state_boot_hold);
+
     `else
         /* Manual ESP32 reset and boot-mode control. */
         assign wifi_en    = btn_reset_n;
