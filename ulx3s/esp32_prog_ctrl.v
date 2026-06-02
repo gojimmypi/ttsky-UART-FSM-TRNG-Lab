@@ -82,44 +82,76 @@ module esp32_prog_ctrl
          * This prevents PuTTY/idf_monitor DTR or RTS state from trapping the
          * ESP32 in ROM download mode.
          */
-        localparam [29:0] ESP32_POST_CONFIG_RESET_CLKS = 30'd1_250_000;
-        localparam [29:0] ESP32_RESET_LOW_CLKS         = 30'd2_500_000;
-        localparam [29:0] ESP32_GPIO0_HOLD_CLKS        = 30'd2_500_000;
-        localparam [29:0] ESP32_BOOT_INHIBIT_CLKS      = 30'd750_000_000;
 
-        localparam [2:0] ESP32_STATE_IDLE              = 3'd0;
-        localparam [2:0] ESP32_STATE_BOOT_RESET        = 3'd1;
-        localparam [2:0] ESP32_STATE_BOOT_HOLD         = 3'd2;
-        localparam [2:0] ESP32_STATE_APP_RESET         = 3'd3;
+        /*
+         * At 25 MHz:
+         *
+         *     ESP32_POST_CONFIG_RESET_CLKS = 50 ms   (1,250,000 ticks / 25,000,000 = 0.05 s  = 50 ms)
+         *     ESP32_RESET_LOW_CLKS         = 100 ms  (2,500,000 ticks / 25,000,000 = 0.10 s  = 100 ms)
+         *     ESP32_GPIO0_HOLD_CLKS        = 100 ms  (2,500,000 ticks)
+         *     ESP32_BOOT_INHIBIT_CLKS      = 30 s    (750,000,000 ticks / 25,000,000 = 30 s)
+         *
+         * POST_CONFIG_RESET holds ESP32 EN low after FPGA configuration so the
+         * ESP32 starts from a known state after FPGA-controlled pins are valid.
+         *
+         * RESET_LOW is the generated ESP32 reset pulse width used by the FSM.
+         *
+         * GPIO0_HOLD keeps GPIO0 low briefly after EN is released during
+         * bootloader entry, giving the ESP32 time to sample the boot strap.
+         *
+         * BOOT_INHIBIT prevents later RTS/DTR activity from causing another
+         * bootloader-entry sequence after programming has started. This lets
+         * esptool's final hard reset restart the ESP32 app instead of returning
+         * to ROM download mode.
+         */
+        localparam [29:0] ESP32_POST_CONFIG_RESET_CLKS = 30'd1_250_000;   /* Hold ESP32 EN low briefly after FPGA configuration. */
+        localparam [29:0] ESP32_RESET_LOW_CLKS         = 30'd2_500_000;   /* Duration of FPGA-generated ESP32 EN reset pulse. */
+        localparam [29:0] ESP32_GPIO0_HOLD_CLKS        = 30'd2_500_000;   /* Keep GPIO0 low briefly after releasing EN for bootloader entry. */
+        localparam [29:0] ESP32_BOOT_INHIBIT_CLKS      = 30'd750_000_000; /* Prevent re-entering bootloader while flash/monitor resets occur. */
 
-        reg [29:0] esp32_post_config_count = 30'd0;
-        reg [29:0] esp32_state_count = 30'd0;
+        /* We have 4 possible boot states for the ESP32. Values are arbitrary, but in binary order of EN and GPIO0 */
+        /* BOOT_RESET: EN low,  GPIO0 low  */
+        /* APP_RESET:  EN low,  GPIO0 high */
+        /* BOOT_HOLD:  EN high, GPIO0 low  */
+        /* RUN:        EN high, GPIO0 high */
+
+        localparam [2:0] ESP32_STATE_BOOT_RESET  = 3'd0;
+        localparam [2:0] ESP32_STATE_APP_RESET   = 3'd1;
+        localparam [2:0] ESP32_STATE_BOOT_HOLD   = 3'd2;
+        localparam [2:0] ESP32_STATE_RUN         = 3'd3;
+
+        reg [29:0] esp32_post_config_count  = 30'd0;
+        reg [29:0] esp32_state_count        = 30'd0;
         reg [29:0] esp32_boot_inhibit_count = 30'd0;
-        reg [2:0]  esp32_state = ESP32_STATE_IDLE;
+        reg  [2:0] esp32_state              = ESP32_STATE_RUN;
 
         reg ftdi_nrts_d = 1'b1;
+    `ifdef DEBUG_FTDI_DTR
         reg ftdi_ndtr_d = 1'b1;
+    `endif
 
-        wire fpga_reset_done;
-        wire ftdi_rts_asserted;
-        wire ftdi_dtr_asserted;
-        wire ftdi_rts_falling;
-        wire ftdi_boot_request;
-        wire ftdi_app_reset_request;
-        wire boot_inhibit_active;
+        wire fpga_reset_done;          /* FPGA startup delay is complete; ESP32 EN may be released. */
 
-        wire state_boot_reset;
-        wire state_boot_hold;
-        wire state_app_reset;
+        wire ftdi_rts_asserted;        /* Active-high internal form of active-low FTDI RTS. */
+        wire ftdi_dtr_asserted;        /* Active-high internal form of active-low FTDI DTR. */
+        wire ftdi_rts_falling;         /* Start of an RTS reset request. */
 
-        assign fpga_reset_done = esp32_post_config_count == ESP32_POST_CONFIG_RESET_CLKS;
+        wire ftdi_boot_request;        /* Request a controlled GPIO0-low bootloader-entry reset. */
+        wire ftdi_app_reset_request;   /* Request a GPIO0-high app reset after programming. */
+        wire boot_inhibit_active;      /* Block repeated bootloader entry after the first boot pulse. */
+
+        wire state_boot_reset;         /* FSM is holding EN low and GPIO0 low. */
+        wire state_boot_hold;          /* FSM has released EN and is briefly holding GPIO0 low. */
+        wire state_app_reset;          /* FSM is holding EN low and GPIO0 high. */
+
+        assign fpga_reset_done = (esp32_post_config_count == ESP32_POST_CONFIG_RESET_CLKS);
 
         /*
          * Active-low FTDI modem-control inputs.
          */
-        assign ftdi_rts_asserted = select_usb_uart & ~ftdi_nrts;
-        assign ftdi_dtr_asserted = select_usb_uart & ~ftdi_ndtr;
-        assign ftdi_rts_falling = select_usb_uart & ftdi_nrts_d & ~ftdi_nrts;
+        assign ftdi_rts_asserted = (select_usb_uart & ~ftdi_nrts);
+        assign ftdi_dtr_asserted = (select_usb_uart & ~ftdi_ndtr);
+        assign ftdi_rts_falling  = (select_usb_uart &  ftdi_nrts_d & ~ftdi_nrts);
 
         assign boot_inhibit_active = esp32_boot_inhibit_count != 30'd0;
 
@@ -128,17 +160,19 @@ module esp32_prog_ctrl
          * when not inhibited. During inhibit, the same RTS activity becomes an
          * app reset with GPIO0 high.
          */
-        assign ftdi_boot_request = ftdi_dtr_asserted & ftdi_rts_asserted & ~boot_inhibit_active;
-//      assign ftdi_app_reset_request = ftdi_rts_falling & (boot_inhibit_active | ~ftdi_dtr_asserted);
-        assign ftdi_app_reset_request = ftdi_rts_falling & boot_inhibit_active;
+        assign ftdi_boot_request      = (ftdi_dtr_asserted & ftdi_rts_asserted & ~boot_inhibit_active);
+        assign ftdi_app_reset_request = (ftdi_rts_falling                      &  boot_inhibit_active);
 
-        assign state_boot_reset = esp32_state == ESP32_STATE_BOOT_RESET;
-        assign state_boot_hold = esp32_state == ESP32_STATE_BOOT_HOLD;
-        assign state_app_reset = esp32_state == ESP32_STATE_APP_RESET;
+        assign state_boot_reset = (esp32_state == ESP32_STATE_BOOT_RESET);
+        assign state_boot_hold  = (esp32_state == ESP32_STATE_BOOT_HOLD);
+        assign state_app_reset  = (esp32_state == ESP32_STATE_APP_RESET);
 
         always @(posedge clk) begin
             ftdi_nrts_d <= ftdi_nrts;
-            ftdi_ndtr_d <= ftdi_ndtr;
+
+            `ifdef DEBUG_FTDI_DTR
+                ftdi_ndtr_d <= ftdi_ndtr;
+            `endif
 
             if (esp32_post_config_count != ESP32_POST_CONFIG_RESET_CLKS) begin
                 esp32_post_config_count <= esp32_post_config_count + 30'd1;
@@ -149,57 +183,57 @@ module esp32_prog_ctrl
             end
 
             case (esp32_state)
-                ESP32_STATE_IDLE: begin
+                ESP32_STATE_RUN: begin
                     esp32_state_count <= 30'd0;
 
                     if (ftdi_boot_request) begin
-                        esp32_state <= ESP32_STATE_BOOT_RESET;
-                        esp32_state_count <= ESP32_RESET_LOW_CLKS;
+                        esp32_state              <= ESP32_STATE_BOOT_RESET;
+                        esp32_state_count        <= ESP32_RESET_LOW_CLKS;
                         esp32_boot_inhibit_count <= ESP32_BOOT_INHIBIT_CLKS;
                     end
                     else if (ftdi_app_reset_request) begin
-                        esp32_state <= ESP32_STATE_APP_RESET;
-                        esp32_state_count <= ESP32_RESET_LOW_CLKS;
+                        esp32_state              <= ESP32_STATE_APP_RESET;
+                        esp32_state_count        <= ESP32_RESET_LOW_CLKS;
                     end
                 end
 
                 ESP32_STATE_BOOT_RESET: begin
                     if (esp32_state_count != 30'd0) begin
-                        esp32_state_count <= esp32_state_count - 30'd1;
+                        esp32_state_count        <= esp32_state_count - 30'd1;
                     end
                     else begin
-                        esp32_state <= ESP32_STATE_BOOT_HOLD;
-                        esp32_state_count <= ESP32_GPIO0_HOLD_CLKS;
+                        esp32_state              <= ESP32_STATE_BOOT_HOLD;
+                        esp32_state_count        <= ESP32_GPIO0_HOLD_CLKS;
                     end
                 end
 
                 ESP32_STATE_BOOT_HOLD: begin
                     if (esp32_state_count != 30'd0) begin
-                        esp32_state_count <= esp32_state_count - 30'd1;
+                        esp32_state_count        <= esp32_state_count - 30'd1;
                     end
                     else begin
-                        esp32_state <= ESP32_STATE_IDLE;
+                        esp32_state              <= ESP32_STATE_RUN;
                     end
                 end
 
                 ESP32_STATE_APP_RESET: begin
                     if (esp32_state_count != 30'd0) begin
-                        esp32_state_count <= esp32_state_count - 30'd1;
+                        esp32_state_count        <= esp32_state_count - 30'd1;
                     end
                     else begin
-                        esp32_state <= ESP32_STATE_IDLE;
+                        esp32_state              <= ESP32_STATE_RUN;
                     end
                 end
 
                 default: begin
-                    esp32_state <= ESP32_STATE_IDLE;
-                    esp32_state_count <= 30'd0;
+                    esp32_state                  <= ESP32_STATE_RUN;
+                    esp32_state_count            <= 30'd0;
                 end
             endcase
 
             if (!select_usb_uart) begin
-                esp32_state <= ESP32_STATE_IDLE;
-                esp32_state_count <= 30'd0;
+                esp32_state                      <= ESP32_STATE_RUN;
+                esp32_state_count                <= 30'd0;
             end
         end
 
