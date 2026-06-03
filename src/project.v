@@ -24,6 +24,7 @@
     /* Tiny Tapeout doesn't support timescale directives, so we can ignore it. */
 `endif /* ULX3S */
 
+// `define ANALOG_ENABLED
 `define UART_ENABLED
 `define SPI_ENABLED
 `define SPI_REG_ACCESS
@@ -91,6 +92,7 @@
         `ifdef TRNG_USE_RO
             PROJECT_NON_ASIC_MUST_NOT_USE_TRNG_USE_RO u_stop ();
         `endif
+
         `ifdef TRNG_ALLOW_REAL_RO
             PROJECT_NON_ASIC_MUST_NOT_USE_TRNG_ALLOW_REAL_RO u_stop ();
         `endif
@@ -165,10 +167,12 @@ module UART_FSM_TRNG_Lab
     parameter [31:0] UART_BAUD = PROJECT_UART_BAUD_VALUE    /* default UART is 115200 baud */
 )
 (
+`ifdef ANALOG_ENABLED
     // Optional Analog
     //    input  wire       VGND,
     //    input  wire       VDPWR,    // 1.8v power supply
     //    input  wire       VAPWR,    // 3.3v power supply
+`endif
 
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
@@ -217,8 +221,10 @@ module UART_FSM_TRNG_Lab
         .rst_n(rst_n)
     );
 
+`ifdef ANALOG_ENABLED
     // Optional Analog
     // assign unused_ok = &{VGND, VDPWR, ena, clk, rst_n, uio_in, ua};
+`endif
 
     assign unused_ok = &{ena, clk, rst_n, uio_in};
 
@@ -237,7 +243,7 @@ module UART_FSM_TRNG_Lab
         `endif
     `endif /* ULX3S */
 
-endmodule
+endmodule /* Conditional module name based on PDK target. See above. */
 
 
 `default_nettype wire
