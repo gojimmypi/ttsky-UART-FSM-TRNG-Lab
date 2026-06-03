@@ -23,10 +23,15 @@
  */
 `default_nettype none
 
+`ifdef SIM_JTAG_CORE_TB
+    `timescale 1ns / 1ps
+`endif
+
 module jtag_core #(
     /* ID code TTJ1 */
     parameter [31:0] IDCODE_VALUE = 32'h54544A31
 ) (
+    input wire        clk,
     input wire        rst_n,
     input wire        ena,
 
@@ -70,56 +75,88 @@ reg [3:0] ir_q;
 reg [31:0] dr_shift_q;
 reg bypass_q;
 reg tdo_q;
+reg tck_meta_q;
+reg tck_sync_q;
+reg tck_prev_q;
+reg tms_meta_q;
+reg tms_sync_q;
+reg tdi_meta_q;
+reg tdi_sync_q;
+
+wire tck_rise;
+wire tck_fall;
 
 assign tdo_o = tdo_q;
+assign tck_rise = tck_sync_q & ~tck_prev_q;
+assign tck_fall = ~tck_sync_q & tck_prev_q;
 
-always @(posedge tck_i) begin
+always @(posedge clk) begin
+    if (!rst_n) begin
+        tck_meta_q <= 1'b0;
+        tck_sync_q <= 1'b0;
+        tck_prev_q <= 1'b0;
+        tms_meta_q <= 1'b1;
+        tms_sync_q <= 1'b1;
+        tdi_meta_q <= 1'b0;
+        tdi_sync_q <= 1'b0;
+    end else begin
+        tck_meta_q <= tck_i;
+        tck_sync_q <= tck_meta_q;
+        tck_prev_q <= tck_sync_q;
+        tms_meta_q <= tms_i;
+        tms_sync_q <= tms_meta_q;
+        tdi_meta_q <= tdi_i;
+        tdi_sync_q <= tdi_meta_q;
+    end
+end
+
+always @(posedge clk) begin
     if (!rst_n) begin
         tap_state_q <= TAP_RESET;
     end else if (!ena) begin
         tap_state_q <= TAP_RESET;
-    end else begin
+    end else if (tck_rise) begin
         case (tap_state_q)
-            TAP_RESET:      tap_state_q <= tms_i ? TAP_RESET     : TAP_IDLE;
-            TAP_IDLE:       tap_state_q <= tms_i ? TAP_DR_SELECT : TAP_IDLE;
-            TAP_DR_SELECT:  tap_state_q <= tms_i ? TAP_IR_SELECT : TAP_DR_CAPTURE;
-            TAP_DR_CAPTURE: tap_state_q <= tms_i ? TAP_DR_EXIT_1 : TAP_DR_SHIFT;
-            TAP_DR_SHIFT:   tap_state_q <= tms_i ? TAP_DR_EXIT_1 : TAP_DR_SHIFT;
-            TAP_DR_EXIT_1:  tap_state_q <= tms_i ? TAP_DR_UPDATE : TAP_DR_PAUSE;
-            TAP_DR_PAUSE:   tap_state_q <= tms_i ? TAP_DR_EXIT_2 : TAP_DR_PAUSE;
-            TAP_DR_EXIT_2:  tap_state_q <= tms_i ? TAP_DR_UPDATE : TAP_DR_SHIFT;
-            TAP_DR_UPDATE:  tap_state_q <= tms_i ? TAP_DR_SELECT : TAP_IDLE;
-            TAP_IR_SELECT:  tap_state_q <= tms_i ? TAP_RESET     : TAP_IR_CAPTURE;
-            TAP_IR_CAPTURE: tap_state_q <= tms_i ? TAP_IR_EXIT_1 : TAP_IR_SHIFT;
-            TAP_IR_SHIFT:   tap_state_q <= tms_i ? TAP_IR_EXIT_1 : TAP_IR_SHIFT;
-            TAP_IR_EXIT_1:  tap_state_q <= tms_i ? TAP_IR_UPDATE : TAP_IR_PAUSE;
-            TAP_IR_PAUSE:   tap_state_q <= tms_i ? TAP_IR_EXIT_2 : TAP_IR_PAUSE;
-            TAP_IR_EXIT_2:  tap_state_q <= tms_i ? TAP_IR_UPDATE : TAP_IR_SHIFT;
-            TAP_IR_UPDATE:  tap_state_q <= tms_i ? TAP_DR_SELECT : TAP_IDLE;
+            TAP_RESET:      tap_state_q <= tms_sync_q ? TAP_RESET     : TAP_IDLE;
+            TAP_IDLE:       tap_state_q <= tms_sync_q ? TAP_DR_SELECT : TAP_IDLE;
+            TAP_DR_SELECT:  tap_state_q <= tms_sync_q ? TAP_IR_SELECT : TAP_DR_CAPTURE;
+            TAP_DR_CAPTURE: tap_state_q <= tms_sync_q ? TAP_DR_EXIT_1 : TAP_DR_SHIFT;
+            TAP_DR_SHIFT:   tap_state_q <= tms_sync_q ? TAP_DR_EXIT_1 : TAP_DR_SHIFT;
+            TAP_DR_EXIT_1:  tap_state_q <= tms_sync_q ? TAP_DR_UPDATE : TAP_DR_PAUSE;
+            TAP_DR_PAUSE:   tap_state_q <= tms_sync_q ? TAP_DR_EXIT_2 : TAP_DR_PAUSE;
+            TAP_DR_EXIT_2:  tap_state_q <= tms_sync_q ? TAP_DR_UPDATE : TAP_DR_SHIFT;
+            TAP_DR_UPDATE:  tap_state_q <= tms_sync_q ? TAP_DR_SELECT : TAP_IDLE;
+            TAP_IR_SELECT:  tap_state_q <= tms_sync_q ? TAP_RESET     : TAP_IR_CAPTURE;
+            TAP_IR_CAPTURE: tap_state_q <= tms_sync_q ? TAP_IR_EXIT_1 : TAP_IR_SHIFT;
+            TAP_IR_SHIFT:   tap_state_q <= tms_sync_q ? TAP_IR_EXIT_1 : TAP_IR_SHIFT;
+            TAP_IR_EXIT_1:  tap_state_q <= tms_sync_q ? TAP_IR_UPDATE : TAP_IR_PAUSE;
+            TAP_IR_PAUSE:   tap_state_q <= tms_sync_q ? TAP_IR_EXIT_2 : TAP_IR_PAUSE;
+            TAP_IR_EXIT_2:  tap_state_q <= tms_sync_q ? TAP_IR_UPDATE : TAP_IR_SHIFT;
+            TAP_IR_UPDATE:  tap_state_q <= tms_sync_q ? TAP_DR_SELECT : TAP_IDLE;
             default:        tap_state_q <= TAP_RESET;
         endcase
     end
 end
 
-always @(posedge tck_i) begin
+always @(posedge clk) begin
     if (!rst_n) begin
         ir_shift_q <= IR_IDCODE;
         ir_q <= IR_IDCODE;
     end else if (!ena) begin
         ir_shift_q <= IR_IDCODE;
         ir_q <= IR_IDCODE;
-    end else begin
+    end else if (tck_rise) begin
         if (tap_state_q == TAP_IR_CAPTURE) begin
             ir_shift_q <= 4'b0001;
         end else if (tap_state_q == TAP_IR_SHIFT) begin
-            ir_shift_q <= {tdi_i, ir_shift_q[3:1]};
+            ir_shift_q <= {tdi_sync_q, ir_shift_q[3:1]};
         end else if (tap_state_q == TAP_IR_UPDATE) begin
             ir_q <= ir_shift_q;
         end
     end
 end
 
-always @(posedge tck_i) begin
+always @(posedge clk) begin
     if (!rst_n) begin
         dr_shift_q <= IDCODE_VALUE;
         bypass_q <= 1'b0;
@@ -135,79 +172,83 @@ always @(posedge tck_i) begin
     end else begin
         reg_wr_o <= 1'b0;
 
-        if (tap_state_q == TAP_DR_CAPTURE) begin
-            case (ir_q)
-                IR_IDCODE: begin
-                    dr_shift_q <= IDCODE_VALUE;
-                end
+        if (tck_rise) begin
+            if (tap_state_q == TAP_DR_CAPTURE) begin
+                case (ir_q)
+                    IR_IDCODE: begin
+                        dr_shift_q <= IDCODE_VALUE;
+                    end
 
-                IR_REG_ADDR: begin
-                    dr_shift_q <= {24'h000000, reg_addr_o};
-                end
+                    IR_REG_ADDR: begin
+                        dr_shift_q <= {24'h000000, reg_addr_o};
+                    end
 
-                IR_REG_READ: begin
-                    dr_shift_q <= {24'h000000, reg_rdata_i};
-                end
+                    IR_REG_READ: begin
+                        dr_shift_q <= {24'h000000, reg_rdata_i};
+                    end
 
-                IR_REG_WRITE: begin
-                    dr_shift_q <= 32'h00000000;
-                end
+                    IR_REG_WRITE: begin
+                        dr_shift_q <= 32'h00000000;
+                    end
 
-                default: begin
-                    dr_shift_q <= 32'h00000000;
-                    bypass_q <= 1'b0;
-                end
-            endcase
-        end else if (tap_state_q == TAP_DR_SHIFT) begin
-            case (ir_q)
-                IR_IDCODE: begin
-                    dr_shift_q <= {tdi_i, dr_shift_q[31:1]};
-                end
+                    default: begin
+                        dr_shift_q <= 32'h00000000;
+                        bypass_q <= 1'b0;
+                    end
+                endcase
+            end else if (tap_state_q == TAP_DR_SHIFT) begin
+                case (ir_q)
+                    IR_IDCODE: begin
+                        dr_shift_q <= {tdi_sync_q, dr_shift_q[31:1]};
+                    end
 
-                IR_REG_ADDR,
-                IR_REG_READ,
-                IR_REG_WRITE: begin
-                    dr_shift_q <= {tdi_i, dr_shift_q[31:1]};
-                end
+                    IR_REG_ADDR,
+                    IR_REG_READ,
+                    IR_REG_WRITE: begin
+                        dr_shift_q <= {tdi_sync_q, dr_shift_q[31:1]};
+                    end
 
-                default: begin
-                    bypass_q <= tdi_i;
-                end
-            endcase
-        end else if (tap_state_q == TAP_DR_UPDATE) begin
-            case (ir_q)
-                IR_REG_ADDR: begin
-                    reg_addr_o <= dr_shift_q[7:0];
-                end
+                    default: begin
+                        bypass_q <= tdi_sync_q;
+                    end
+                endcase
+            end else if (tap_state_q == TAP_DR_UPDATE) begin
+                case (ir_q)
+                    IR_REG_ADDR: begin
+                        reg_addr_o <= dr_shift_q[7:0];
+                    end
 
-                IR_REG_WRITE: begin
-                    reg_wdata_o <= dr_shift_q[7:0];
-                    reg_wr_o <= 1'b1;
-                end
+                    IR_REG_WRITE: begin
+                        reg_wdata_o <= dr_shift_q[7:0];
+                        reg_wr_o <= 1'b1;
+                    end
 
-                default: begin
-                    reg_wr_o <= 1'b0;
-                end
-            endcase
+                    default: begin
+                        reg_wr_o <= 1'b0;
+                    end
+                endcase
+            end
         end
     end
 end
 
-always @(negedge tck_i) begin
+always @(posedge clk) begin
     if (!rst_n) begin
         tdo_q <= 1'b0;
     end else if (!ena) begin
         tdo_q <= 1'b0;
-    end else if (tap_state_q == TAP_IR_SHIFT) begin
-        tdo_q <= ir_shift_q[0];
-    end else if (tap_state_q == TAP_DR_SHIFT) begin
-        if (ir_q == IR_BYPASS) begin
-            tdo_q <= bypass_q;
+    end else if (tck_fall) begin
+        if (tap_state_q == TAP_IR_SHIFT) begin
+            tdo_q <= ir_shift_q[0];
+        end else if (tap_state_q == TAP_DR_SHIFT) begin
+            if (ir_q == IR_BYPASS) begin
+                tdo_q <= bypass_q;
+            end else begin
+                tdo_q <= dr_shift_q[0];
+            end
         end else begin
-            tdo_q <= dr_shift_q[0];
+            tdo_q <= 1'b0;
         end
-    end else begin
-        tdo_q <= 1'b0;
     end
 end
 

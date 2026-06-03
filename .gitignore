@@ -43,3 +43,5 @@ test/gate_level_netlist.v
 /**/CMakeLists.txt.old
 *.user
 /ulx3s/ESP32/sdkconfig.old
+
+/test/*.vvp
