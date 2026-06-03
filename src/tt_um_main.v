@@ -128,7 +128,11 @@ module tt_um_main
 
     /* TODO check unused wires when SPI and/or UART not enabled */
 `ifdef SPI_ENABLED
-    wire _unused_ui_in = &{ui_in[7:5], ui_in[2:0]};
+    `ifdef JTAG_ENABLED
+        wire _unused_ui_in = &{ui_in[7:5], ui_in[2:0]};
+    `else
+        wire _unused_ui_in = &{ui_in[7:4], ui_in[2:0]};
+    `endif
 `else
     wire _unused_inputs = &{ui_in[7:4], uio_in[2], ui_in[2:0]};
 `endif
@@ -235,6 +239,7 @@ module tt_um_main
 
     jtag_core u_jtag_core
     (
+        .clk(clk),
         .rst_n(rst_n),
         .ena(ena & debug_is_jtag),
         .tck_i(jtag_tck),
@@ -256,7 +261,7 @@ module tt_um_main
     );
 `else
     /* No JTAG */
-    assign debug_is_jtag = 1'b0;
+    /* assign debug_is_jtag = 1'b0; */
 `endif
 
 
