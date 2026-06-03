@@ -52,19 +52,20 @@
 
     /* TODO: detect test modes? add "is submission" macro? */
 
-    /* HACK ALERT: checking __pnr__,  gf180mcu_fd_sc_mcu7t5v0, SCL_sky130_fd_sc_hd may not be 100% reliable!! */
+    /* HACK ALERT: checking __pnr__,  SCL_gf180mcu_fd_sc_mcu7t5v0, SCL_sky130_fd_sc_hd may not be 100% reliable!! */
     `ifdef SCL_sky130_fd_sc_hd
         /* Less hacky is to detect the presence of a cell that is only available in the real RO-based TRNG for SKY130, 
          * but this also isn't perfect since it could be used in a non-TT context. */
         `define TRNG_USE_RO
         `define TRNG_ALLOW_REAL_RO
         `define FOUND_TT_PDK
-    `elsif gf180mcu_fd_sc_mcu7t5v0
+    `elsif SCL_gf180mcu_fd_sc_mcu7t5v0
         /* Less hacky is to detect the presence of a cell that is only available in the real RO-based TRNG for GF180, 
          * but this also isn't perfect since it could be used in a non-TT context. */
         `define TRNG_USE_RO
         `define TRNG_ALLOW_REAL_RO
         `define FOUND_TT_PDK
+        PROJECT_FOUND_TT_PDK_GF180 u_stop ();
     `elsif __pnr__
         /* More hacky is __pnr__ and still does not conclusively prove that we are building for Tiny Tapeout, 
          * but it is a strong indicator that we are in an environment where the real RO-based TRNG can be used. */
