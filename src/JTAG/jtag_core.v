@@ -101,7 +101,7 @@ always @(posedge tck_i) begin
     end
 end
 
-always @(posedge tck_i or negedge rst_n) begin
+always @(posedge tck_i) begin
     if (!rst_n) begin
         ir_shift_q <= IR_IDCODE;
         ir_q <= IR_IDCODE;
@@ -119,7 +119,7 @@ always @(posedge tck_i or negedge rst_n) begin
     end
 end
 
-always @(posedge tck_i or negedge rst_n) begin
+always @(posedge tck_i) begin
     if (!rst_n) begin
         dr_shift_q <= IDCODE_VALUE;
         bypass_q <= 1'b0;
@@ -193,7 +193,7 @@ always @(posedge tck_i or negedge rst_n) begin
     end
 end
 
-always @(negedge tck_i or negedge rst_n) begin
+always @(negedge tck_i) begin
     if (!rst_n) begin
         tdo_q <= 1'b0;
     end else if (!ena) begin
