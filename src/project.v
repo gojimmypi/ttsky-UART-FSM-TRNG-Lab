@@ -49,13 +49,25 @@
     `endif
 `else
     /* Not ULXS3. Is this a TT PDK? */
-    `ifdef __pnr__
-        /* HACK ALERT: __pnr__ does not conclusively prove that we are building for Tiny Tapeout, 
+
+    /* TODO: detect test modes? add "is submission" macro? */
+
+    /* HACK ALERT: checking __pnr__,  gf180mcu_fd_sc_mcu7t5v0, SCL_sky130_fd_sc_hd may not be 100% reliable!! */
+    `ifdef SCL_sky130_fd_sc_hd
+        /* Less hacky is to detect the presence of a cell that is only available in the real RO-based TRNG for SKY130, 
+         * but this also isn't perfect since it could be used in a non-TT context. */
+        `define TRNG_USE_RO
+        `define TRNG_ALLOW_REAL_RO
+    `elsif gf180mcu_fd_sc_mcu7t5v0
+        /* Less hacky is to detect the presence of a cell that is only available in the real RO-based TRNG for GF180, 
+         * but this also isn't perfect since it could be used in a non-TT context. */
+        `define TRNG_USE_RO
+        `define TRNG_ALLOW_REAL_RO
+    `elsif __pnr__
+        /* More hacky is __pnr__ and still does not conclusively prove that we are building for Tiny Tapeout, 
          * but it is a strong indicator that we are in an environment where the real RO-based TRNG can be used. */
         `define TRNG_USE_RO
         `define TRNG_ALLOW_REAL_RO
-
-        /* TODO: detect test modes? add "is submission" macro? */
     `else
         /* some other non ULX3S, non ASIC path. Detect if REAL RO defined externally and abort */
         `ifdef TRNG_USE_RO
