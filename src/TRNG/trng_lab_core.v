@@ -34,6 +34,10 @@
  */
 `default_nettype none
 
+`ifdef SIM_JTAG_CORE_TB
+    `timescale 1ns / 1ps
+`endif
+
 /* this entire file is only for the TRNG lab core, which is an optional alternative to the trng_stub */
 `ifdef TRNG_ENABLED
 

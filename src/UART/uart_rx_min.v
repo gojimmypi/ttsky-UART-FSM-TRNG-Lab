@@ -31,6 +31,10 @@
  */
 `default_nettype none
 
+`ifdef SIM_JTAG_CORE_TB
+    `timescale 1ns / 1ps
+`endif
+
 /* Although the project config is in a parent directory, the Makefile should include
  * a proper directory parameter for yoysys to find it with no path:
  *   `include "project_config.v"

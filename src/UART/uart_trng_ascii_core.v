@@ -20,6 +20,10 @@
  */
 `default_nettype none
 
+`ifdef SIM_JTAG_CORE_TB
+    `timescale 1ns / 1ps
+`endif
+
 /*
 ** See build options:
 **   `define FORCE_DEEP_LOOPBACK

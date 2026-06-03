@@ -39,6 +39,10 @@
  */
 `default_nettype none
 
+`ifdef SIM_JTAG_CORE_TB
+    `timescale 1ns / 1ps
+`endif
+
 `include "project_config.v"
 
 module tt_um_main 
