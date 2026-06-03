@@ -262,11 +262,11 @@ module trng_ro_inverter_cell
             .Y(y)
         );
     `elsif PDK_TARGET_GF180
-        `ifdef gf180mcu_fd_sc_mcu7t5v0
-            /* if a macro, we found it, success! for GF180 detection*/
-            PROJECT_FOUND_PDF u_stop ();
-        `endif
-
+        /* not a valid GF detector: https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/26855846226/job/79198383591 */
+        // `ifdef gf180mcu_fd_sc_mcu7t5v0
+        //    /* if a macro, we found it, success! for GF180 detection*/
+        //    PROJECT_FOUND_PDK u_stop ();
+        //`endif
         /* See https://github.com/google/globalfoundries-pdk-libs-gf180mcu_fd_sc_mcu7t5v0/blob/main/cells/inv/gf180mcu_fd_sc_mcu7t5v0__inv_1.functional.v */
         (* keep_hierarchy *) gf180mcu_fd_sc_mcu7t5v0__inv_1 u_inv
         (
