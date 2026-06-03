@@ -59,19 +59,31 @@
         `define TRNG_USE_RO
         `define TRNG_ALLOW_REAL_RO
         `define FOUND_TT_PDK
+
+        /* To confirm only this path is taken, enable the next line. Only GSD GH Action should fail: */
+        /* PROJECT_FOUND_TT_PDK_SKY130 u_stop (); */
+
     `elsif SCL_gf180mcu_fd_sc_mcu7t5v0
         /* Less hacky is to detect the presence of a cell that is only available in the real RO-based TRNG for GF180, 
          * but this also isn't perfect since it could be used in a non-TT context. */
         `define TRNG_USE_RO
         `define TRNG_ALLOW_REAL_RO
         `define FOUND_TT_PDK
-        PROJECT_FOUND_TT_PDK_GF180 u_stop ();
+
+        /* To confirm only this path is taken, enable the next line. Only GSD GH Action should fail: */
+        /* PROJECT_FOUND_TT_PDK_GF180 u_stop (); */
+        /* See example: https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/26890757755 */
+
     `elsif __pnr__
         /* More hacky is __pnr__ and still does not conclusively prove that we are building for Tiny Tapeout, 
          * but it is a strong indicator that we are in an environment where the real RO-based TRNG can be used. */
         `define TRNG_USE_RO
         `define TRNG_ALLOW_REAL_RO
         `define FOUND_TT_PDK
+
+        /* To confirm only this path is taken, enable the next line. Only GSD GH Action should fail: */
+        /* PROJECT_FOUND_TT_PDK_UNKNOWN u_stop (); */
+
     `else
         /* End of possible TT detection. Assume we are in some other non-ULX3S, non-ASIC environment. */
 
