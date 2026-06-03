@@ -58,23 +58,32 @@
          * but this also isn't perfect since it could be used in a non-TT context. */
         `define TRNG_USE_RO
         `define TRNG_ALLOW_REAL_RO
+        `define FOUND_TT_PDK
     `elsif gf180mcu_fd_sc_mcu7t5v0
         /* Less hacky is to detect the presence of a cell that is only available in the real RO-based TRNG for GF180, 
          * but this also isn't perfect since it could be used in a non-TT context. */
         `define TRNG_USE_RO
         `define TRNG_ALLOW_REAL_RO
+        `define FOUND_TT_PDK
     `elsif __pnr__
         /* More hacky is __pnr__ and still does not conclusively prove that we are building for Tiny Tapeout, 
          * but it is a strong indicator that we are in an environment where the real RO-based TRNG can be used. */
         `define TRNG_USE_RO
         `define TRNG_ALLOW_REAL_RO
+        `define FOUND_TT_PDK
     `else
+        /* End of possible TT detection. Assume we are in some other non-ULX3S, non-ASIC environment. */
+
         /* some other non ULX3S, non ASIC path. Detect if REAL RO defined externally and abort */
         `ifdef TRNG_USE_RO
             PROJECT_NON_ASIC_MUST_NOT_USE_TRNG_USE_RO u_stop ();
         `endif
         `ifdef TRNG_ALLOW_REAL_RO
             PROJECT_NON_ASIC_MUST_NOT_USE_TRNG_ALLOW_REAL_RO u_stop ();
+        `endif
+
+        `ifdef FOUND_TT_PDK
+            PROJECT_FOUND_TT_PDK_BUT_NOT_REAL_RO u_stop (); /* We can only "find" the PDF here! */
         `endif
     `endif
 `endif
