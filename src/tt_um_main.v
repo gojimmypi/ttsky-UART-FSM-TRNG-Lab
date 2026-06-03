@@ -169,7 +169,7 @@ module tt_um_main
      * A two-stage synchronizer reduces metastability risk and prevents
      * X propagation/glitches observed during GF180 gate-level simulation.
      */
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             uart_rx_meta <= 1'b1;
             uart_rx_sync <= 1'b1;

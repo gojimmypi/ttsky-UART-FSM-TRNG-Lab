@@ -73,7 +73,7 @@ reg tdo_q;
 
 assign tdo_o = tdo_q;
 
-always @(posedge tck_i or negedge rst_n) begin
+always @(posedge tck_i) begin
     if (!rst_n) begin
         tap_state_q <= TAP_RESET;
     end else if (!ena) begin
