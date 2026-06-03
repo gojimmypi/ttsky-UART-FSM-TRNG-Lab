@@ -118,12 +118,12 @@ module tt_um_main
 `endif
 `endif
 
+    wire debug_is_jtag;
 `ifdef JTAG_ENABLED
     wire jtag_tck;
     wire jtag_tms;
     wire jtag_tdi;
     wire jtag_tdo;
-    wire debug_is_jtag;
 `endif
 
     /* TODO check unused wires when SPI and/or UART not enabled */
