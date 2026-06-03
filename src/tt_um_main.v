@@ -102,6 +102,7 @@ module tt_um_main
     wire       jtag_reg_wr_en;
     wire [7:0] jtag_reg_addr;
     wire [7:0] jtag_reg_wdata;
+    wire _unused_jtag_reg_addr = &{1'b0, jtag_reg_addr[7:3]};
 `endif
 `endif
 
@@ -129,7 +130,7 @@ module tt_um_main
 `ifdef SPI_ENABLED
     wire _unused_ui_in = &{ui_in[7:5], ui_in[2:0]};
 `else
-    wire _unused_ui_in = &{ui_in[7:4], uio_in[2], ui_in[2:0]};
+    wire _unused_inputs = &{ui_in[7:4], uio_in[2], ui_in[2:0]};
 `endif
 
     wire _unused_debug_regs = &{
@@ -150,7 +151,7 @@ module tt_um_main
      */
     wire unused_ok;
 `ifdef SPI_ENABLED
-    assign unused_ok = &{ena, uio_in[7:4], spi_mosi};
+    assign unused_ok = &{ena, uio_in[7:4], uio_in[2], spi_mosi};
 `else
     `ifdef JTAG_ENABLED
         assign unused_ok = &{ena, uio_in[7:4], jtag_tdi};
@@ -168,7 +169,7 @@ module tt_um_main
      * A two-stage synchronizer reduces metastability risk and prevents
      * X propagation/glitches observed during GF180 gate-level simulation.
      */
-     always @(posedge clk) begin
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             uart_rx_meta <= 1'b1;
             uart_rx_sync <= 1'b1;
