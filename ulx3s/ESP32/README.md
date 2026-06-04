@@ -11,7 +11,7 @@ cd /mnt/c/SysGCC/esp32-master/esp-idf/v5.5
 
 . ./export.sh
 
-cd /mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/ulx3s/ESP32
+cd "$PROJECT_ROOT/ulx3s/ESP32
 idf.py build
 
 # For hands-off programming, be sure to define ESP32_BOOT_RTS_DTR_ENABLED in the ULX3S Makefile

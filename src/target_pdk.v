@@ -16,4 +16,6 @@
 `define PDK_TARGET_SKY130
 // `define PDK_TARGET_GF180
 
+/* For this project, see TRNG/trng_lab_core.v for conditional include of code based on the PDK. */
+
 `default_nettype wire

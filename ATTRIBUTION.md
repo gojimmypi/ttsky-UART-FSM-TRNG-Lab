@@ -43,6 +43,11 @@ Numerous design, implementation, and other references created by EMARD:
 
 Many thanks to my friend Goran who has publicly and privately helped me understand the ULX3S features since 2019.
 
+## Julia Desmazes, see:
+
+Informative blog on JTAG TAP design and implementation:
+
+- https://essenceia.github.io/projects/two_weeks_until_tapeout/#jtag-tap-design
 
 ## ULX3S Platform Resources
 
@@ -65,7 +70,10 @@ with influence from TinyTapeout examples and general open-source resources.
 ## Tools and Assistance
 
 Development of this project included the use of automated code analysis and review tools,
-including AI-assisted tooling, to improve code quality and correctness.
+including AI-assisted tooling and image generation, to improve code quality and correctness.
+
+Code was reviewed and refined with the assistance of AI tools, 
+but all final code and design decisions were made by the author.
 
 ---
 

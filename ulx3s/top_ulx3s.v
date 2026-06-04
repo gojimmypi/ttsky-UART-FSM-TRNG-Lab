@@ -10,6 +10,36 @@
  * It maps the standard TT pin interface to the actual pins on the ULX3S board, 
  * and includes some simple logic to synchronize the UART RX signal and 
  * optionally loop back the UART TX for testing.
+ *
+ *           ***** CAUTION *****
+ *
+ * wifi_gpio13/15/2/14 are shared with the ULX3S SD-card nets
+ * sd_d[3], sd_cmd, sd_d[0], and sd_clk.
+ *
+ * Do not enable SD-card use at the same time as TT SPI/JTAG access
+ * on these pins.
+ *
+ * See also: https://github.com/espressif/esp-idf/blob/master/examples/storage/sd_card/sdmmc/README.md
+ * https://github.com/espressif/openocd-esp32/issues/90#issuecomment-570537168
+ *
+ *
+ * Note in lpf constraint: IOBUF PORT "gp[4]" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+ *
+ * When unconnected gp4, assume SPI.
+ *
+ * shared_spi_jtag_select = 1:
+ *     ESP32 pins are connected:
+ *     wifi_gpio13 -> uio[0]
+ *     wifi_gpio15 -> uio[1]
+ *     wifi_gpio2  <- uio[2]
+ *     wifi_gpio14 -> uio[3]
+ * 
+ * shared_spi_jtag_select = 0:
+ *     Header pins are connected:
+ *     gn[2] -> uio[0] JTAG TMS
+ *     gp[2] -> uio[1] JTAG TDI
+ *     gn[3] <- uio[2] JTAG TDO
+ *     gp[3] -> uio[3] JTAG TCK
  */
 `default_nettype none
 `timescale 1ns/1ps
@@ -18,6 +48,18 @@
  * a proper directory parameter for yoysys to find it with no path: */ 
 `include "../src/project_config.v"
 
+/* Optional SPI and JTAG support - enable by defining ULX3S_SPI_ENABLED and/or ULX3S_JTAG_ENABLED in your project.v
+ * This example assumes shared SPI/JTAG pins connected to the ESP32, but you can modify as needed. */
+`ifdef ULX3S_JTAG_ENABLED
+    `define SHARED_SPI_JTAG_IO
+`endif
+`ifdef ULX3S_SPI_ENABLED
+    `define SHARED_SPI_JTAG_IO
+`endif
+
+/*******************************************************************************
+ * top declaration
+ ******************************************************************************/
 module top_ulx3s (
     input  wire        clk_25mhz,
 `ifdef ULX3S_BOARD_VERSION_v20
@@ -36,16 +78,25 @@ module top_ulx3s (
     input  wire        gp0,
     output wire        gp1,
 
+`ifdef SHARED_SPI_JTAG_IO
+    /* Header pins used for optional external JTAG access. */
+    input  wire        gn2,
+    input  wire        gp2,
+    output wire        gn3,
+    input  wire        gp3,
+    input  wire        gp4,
+`endif
+
     /* USB FTDI UART. */
     output wire        ftdi_rxd,
     input  wire        ftdi_txd,
 
 `ifdef ULX3S_SPI_ENABLED
-    /* Instead of editing reference lpf, we'll use the existing names for SPI. */
-    input  wire wifi_gpio14,  /* ESP32 PIN_NUM_CLK  14, wire spi_sck   JTAG TCK */
-    input  wire wifi_gpio15,  /* ESP32 PIN_NUM_MOSI 15, wire spi_mosi  JTAG TDI */
-    input  wire wifi_gpio13,  /* ESP32 PIN_NUM_CS   13, wire spi_cs_n  JTAG TMS */
-    output wire wifi_gpio2,   /* ESP32 PIN_NUM_MISO  2, wire spi_miso  JTAG TDO */
+    /* Instead of editing reference lpf, we'll use the existing names for SPI. (Sites for v20.lpf) */
+    input  wire wifi_gpio14,  /* ESP32 PIN_NUM_CLK  14, wire spi_sck   JTAG TCK - SITE "H2" */
+    input  wire wifi_gpio15,  /* ESP32 PIN_NUM_MOSI 15, wire spi_mosi  JTAG TDI - SITE "J1" */
+    input  wire wifi_gpio13,  /* ESP32 PIN_NUM_CS   13, wire spi_cs_n  JTAG TMS - SITE "K2" */
+    output wire wifi_gpio2,   /* ESP32 PIN_NUM_MISO  2, wire spi_miso  JTAG TDO - SITE "J3" */
 `endif
 
 `ifdef ULX3S_JTAG_ENABLED
@@ -73,6 +124,10 @@ module top_ulx3s (
     /* Keep board powered. */
     output wire        shutdown
 ); /* top_ulx3s input */
+
+/*******************************************************************************
+ * top module implementation
+ ******************************************************************************/
 
     wire clk_ulx3s;
 
@@ -129,6 +184,15 @@ module top_ulx3s (
     wire spi_miso; /* ESP32 PIN_NUM_MISO  2 */
 `endif /* ULX3S_SPI_ENABLED */
 
+    wire shared_spi_jtag_select;
+`ifdef SHARED_SPI_JTAG_IO
+    /* WARNING: don't leave gp4 floating!!! */
+    // assign shared_spi_jtag_select = 1'b0;
+    assign shared_spi_jtag_select = gp4;
+`else
+    assign shared_spi_jtag_select = 1'b0;
+`endif
+
     /* The BTN0 "PWR" on the ULX3S is used for reset. 
      * It is active-low, so we can connect it directly to rst_n. */
     assign rst_n = btn[0];
@@ -136,6 +200,7 @@ module top_ulx3s (
     assign ena   = 1'b1;
 
 `ifdef HAS_ESP32_UART_AUTO_MUX
+    /* TODO is this section ever used? */
     `ifdef ESP32_UART_ENABLED
         assign esp32_select_usb_uart     = 1'b0;
         assign esp32_select_external_uart = 1'b0;
@@ -183,6 +248,8 @@ module top_ulx3s (
 `ifdef HAS_ESP32_PROG_CTRL
     esp32_prog_ctrl esp32_prog_ctrl_inst
     (
+        .clk(clk_ulx3s),
+
         .btn_reset_n(btn[0]),
         .btn_boot_n(btn[1]),
     `ifdef ESP32_BOOT_RTS_DTR_ENABLED
@@ -249,12 +316,26 @@ module top_ulx3s (
     end
 
     // Map UART RX into TT input
-    assign ui_in = {4'b0000, uart_rx_sync, 3'b000};
+    assign ui_in = {3'b000, shared_spi_jtag_select, uart_rx_sync, 3'b000};
 
 `endif /* UART_ENABLED */
 
+`ifdef SHARED_SPI_JTAG_IO
+    /*
+     * shared_spi_jtag_select = 1:
+     *     ESP32 SPI pins drive TT uio[3:0].
+     *
+     * shared_spi_jtag_select = 0:
+     *     Header pins drive TT uio[3:0] for external JTAG testing.
+     */
 `ifdef ULX3S_SPI_ENABLED
-    assign uio_in = {4'b0000, spi_sck, 1'b0, spi_mosi, spi_cs_n};
+    assign uio_in = shared_spi_jtag_select ?
+                    {4'b0000, spi_sck, 1'b0, spi_mosi, spi_cs_n} :
+                    {4'b0000, gp3, 1'b0, gp2, gn2};
+
+    assign spi_miso = uio_out[2];
+    assign gn3 = shared_spi_jtag_select ? 1'b0 : uio_out[2];
+
     assign spi_sck    = wifi_gpio14;
     assign spi_mosi   = wifi_gpio15;
     assign spi_cs_n   = wifi_gpio13;
@@ -264,14 +345,20 @@ module top_ulx3s (
         assign wifi_gpio2 = 1'b0;  /* ESP32 should return rx: 00 00 */
         // assign wifi_gpio2 = 1'b1;  /* ESP32 should return rx: FF FF */
     `else
-        assign spi_miso   = uio_out[2];
-
-        // assign wifi_gpio2 = spi_miso;
-        // Fix for initial state freshly programmed FPGA to flash ESP32:
-        assign wifi_gpio2 = (ftdi_ndtr ^ ftdi_nrts) ? 1'b0 : spi_miso;
+        // Fix for initial state freshly programmed FPGA to flash ESP32.
+        `ifdef ESP32_BOOT_RTS_DTR_ENABLED
+            assign wifi_gpio2 = shared_spi_jtag_select ?
+                                ((ftdi_ndtr ^ ftdi_nrts) ? 1'b0 : spi_miso) :
+                                1'b0;
+        `else
+            assign wifi_gpio2 = shared_spi_jtag_select ? spi_miso : 1'b0;
+        `endif
     `endif
 `else
-    /* ULX3S_SPI_ENABLED not enabled. TODO what about JTAG?  */
+    assign uio_in = {4'b0000, gp3, 1'b0, gp2, gn2};
+    assign gn3 = uio_out[2];
+`endif
+`else
     assign uio_in = 8'h00;
 `endif
 

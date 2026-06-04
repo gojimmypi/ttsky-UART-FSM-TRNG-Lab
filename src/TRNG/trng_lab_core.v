@@ -34,6 +34,10 @@
  */
 `default_nettype none
 
+`ifdef SIM_JTAG_CORE_TB
+    `timescale 1ns / 1ps
+`endif
+
 /* this entire file is only for the TRNG lab core, which is an optional alternative to the trng_stub */
 `ifdef TRNG_ENABLED
 
@@ -255,12 +259,18 @@ module trng_ro_inverter_cell
     /* See target.pdk.v included at the top-level project.v for the PDK selection. 
      * The cells instantiated here must match the selected PDK. */ 
     `ifdef PDK_TARGET_SKY130
+        /* See https://sky130-unofficial.readthedocs.io/en/latest/contents/libraries/sky130_fd_sc_hd/cells/inv/README.html */
         (* keep_hierarchy *) sky130_fd_sc_hd__inv_2 u_inv
         (
             .A(a),
             .Y(y)
         );
     `elsif PDK_TARGET_GF180
+        /* not a valid GF detector: https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/26855846226/job/79198383591 */
+        // `ifdef gf180mcu_fd_sc_mcu7t5v0
+        //    /* if a macro, we found it, success! for GF180 detection*/
+        //    PROJECT_FOUND_PDK u_stop ();
+        //`endif
         /* See https://github.com/google/globalfoundries-pdk-libs-gf180mcu_fd_sc_mcu7t5v0/blob/main/cells/inv/gf180mcu_fd_sc_mcu7t5v0__inv_1.functional.v */
         (* keep_hierarchy *) gf180mcu_fd_sc_mcu7t5v0__inv_1 u_inv
         (

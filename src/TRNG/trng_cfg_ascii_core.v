@@ -36,6 +36,10 @@
  */
 `default_nettype none
 
+`ifdef SIM_JTAG_CORE_TB
+    `timescale 1ns / 1ps
+`endif
+
 module trng_cfg_ascii_core
 (
     input  wire       clk,

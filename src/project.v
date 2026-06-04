@@ -24,13 +24,7 @@
     /* Tiny Tapeout doesn't support timescale directives, so we can ignore it. */
 `endif /* ULX3S */
 
-
-/* There's about a 5% (~ 100 cells) increase in the number of cells when using long strings.
- * Currently only the version string is implemented. */
-`define USE_LONG_STRINGS
-`define VERSION_STRING_LEN 24 /* 123456789012345678901234 */   
-`define VERSION_STRING          "Version 0.1.5  5/24/2026"   
-
+// `define ANALOG_ENABLED
 `define UART_ENABLED
 `define SPI_ENABLED
 `define SPI_REG_ACCESS
@@ -56,20 +50,55 @@
     `endif
 `else
     /* Not ULXS3. Is this a TT PDK? */
-    `ifdef __pnr__
-        /* HACK ALERT: __pnr__ does not conclusively prove that we are building for Tiny Tapeout, 
+
+    /* TODO: detect test modes? add "is submission" macro? */
+
+    /* HACK ALERT: checking __pnr__,  SCL_gf180mcu_fd_sc_mcu7t5v0, SCL_sky130_fd_sc_hd may not be 100% reliable!! */
+    `ifdef SCL_sky130_fd_sc_hd
+        /* Less hacky is to detect the presence of a cell that is only available in the real RO-based TRNG for SKY130, 
+         * but this also isn't perfect since it could be used in a non-TT context. */
+        `define TRNG_USE_RO
+        `define TRNG_ALLOW_REAL_RO
+        `define FOUND_TT_PDK
+
+        /* To confirm only this path is taken, enable the next line. Only GSD GH Action should fail: */
+        /* PROJECT_FOUND_TT_PDK_SKY130 u_stop (); */
+
+    `elsif SCL_gf180mcu_fd_sc_mcu7t5v0
+        /* Less hacky is to detect the presence of a cell that is only available in the real RO-based TRNG for GF180, 
+         * but this also isn't perfect since it could be used in a non-TT context. */
+        `define TRNG_USE_RO
+        `define TRNG_ALLOW_REAL_RO
+        `define FOUND_TT_PDK
+
+        /* To confirm only this path is taken, enable the next line. Only GSD GH Action should fail: */
+        /* PROJECT_FOUND_TT_PDK_GF180 u_stop (); */
+        /* See example: https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/26890757755 */
+
+    `elsif __pnr__
+        /* More hacky is __pnr__ and still does not conclusively prove that we are building for Tiny Tapeout, 
          * but it is a strong indicator that we are in an environment where the real RO-based TRNG can be used. */
         `define TRNG_USE_RO
         `define TRNG_ALLOW_REAL_RO
+        `define FOUND_TT_PDK
 
-        /* TODO: detect test modes? add "is submission" macro? */
+        /* To confirm only this path is taken, enable the next line. Only GSD GH Action should fail: */
+        /* PROJECT_FOUND_TT_PDK_UNKNOWN u_stop (); */
+
     `else
+        /* End of possible TT detection. Assume we are in some other non-ULX3S, non-ASIC environment. */
+
         /* some other non ULX3S, non ASIC path. Detect if REAL RO defined externally and abort */
         `ifdef TRNG_USE_RO
             PROJECT_NON_ASIC_MUST_NOT_USE_TRNG_USE_RO u_stop ();
         `endif
+
         `ifdef TRNG_ALLOW_REAL_RO
             PROJECT_NON_ASIC_MUST_NOT_USE_TRNG_ALLOW_REAL_RO u_stop ();
+        `endif
+
+        `ifdef FOUND_TT_PDK
+            PROJECT_FOUND_TT_PDK_BUT_NOT_REAL_RO u_stop (); /* We can only "find" the PDF here! */
         `endif
     `endif
 `endif
@@ -138,10 +167,12 @@ module UART_FSM_TRNG_Lab
     parameter [31:0] UART_BAUD = PROJECT_UART_BAUD_VALUE    /* default UART is 115200 baud */
 )
 (
+`ifdef ANALOG_ENABLED
     // Optional Analog
     //    input  wire       VGND,
     //    input  wire       VDPWR,    // 1.8v power supply
     //    input  wire       VAPWR,    // 3.3v power supply
+`endif
 
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
@@ -190,8 +221,10 @@ module UART_FSM_TRNG_Lab
         .rst_n(rst_n)
     );
 
+`ifdef ANALOG_ENABLED
     // Optional Analog
     // assign unused_ok = &{VGND, VDPWR, ena, clk, rst_n, uio_in, ua};
+`endif
 
     assign unused_ok = &{ena, clk, rst_n, uio_in};
 
@@ -210,7 +243,7 @@ module UART_FSM_TRNG_Lab
         `endif
     `endif /* ULX3S */
 
-endmodule
+endmodule /* Conditional module name based on PDK target. See above. */
 
 
 `default_nettype wire
