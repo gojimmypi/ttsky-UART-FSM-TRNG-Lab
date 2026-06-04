@@ -858,8 +858,8 @@ So far, none.
 
 # UART FSM TRNG Lab Datasheet
 
-Document revision: 0.1.1  
-RTL revision string: `Version 0.1.4c 5/23/2026`  
+Document revision: 0.1.6
+RTL revision string: `Version 0.1.6 6/4/2026`  
 Project family: Tiny Tapeout UART/SPI configurable TRNG experiment  
 Primary top modules: `tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab`, `tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab`  
 License: Apache-2.0, as declared in the source files
@@ -1080,7 +1080,7 @@ Invalid syntax returns `?<CR>`.
 #### UART command examples
 
 ```text
-V<CR>       -> Version 0.1.4c 5/23/2026<CR>
+V<CR>       -> Version 0.1.6 6/4/2026<CR>
 R2<CR>      -> R2=10<CR>
 E1<CR>      -> OK<CR>
 D10<CR>     -> OK<CR>
