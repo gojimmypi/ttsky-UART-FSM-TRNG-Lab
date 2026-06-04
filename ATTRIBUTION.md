@@ -70,7 +70,10 @@ with influence from TinyTapeout examples and general open-source resources.
 ## Tools and Assistance
 
 Development of this project included the use of automated code analysis and review tools,
-including AI-assisted tooling, to improve code quality and correctness.
+including AI-assisted tooling and image generation, to improve code quality and correctness.
+
+Code was reviewed and refined with the assistance of AI tools, 
+but all final code and design decisions were made by the author.
 
 ---
 

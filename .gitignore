@@ -45,3 +45,6 @@ test/gate_level_netlist.v
 /ulx3s/ESP32/sdkconfig.old
 
 /test/*.vvp
+
+/temp
+
