@@ -118,6 +118,8 @@
  */
 `ifdef ULX3S
     /* The ./ulx3s/Makefile includes references to needed files */
+
+    /* Beware of a potentially generated file: "[project]/src/_tt_fpga_top.v" */
 `else
     /* Tiny Tapeout needs to include all the files directly since it doesn't support Makefiles.
      * or list them in /info.yaml file (pick one, don't mix) */
