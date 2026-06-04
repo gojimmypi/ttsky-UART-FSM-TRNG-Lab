@@ -6,9 +6,9 @@
  *
  * file: test/tb_jtag_core.v
  */
+`default_nettype none
 
 `timescale 1ns / 1ps
-`default_nettype none
 
 module tb_jtag_core;
 

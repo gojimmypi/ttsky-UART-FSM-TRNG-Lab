@@ -6,9 +6,9 @@
  *
  * file: test/tb_tt_um_main_jtag.v
  */
+`default_nettype none
 
 `timescale 1ns / 1ps
-`default_nettype none
 
 module tb_tt_um_main_jtag;
 
