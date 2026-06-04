@@ -9,6 +9,8 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## How it works
 
+There's a [ring oscillator](https://en.wikipedia.org/wiki/Ring_oscillator) implemented at the core of this project for a TRNG (True Random Number Generator.
+
 ![ttsky-UART-FSM-TRNG-Lab-block-diagram.png](./ttsky-UART-FSM-TRNG-Lab-block-diagram.jpg)
 
 This design exposes a UART-controlled interface to a ring-oscillator-based entropy source (TRNG). 
@@ -20,8 +22,6 @@ At a high level:
 - A sampling clock (controlled by a divider) captures this behavior
 - Control and configuration are managed through memory-mapped registers
 - Data and status are read back over the same UART interface
-
-See [spec sheet](./spec_sheet.md)
 
 ---
 
@@ -183,18 +183,25 @@ IOBUF PORT "uart_tx_pin" IO_TYPE=LVCMOS33;
 
 There are TT simulation tests and local ULX3S FPGA tests.
 
-Set the `PROJECT_ROOT` environment variable to the root of the project directory before running the tests or other scripts.
+Set the `TT_PROJECT_ROOT` environment variable to the root of the project directory before running the tests or other scripts.
 
 ```bash
-export PROJECT_ROOT=/mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab
+export TT_PROJECT_NAME="ttsky-UART-FSM-TRNG-Lab"
+export TT_PROJECT_ROOT="/mnt/c/workspace/$TT_PROJECT_NAME"
 ```
+
+### Testing on the Tiny Tapeout FPGA Development Kit
+
+See the [overview video](https://www.youtube.com/watch?v=-cbwmJmdnzc) for the [FPGA Development Kit](https://store.tinytapeout.com/products/FPGA-Development-Kit-p813805747).
+
+
 
 ### Testing ULX3S / TT
 
 First run this script in one bash terminal, note test pause "Press Enter to continue..." (see concurrent `Testing ESP32`, below)
 
 ```bash
-cd "$PROJECT_ROOT/test-hw"
+cd "$TT_PROJECT_ROOT/test-hw"
 
 ./run_tests.sh  --with-build  --ulx3s-board-version v307  --ignore-combinational-warning  --no-warning-pause  --port /dev/ttyS12 --pause-for-test
 ```
@@ -211,7 +218,7 @@ cd /mnt/c/SysGCC/esp32-master/esp-idf/v5.5
 
 . ./export.sh
 
-cd "$PROJECT_ROOT/ulx3s/ESP32"
+cd "$TT_PROJECT_ROOT/ulx3s/ESP32"
 idf.py build
 
 idf.py -p /dev/ttyS3 -b 115200 flash
@@ -830,7 +837,7 @@ Additional loopback tests:
 The `run_tests.sh` can be used to run the loopback tests with the appropriate flags:
 
 ```bash
-cd "$PROJECT_ROOT/test-hw    
+cd "$TT_PROJECT_ROOT/test-hw    
 
 ./run_tests.sh --with-build --ignore-combinational-warning --no-warning-pause --loopback
 ./run_tests.sh --with-build --ignore-combinational-warning --no-warning-pause --deep-loopback
@@ -854,9 +861,11 @@ cd test-hw
 
 ## External hardware
 
-So far, none.
+It can be helpful to have a TTY-UART adapter on hand to interact with the FSM and TRNG on the FPGA or ASIC. This can be used to send commands and read responses from the FSM and TRNG.
 
-# UART FSM TRNG Lab Datasheet
+<!-- ************************************************************************************************ -->
+
+## UART FSM TRNG Lab Datasheet
 
 Document revision: 0.1.6
 RTL revision string: `Version 0.1.6 6/4/2026`  

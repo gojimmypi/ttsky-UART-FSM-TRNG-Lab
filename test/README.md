@@ -3,6 +3,13 @@
 This is a sample testbench for a Tiny Tapeout project. It uses [cocotb](https://docs.cocotb.org/en/stable/) to drive the DUT and check the outputs.
 See below to get started or for more information, check the [website](https://tinytapeout.com/hdl/testing/).
 
+Set the `TT_PROJECT_ROOT` environment variable to the root of the project directory before running the tests or other scripts.
+
+```bash
+export TT_PROJECT_NAME="ttsky-UART-FSM-TRNG-Lab"
+export TT_PROJECT_ROOT="/mnt/c/workspace/$TT_PROJECT_NAME"
+```
+
 ## Files
 
  - `test\Makefile`
