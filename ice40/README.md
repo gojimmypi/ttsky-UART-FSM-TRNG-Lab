@@ -2,33 +2,18 @@
 
 * WARNING: see generated `/src/_tt_fpga_top.v` file that may be undesired in other builds.
 
+Set the `TT_PROJECT_ROOT` and other environment variables before running the tests or other scripts.
 
+See the [env_ice40.sh](./env_ice40.sh) script and edit as needed for your environment. For example:
 
-Set the `TT_PROJECT_ROOT` environment variable to the root of the project directory before running the tests or other scripts.
-
-```bash
-echo "Setting up environment variables for Tiny Tapeout FPGA project..."
-
-# For example on WSL, the C:\workspace directory is mounted at /mnt/c/workspace
-export WORKSPACE=/mnt/c/workspace
-echo "WORKSPACE:            ${WORKSPACE}"
-
-# Typically the name of the repo, for example: ttsky-UART-FSM-TRNG-Lab"
-# See the src/project.v for the top module name
-export TT_PROJECT_NAME="ttsky-UART-FSM-TRNG-Lab"
-echo "TT_PROJECT_NAME:      ${TT_PROJECT_NAME}"
-
-# For example: /mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab
-export TT_PROJECT_ROOT="${WORKSPACE}/${TT_PROJECT_NAME}"
-echo "TT_PROJECT_ROOT:      ${TT_PROJECT_ROOT}"
-
-# For example:  "tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab"
-export TT_TOP_NAME="tt_um_${USER}_${TT_PROJECT_NAME_ALT}"
-echo "TT_TOP_NAME:          ${TT_TOP_NAME}"
-
-# For example:  "/mnt/c/workspace/tt-support-tools-gojimmypi"
-export TT_TOOLS=${WORKSPACE}/tt-support-tools-${USER}
-echo "TT_TOOLS:             ${TT_TOOLS}"
+```text
+TT_PORT:              /dev/ttyS6
+WORKSPACE:            /mnt/c/workspace
+TT_PROJECT_NAME:      ttsky-UART-FSM-TRNG-Lab
+TT_PROJECT_NAME_ALT:  ttsky_UART_FSM_TRNG_Lab
+TT_PROJECT_ROOT:      /mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab
+TT_TOP_NAME:          tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
+TT_TOOLS:             /mnt/c/workspace/tt-support-tools-gojimmypi
 ```
 
 ## Ensure nextpnr is built for iCE40
@@ -52,6 +37,8 @@ sudo make install
 ```
 
 ## Build project for iCE40 FPGA
+
+See the [build_and_flash.sh](./build_and_flash.sh) script for details.
 
 ```bash
 cd "$TT_PROJECT_ROOT"
@@ -91,6 +78,8 @@ Info: Program finished normally.
 ```
 
 ## Upload project to iCE40 FPGA
+
+More details on manual upload with specific parameters outside of the `build_and_flash.sh` (see above)
 
 ```bash
 cd "$TT_PROJECT_ROOT"
