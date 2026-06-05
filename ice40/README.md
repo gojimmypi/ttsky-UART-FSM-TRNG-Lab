@@ -2,6 +2,8 @@
 
 * WARNING: see generated `/src/_tt_fpga_top.v` file that may be undesired in other builds.
 
+## Quick Start
+
 Set the `TT_PROJECT_ROOT` and other environment variables before running the tests or other scripts.
 
 See the [env_ice40.sh](./env_ice40.sh) script and edit as needed for your environment. For example:
@@ -14,6 +16,16 @@ TT_PROJECT_NAME_ALT:  ttsky_UART_FSM_TRNG_Lab
 TT_PROJECT_ROOT:      /mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab
 TT_TOP_NAME:          tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
 TT_TOOLS:             /mnt/c/workspace/tt-support-tools-gojimmypi
+```
+
+Run the scripts:
+
+```bash
+cd $WORKSPACE
+cd ice40
+
+./build_and_flash.sh
+./run_tests.sh
 ```
 
 ## Ensure nextpnr is built for iCE40
@@ -118,6 +130,7 @@ tt.shuttle.tt_um_factory_test.enable()
 
 When first powering on, first load image:
 
+See also the [project_reset.sh](./project_reset.sh) and [project_reset.py](./project_reset.py) scripts.
 
 ```python
 tt.shuttle.tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab.enable()
