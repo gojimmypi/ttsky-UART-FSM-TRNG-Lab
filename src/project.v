@@ -121,8 +121,12 @@
 
     /* Beware of a potentially generated file: "[project]/src/_tt_fpga_top.v" */
 `else
-    /* Tiny Tapeout needs to include all the files directly since it doesn't support Makefiles.
-     * or list them in /info.yaml file (pick one, don't mix) */
+    /* Tiny Tapeout needs to include all the files explicitly since `tt_fpga.py harden` doesn't use Makefiles.
+     *  (see https://github.com/TinyTapeout/tt-support-tools.git )
+     *    ** OR **
+     *  list them in /info.yaml file (pick one, don't mix) 
+     * 
+     * Note the ice40 TT Demoboard build uses this path with `tt_fpga.py harden` */
     `include "tt_um_main.v"
     `include "JTAG/jtag_core.v"
     `include "SPI/spi_slave.v"
