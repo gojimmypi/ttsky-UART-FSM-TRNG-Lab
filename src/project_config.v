@@ -31,19 +31,16 @@
     // `define ULX3S_USE_GN12_50MHZ
 
     `ifdef ULX3S_USE_GN12_50MHZ
-        `define PROJECT_CLOCK_HZ 50000000
+        `define PROJECT_CLOCK_HZ 32'd50000000
     `endif
 
     `ifndef PROJECT_CLOCK_HZ
-       `define PROJECT_CLOCK_HZ 25000000
+       `define PROJECT_CLOCK_HZ 32'd25000000
     `endif
 
     `ifndef PROJECT_UART_BAUD
-        `define PROJECT_UART_BAUD 115200
+        `define PROJECT_UART_BAUD 32'd115_200
     `endif
-
-    localparam [31:0] PROJECT_CLOCK_HZ_VALUE  = 32'd`PROJECT_CLOCK_HZ;
-    localparam [31:0] PROJECT_UART_BAUD_VALUE = 32'd`PROJECT_UART_BAUD;
 
 `endif /* PROJECT_CONFIG_V */
 

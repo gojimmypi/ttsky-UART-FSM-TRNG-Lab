@@ -12,9 +12,18 @@
 
 `default_nettype none
 
-/* Not a TT standard, but we will pick a PDK. Define exactly one: */
-`define PDK_TARGET_SKY130
-// `define PDK_TARGET_GF180
+
+`ifdef IS_MY_IVERILOG_SIMULATION
+    /* Neither PDK for my local iverilog sim */
+
+`else
+    // `if defined(SCL_sky130_fd_sc_hd) || defined(SCL_sky130_fd_sc_hs) || defined(SCL_sky130_fd_sc_ms) || defined(SCL_sky130_fd_sc_hdll) || defined(SCL_sky130_fd_sc_hvl)
+    //    `define PDK_TARGET_SKY130
+
+    /* Not a TT standard, but we will pick a PDK. Define exactly one: */
+    `define PDK_TARGET_SKY130
+    // `define PDK_TARGET_GF180
+`endif
 
 /* For this project, see TRNG/trng_lab_core.v for conditional include of code based on the PDK. */
 
