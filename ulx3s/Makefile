@@ -102,6 +102,13 @@ ROOT     := ..
 SRC_DIR  := $(ROOT)/src
 TEST_DIR := $(ROOT)/test
 
+# Abort if Tiny Tapeout tooling generated its FPGA top in the project src tree.
+# That wrapper is not part of the ULX3S build and can conflict with top_ulx3s.v.
+GENERATED_TT_FPGA_TOP := $(SRC_DIR)/_tt_fpga_top.v
+ifneq ($(wildcard $(GENERATED_TT_FPGA_TOP)),)
+$(error Found $(GENERATED_TT_FPGA_TOP). Remove it before building ULX3S targets)
+endif
+
 # Get the TOP_MODULE from the info.yaml file, and pass it as a define. 
 INFO_YAML ?= ../info.yaml
 TOP_MODULE := $(shell sed -n 's/^[[:space:]]*top_module:[[:space:]]*"\?\([^"]*\)"\?/\1/p' $(INFO_YAML))

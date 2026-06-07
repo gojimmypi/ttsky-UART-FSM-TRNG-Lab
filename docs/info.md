@@ -25,6 +25,83 @@ At a high level:
 
 ---
 
+## How to test
+
+The TT projects usually start in a reset mode = `True`. Connect to TT Breakout (or Demoboard) USB.
+
+Select project, set clock to 25MHZ, and reset:
+
+```
+# select project and reset ttsky
+send "tt.shuttle. tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab.enable()"
+
+# or
+
+# select project and reset ttgf
+send "tt.shuttle. tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab.enable()"
+
+send "tt.clock_project_PWM(25000000)"
+send "tt.reset_project(True)"
+send "tt.reset_project(False)"
+```
+
+Connect a UART terminal (e.g. PuTTY) to the TT Breakout (or Demoboard) I/O pins with the following connections:
+
+- UART/TTY USB Tx to `IN3/Rx`
+- UART/TTY USB Rx to `OUT4/Tx`
+- GND to GND
+
+![PMOD-connector-test1.png](./PMOD-connector-test1.jpg)
+
+Press type `V` and then press `Enter` to query the version string (if enabled in the build). 
+Then you can send commands to configure the TRNG and read back entropy samples.
+
+Connect to the UART and send the appropriate commands to configure and read from the TRNG core.
+
+### Quickstart simulation
+
+```bash
+cd /mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/test
+
+./my_test.sh
+
+./jtag_test.sh
+```
+
+### Quickstart Testing on TT Demoboard
+
+If all the toolchains are installed:
+
+```bash
+cd /mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/ice40
+
+. ./env_ice40.sh
+./build_and_flash.sh
+./project_reset.sh
+./run_tests.sh
+```
+
+### Quickstart Testing on ULX3S
+
+```bash
+cd /mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/test-hw
+
+./run_tests.sh  --with-build  --ulx3s-board-version v307  --ignore-combinational-warning  --no-warning-pause  --port /dev/ttyS12 --pause-for-test
+```
+
+### Quickstart on ULX3S ESP32
+
+```bash
+cd /mnt/c/workspace/ttgf-UART-FSM-TRNG-Lab/ulx3s/ESP32
+
+idf.py -p /dev/ttyS3 -b 115200 flash
+idf.py -p /dev/ttyS3 -b 115200 monitor
+```
+
+See also [Comprehensive Testing](./info.md#comprehensive-testing) below and the [TT MicroPython SDK v3](https://github.com/TinyTapeout/tt-micropython-firmware#initialization).
+
+---
+
 ### Register Overview
 
 | Register     | Description |
@@ -179,7 +256,7 @@ LOCATE COMP "uart_tx_pin" SITE "A10"; # formerly "gp[1]"; # J1_7+  GP1 PCLK
 IOBUF PORT "uart_tx_pin" IO_TYPE=LVCMOS33;
 ```
 
-## How to test
+## Comprehensive Testing 
 
 There are TT simulation tests and local ULX3S FPGA tests.
 

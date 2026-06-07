@@ -21,6 +21,22 @@ export TT_PROJECT_ROOT="/mnt/c/workspace/$TT_PROJECT_NAME"
  - `test\tb.vcd`
  - `test\test.py`
 
+## Testing
+
+Run `./my_test.sh` from `[project]/test`.
+
+WSL users may need to first start X-Server: `./wsl_x_init.sh`
+
+Expected output:
+
+![gtkwave output](./gtkwave_output.jpg)
+
+------
+
+** Prior instructions: **
+
+------
+
 ## Setting up
 
 1. Edit [Makefile](Makefile) and modify `PROJECT_SOURCES` to point to your Verilog files.
