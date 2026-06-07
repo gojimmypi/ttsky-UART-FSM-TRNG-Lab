@@ -98,6 +98,11 @@ module tb ();
     ui_in = 8'h08;
     repeat (100) @(posedge clk);
 
+  end
+
+  initial begin
+    // Safety timeout only. Cocotb should normally end the test.
+    #10000000;  // 10 ms
     $display("tb.v simulation finished at t=%0t", $time);
     $finish;
   end
