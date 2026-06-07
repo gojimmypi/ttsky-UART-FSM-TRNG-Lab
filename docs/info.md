@@ -86,6 +86,9 @@ cd /mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/ice40
 ```bash
 cd /mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/test-hw
 
+# may need to remove generated file
+rm  ../src/_tt_fpga_top.v
+
 ./run_tests.sh  --with-build  --ulx3s-board-version v307  --ignore-combinational-warning  --no-warning-pause  --port /dev/ttyS12 --pause-for-test
 ```
 
