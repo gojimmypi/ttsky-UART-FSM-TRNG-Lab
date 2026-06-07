@@ -14,11 +14,22 @@
 */
 module tb ();
 
+`ifdef IS_MY_IVERILOG_SIMULATION
   // Dump the signals to a vcd (Value Change Dump) file. You can view it with gtkwave after 
   initial begin
     $dumpfile("tb.vcd");
     $dumpvars(0, tb);
   end
+`else
+  // the /.github/workflows/test.yaml expects tb.fst
+  // see https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27104612809/job/79991381774
+  // Dump the signals to a FST file. You can view it with gtkwave or surfer.
+  initial begin
+    $dumpfile("tb.fst");
+    $dumpvars(0, tb);
+    #1;
+  end
+`endif
 
   // Wire up the inputs and outputs:
   reg clk;
