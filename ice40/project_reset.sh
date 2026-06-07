@@ -11,14 +11,14 @@ set -euo pipefail
 # TT_PORT=/dev/ttyS6
 BAUD=115200
 
-if [ -z "$TT_PORT" ]; then
+if [ -z "${TT_PORT:-}" ]; then
     echo  "info: no TT_PORT found" >&2
     exit 1
 else
     echo "TT_PORT:     ${TT_PORT}"
 fi
 
-if [ -z "$TT_TOP_NAME" ]; then
+if [ -z "${TT_TOP_NAME:-}" ]; then
     echo  "info: no TT_TOP_NAME found" >&2
     exit 1
 else
