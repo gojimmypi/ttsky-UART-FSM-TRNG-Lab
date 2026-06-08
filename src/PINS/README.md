@@ -4,6 +4,8 @@
 
 The feature is disabled by default and is included only when `PIN_DIAG` is defined.
 
+Note that with all other features turned on, this one pushes the size requirements to 2x2 tiles, even though there's only ~80% utilization on 1x2.
+
 ## Enable the feature
 
 In `src/project_config.v`:
