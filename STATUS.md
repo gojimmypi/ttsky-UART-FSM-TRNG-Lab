@@ -18,6 +18,7 @@ Version 0.1.7
 - Functional SPI; See [ULX3S ESP32 Demo](../ulx3s/ESP32/README.md)
 - Untested actual ASIC [TRNG](./src/TRNG/) for SKY130 and GF180, as well as a stub for testing.
 - [JTAG WIP](./src/JTAG/)
+- [PIN Diagnostics WIP](./src/PINS/)
 
 ## TODO
 

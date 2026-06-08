@@ -50,7 +50,7 @@
     `define SPI_REG_ACCESS
     `define TRNG_ENABLED
     `define JTAG_ENABLED
-    // `define PIN_DIAG
+    `define PIN_DIAG
 
     /* SPI_TEST_BYTE is only used when SPI_TEST_FIXED is enabled. */
     // `define SPI_TEST_BYTE 8'hD2

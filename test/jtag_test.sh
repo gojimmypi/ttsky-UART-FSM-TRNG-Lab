@@ -40,6 +40,7 @@ iverilog -g2012 -Wall \
     tb_tt_um_main_jtag.v \
     ../src/tt_um_main.v \
     ../src/JTAG/jtag_core.v \
+    ../src/PINS/pin_id_core.v \
     ../src/SPI/spi_slave.v \
     ../src/UART/uart_rx_min.v \
     ../src/UART/uart_tx_min.v \
