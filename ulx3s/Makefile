@@ -127,7 +127,7 @@ YOSYS_DEFS += -DTT_TOP_MODULE=$(TOP_MODULE)
 RTL_TOP  := top_ulx3s
 TB_TOP   := tb
 
-RTL_SRCS := $(SRC_DIR)/*.v  $(SRC_DIR)/UART/*.v  $(SRC_DIR)/TRNG/*.v $(SRC_DIR)/SPI/*.v  $(SRC_DIR)/JTAG/*.v ./top_ulx3s.v
+RTL_SRCS := $(SRC_DIR)/*.v  $(SRC_DIR)/UART/*.v  $(SRC_DIR)/TRNG/*.v  $(SRC_DIR)/SPI/*.v  $(SRC_DIR)/PINS/*.v  $(SRC_DIR)/JTAG/*.v  ./top_ulx3s.v
 TB_SRCS  := $(TEST_DIR)/tb.v
 
 # ESP32 support could be optional for the ULX3S and is not needed for the TT, so we put it in a separate file.

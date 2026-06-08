@@ -133,6 +133,9 @@
     `include "UART/uart_tx_min.v"
     `include "UART/uart_trng_ascii_core.v"
     `include "TRNG/trng_cfg_ascii_core.v"
+    `ifdef PIN_DIAG
+        `include "PINS/pin_id_core.v"
+    `endif
     `ifdef TRNG_ENABLED
         `include "TRNG/trng_lab_core.v"
     `else
