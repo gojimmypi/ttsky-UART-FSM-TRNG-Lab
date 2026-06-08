@@ -19,6 +19,16 @@
  * - 01: pulse-count ID, uo[0..7] = 1..8 pulses, uio[0..7] = 9..16 pulses
  * - 10: ASCII UART stream, repeatedly sends "P=xx\r" where xx is pin_sel
  * - 11: reserved, currently same as clock/square wave
+ *
+ * NOTE: It appears that when this module is enabled with PIN_DIAG, the size
+ * exceeds the 1x2 tiles. See job that ran for over an 90 minutes before abort: 
+ *
+ *   https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27152683035
+ *
+ * and subsequent success for next bigger tile size 2x2:
+ *
+ *   https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27157950274 
+ *
  */
 `default_nettype none
 
@@ -51,7 +61,7 @@ module pin_id_core
     localparam [31:0] CLOCK_TOGGLE_DIV = (CLOCK_HZ / 32'd2000) == 32'd0 ? 32'd1 : (CLOCK_HZ / 32'd2000);
     localparam [31:0] PULSE_TOGGLE_DIV = (CLOCK_HZ / 32'd200)  == 32'd0 ? 32'd1 : (CLOCK_HZ / 32'd200);
 
-    localparam [1:0] MODE_CLOCK = 2'b00;
+//  localparam [1:0] MODE_CLOCK = 2'b00;
     localparam [1:0] MODE_PULSE = 2'b01;
     localparam [1:0] MODE_ASCII = 2'b10;
 
