@@ -1,4 +1,4 @@
-# iCE40 FPGA Tiny Tapeout
+# iCE40 FPGA Tiny Tapeout Demoboard
 
 * WARNING: see generated `/src/_tt_fpga_top.v` file that may be undesired in other builds.
 

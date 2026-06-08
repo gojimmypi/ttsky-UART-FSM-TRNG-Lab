@@ -14,7 +14,9 @@
 
 `include "target_pdk.v"
 
-/* Higher level wrappers such as ULX3S FPGA test also need to also have project.v included.
+/* Project configuration options
+ *
+ * Higher level wrappers such as ULX3S FPGA test also need to also have project.v included.
  * Otherwise, only needed here for TT project: */
 `include "project_config.v"
 
@@ -23,20 +25,6 @@
 `else
     /* Tiny Tapeout doesn't support timescale directives, so we can ignore it. */
 `endif /* ULX3S */
-
-// `define ANALOG_ENABLED
-`define UART_ENABLED
-`define SPI_ENABLED
-`define SPI_REG_ACCESS
-`define TRNG_ENABLED
-`define JTAG_ENABLED 
-
-/* SPI_TEST_BYTE is only used when SPI_TEST_FIXED is enabled. */
-// `define SPI_TEST_BYTE 8'hD2
-
-/* Pick zero or one of these SPI tests. Leave both disabled for register access. */
-// `define SPI_TEST_FIXED
-// `define SPI_TEST_ECHO
 
 /* Conditional TRNG settings */
 `ifdef ULX3S
@@ -116,6 +104,11 @@
  * - When `ULX3S` is not defined, it is assumed that the build target is Tiny Tapeout, and Tiny Tapeout-specific code paths are enabled.
  * - This structure allows for clean separation of environment-specific code while maintaining a shared core logic.
  */
+
+`ifndef PROJECT_CONFIG_V
+    MODULE_MISSING_PROJECT_CONFIG u_stop (); /* Error if the project_config.v was not included */
+`endif
+
 `ifdef ULX3S
     /* The ./ulx3s/Makefile includes references to needed files */
 

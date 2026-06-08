@@ -1,8 +1,8 @@
 # Project Status
 
-<!-- breadcrumb for testing workflows 1.0b, testing end-to-end build, release Version 0.1.6 6/4/2026" -->
+<!-- breadcrumb for testing workflows 1.0b, testing end-to-end build, release Version 0.1.7 6/7/2026" -->
 
-Version 0.1.6
+Version 0.1.7
 
 ## Status
 
@@ -21,6 +21,15 @@ Version 0.1.6
 
 ## TODO
 
+- Final submission version check
 - sample scripts should have generic `PROJECT` variable instead of hardcoding `ttsky-UART-FSM-TRNG-Lab`.
 - Remove ttsy references from ttgf project.
 - Test JTAG on hardware. See [ULX3S ESP32 Demo](../ulx3s/ESP32/README.md) for SPI testing on ULX3S.
+- Revisit https://github.com/TinyTapeout/ttsky-verilog-template/issues/22
+- https://github.com/TinyTapeout/tt-support-tools/pull/167
+- https://github.com/TinyTapeout/tt-gds-action/pull/47
+- https://github.com/TinyTapeout/ttsky-verilog-template/pull/23
+- https://github.com/TinyTapeout/ttsky-verilog-template/pull/25
+- https://github.com/TinyTapeout/tinytapeout_www/pull/229
+- https://github.com/TinyTapeout/tinytapeout_www/pull/230
+- https://github.com/TinyTapeout/tinytapeout_www/pull/231
