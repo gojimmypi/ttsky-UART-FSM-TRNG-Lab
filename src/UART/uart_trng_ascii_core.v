@@ -44,8 +44,8 @@
 
 module uart_trng_ascii_core
 #(
-    parameter [31:0] CLOCK_HZ  = PROJECT_CLOCK_HZ_VALUE,
-    parameter [31:0] UART_BAUD = PROJECT_UART_BAUD_VALUE
+    parameter [31:0] CLOCK_HZ  = `PROJECT_CLOCK_HZ,
+    parameter [31:0] UART_BAUD = `PROJECT_UART_BAUD
 )
 (
     input  wire       clk,

@@ -22,7 +22,7 @@
      * Currently only the version string is implemented. */
     `define USE_LONG_STRINGS
     `define VERSION_STRING_LEN 22 /* 123456789012345678901234 */   
-    `define VERSION_STRING          "Version 0.1.6 6/4/2026"   
+    `define VERSION_STRING          "Version 0.1.7 6/7/2026"   
 
     /* Optionally Perform a blinky test on led[0] to confirm we have a working clock */
     // `define ULX3S_CLOCK_TEST
@@ -31,19 +31,16 @@
     // `define ULX3S_USE_GN12_50MHZ
 
     `ifdef ULX3S_USE_GN12_50MHZ
-        `define PROJECT_CLOCK_HZ 50000000
+        `define PROJECT_CLOCK_HZ 32'd50000000
     `endif
 
     `ifndef PROJECT_CLOCK_HZ
-       `define PROJECT_CLOCK_HZ 25000000
+       `define PROJECT_CLOCK_HZ 32'd25000000
     `endif
 
     `ifndef PROJECT_UART_BAUD
-        `define PROJECT_UART_BAUD 115200
+        `define PROJECT_UART_BAUD 32'd115_200
     `endif
-
-    localparam [31:0] PROJECT_CLOCK_HZ_VALUE  = 32'd`PROJECT_CLOCK_HZ;
-    localparam [31:0] PROJECT_UART_BAUD_VALUE = 32'd`PROJECT_UART_BAUD;
 
 `endif /* PROJECT_CONFIG_V */
 

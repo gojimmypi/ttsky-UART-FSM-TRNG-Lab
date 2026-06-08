@@ -118,9 +118,21 @@
  */
 `ifdef ULX3S
     /* The ./ulx3s/Makefile includes references to needed files */
+
+    /* Beware of a potentially generated file: "[project]/src/_tt_fpga_top.v" */
+
+`elsif IS_MY_IVERILOG_SIMULATION 
+    /* We want iverilog to be more like the TT build without the target_pdk.v included in wildcard */
+
+    /* Note the module is named tt_um_example for this path */
+
 `else
-    /* Tiny Tapeout needs to include all the files directly since it doesn't support Makefiles.
-     * or list them in /info.yaml file (pick one, don't mix) */
+    /* Tiny Tapeout needs to include all the files explicitly since `tt_fpga.py harden` doesn't use Makefiles.
+     *  (see https://github.com/TinyTapeout/tt-support-tools.git )
+     *    ** OR **
+     *  list them in /info.yaml file (pick one, don't mix) 
+     * 
+     * Note the ice40 TT Demoboard build uses this path with `tt_fpga.py harden` */
     `include "tt_um_main.v"
     `include "JTAG/jtag_core.v"
     `include "SPI/spi_slave.v"
@@ -155,6 +167,9 @@ module tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
 module tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab
 /* verilator lint_on DECLFILENAME */
 
+`elsif IS_MY_IVERILOG_SIMULATION
+module tt_um_example
+
 `else
 /* Only SKY130 and GF180 supported at this time. See target_pdk.v 
  * There will likely be an error later with this name and the need for real RO */
@@ -163,8 +178,8 @@ module UART_FSM_TRNG_Lab
 
 #(
     /* Get project-wide params from project_config.v */
-    parameter [31:0] CLOCK_HZ  = PROJECT_CLOCK_HZ_VALUE,    /* default clock is 25 MHz */
-    parameter [31:0] UART_BAUD = PROJECT_UART_BAUD_VALUE    /* default UART is 115200 baud */
+    parameter [31:0] CLOCK_HZ  = `PROJECT_CLOCK_HZ,    /* default clock is 25 MHz */
+    parameter [31:0] UART_BAUD = `PROJECT_UART_BAUD    /* default UART is 115200 baud */
 )
 (
 `ifdef ANALOG_ENABLED
@@ -186,7 +201,7 @@ module UART_FSM_TRNG_Lab
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );
-    /* Boilerplate parameter checking */
+     /* Boilerplate parameter checking */
     generate
         if (CLOCK_HZ == 32'd0) begin : gen_bad_clock_hz
             PROJECT_MUST_NOT_USE_ZERO_CLOCK u_stop ();
@@ -200,7 +215,6 @@ module UART_FSM_TRNG_Lab
             PROJECT_UART_DIVIDER_MUST_NOT_BE_ZERO u_stop ();
         end
     endgenerate
-
 
     wire unused_ok;
 

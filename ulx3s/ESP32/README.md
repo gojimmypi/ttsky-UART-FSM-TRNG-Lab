@@ -2,6 +2,13 @@
 
 Build with ESP-ISF v5.5
 
+Set the `TT_PROJECT_ROOT` environment variable to the root of the project directory before running the tests or other scripts.
+
+```bash
+export TT_PROJECT_NAME="ttsky-UART-FSM-TRNG-Lab"
+export TT_PROJECT_ROOT="/mnt/c/workspace/$TT_PROJECT_NAME"
+```
+
 ## Program with US1
 
 Shown here in WSL using ULX3S FTDI `US1` (net the external UART) to pogram the ESP32 on `/dev/ttyS3`:
@@ -11,7 +18,7 @@ cd /mnt/c/SysGCC/esp32-master/esp-idf/v5.5
 
 . ./export.sh
 
-cd "$PROJECT_ROOT/ulx3s/ESP32
+cd "$TT_PROJECT_ROOT/ulx3s/ESP32
 idf.py build
 
 # For hands-off programming, be sure to define ESP32_BOOT_RTS_DTR_ENABLED in the ULX3S Makefile

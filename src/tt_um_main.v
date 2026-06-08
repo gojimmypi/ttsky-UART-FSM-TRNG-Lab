@@ -47,8 +47,8 @@
 
 module tt_um_main 
 #(
-    parameter [31:0] CLOCK_HZ  = PROJECT_CLOCK_HZ_VALUE,
-    parameter [31:0] UART_BAUD = PROJECT_UART_BAUD_VALUE
+    parameter [31:0] CLOCK_HZ  = `PROJECT_CLOCK_HZ,
+    parameter [31:0] UART_BAUD = `PROJECT_UART_BAUD
 )
 (
     /* For Tiny Tapeout, these are the only ports you can use. 
@@ -62,7 +62,7 @@ module tt_um_main
     input  wire       clk,
     input  wire       rst_n
 );
-    /* Boilerplate parameter checking */
+     /* Boilerplate parameter checking */
     generate
         if (CLOCK_HZ == 32'd0) begin : gen_bad_clock_hz
             PROJECT_MUST_NOT_USE_ZERO_CLOCK u_stop ();
@@ -76,6 +76,7 @@ module tt_um_main
             PROJECT_UART_DIVIDER_MUST_NOT_BE_ZERO u_stop ();
         end
     endgenerate
+
 
     /* Internal debug/configuration buses exported by the core. */
     wire [7:0] reg_ctrl;

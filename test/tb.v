@@ -14,12 +14,22 @@
 */
 module tb ();
 
+`ifdef IS_MY_IVERILOG_SIMULATION
+  // Dump the signals to a vcd (Value Change Dump) file. You can view it with gtkwave after 
+  initial begin
+    $dumpfile("tb.vcd");
+    $dumpvars(0, tb);
+  end
+`else
+  // the /.github/workflows/test.yaml expects tb.fst
+  // see https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27104612809/job/79991381774
   // Dump the signals to a FST file. You can view it with gtkwave or surfer.
   initial begin
     $dumpfile("tb.fst");
     $dumpvars(0, tb);
     #1;
   end
+`endif
 
   // Wire up the inputs and outputs:
   reg clk;
@@ -59,6 +69,43 @@ module tb ();
       .rst_n  (rst_n)     // not reset
   );
 
+  initial begin
+    $display("tb.v simulation started");
+
+    clk    = 1'b0;
+    rst_n  = 1'b0;
+    ena    = 1'b1;
+    ui_in  = 8'h00;
+    uio_in = 8'h00;
+  end
+
+  always #20 clk = ~clk;  // 25 MHz clock, 40 ns period
+
+  initial begin
+    // Hold reset low for a few cycles.
+    repeat (10) @(posedge clk);
+    rst_n = 1'b1;
+    $display("reset released at t=%0t", $time);
+
+    // UART RX idle high on ui_in[3].
+    ui_in = 8'h08;
+    repeat (100) @(posedge clk);
+
+    // Change inputs so GTKWave has visible transitions.
+    ui_in = 8'h18;
+    repeat (100) @(posedge clk);
+
+    ui_in = 8'h08;
+    repeat (100) @(posedge clk);
+
+  end
+
+  initial begin
+    // Safety timeout only. Cocotb should normally end the test.
+    #10000000;  // 10 ms
+    $display("tb.v simulation finished at t=%0t", $time);
+    $finish;
+  end
 endmodule
 
 `default_nettype wire
