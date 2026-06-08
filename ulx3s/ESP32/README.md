@@ -18,12 +18,13 @@ cd /mnt/c/SysGCC/esp32-master/esp-idf/v5.5
 
 . ./export.sh
 
-cd "$TT_PROJECT_ROOT/ulx3s/ESP32
+cd "$TT_PROJECT_ROOT/ulx3s/ESP32"
 idf.py build
 
 # For hands-off programming, be sure to define ESP32_BOOT_RTS_DTR_ENABLED in the ULX3S Makefile
 idf.py -p /dev/ttyS3 -b 115200 flash
 
+# Reminder: don't connect to ESP32 when needing to also flash new FPGA code.
 # Optional monitor from commandline:
 idf.py -p /dev/ttyS3 -b 115200 monitor
 ```
