@@ -143,6 +143,13 @@
     `endif /* TRNG_ENABLED */
 `endif /* ULX3S */
 
+/* Some analog sanity checks */
+`ifdef ANALOG_ENABLED
+    `ifdef PDK_TARGET_GF180
+        MODULE_ANALOG_NOT_SUPPORTED_IN_GF180 u_stop (); /* Error as there's no analog features here. See SKY130 */
+    `endif
+`endif
+
 /* See companion project: SKY130 (ChipFoundry) tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab */
 
 /* Assume TT needs this file to be called project.v 
