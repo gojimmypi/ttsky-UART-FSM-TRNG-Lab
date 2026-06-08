@@ -1,6 +1,6 @@
 # Project Status
 
-<!-- breadcrumb for testing workflows 1.0b, testing end-to-end build, release Version 0.1.6 6/4/2026" -->
+<!-- breadcrumb for testing workflows 1.0b, testing pin diag reverted size, release Version 0.1.7 6/7/2026" -->
 
 Version 0.1.6
 
