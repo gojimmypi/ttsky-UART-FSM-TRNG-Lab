@@ -113,6 +113,11 @@ module tt_um_main
     reg        uart_rx_meta;
     reg        uart_rx_sync;
 
+`ifdef JTAG_ENABLED
+    reg        debug_sel_meta;
+    reg        debug_sel_sync;
+`endif
+
 `ifdef SPI_REG_ACCESS
     wire       spi_reg_wr_en;
     wire [2:0] spi_reg_addr;
@@ -232,6 +237,28 @@ module tt_um_main
         end
     end
 
+`ifdef JTAG_ENABLED
+    /*
+     * Synchronize asynchronous SPI/JTAG select input to the local clock domain.
+     *
+     * ui_in[4] selects who owns uio[3:0]:
+     * - 1 = SPI
+     * - 0 = JTAG
+     *
+     * The external mode-select pin is asynchronous to clk and should not
+     * directly control the JTAG enable or SPI/JTAG register mux.
+     */
+    always @(posedge clk) begin
+        if (!rst_sync_n) begin
+            debug_sel_meta <= 1'b1;
+            debug_sel_sync <= 1'b1;
+        end else begin
+            debug_sel_meta <= ui_in[4];
+            debug_sel_sync <= debug_sel_meta;
+        end
+    end
+`endif
+
 `ifdef PIN_DIAG
     /*
      * Pin-ID diagnostic control reuses the existing UART/SPI register bank:
@@ -313,7 +340,7 @@ module tt_um_main
 `ifdef JTAG_ENABLED
     /* ui_in[4] = 1: ESP32 SPI owns uio[3:0] (default, unconnected = 1: PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;)
      * ui_in[4] = 0: external JTAG header owns uio[3:0] */
-    assign debug_is_jtag = ~ui_in[4]; /* invert logic since pull-up default on ULX3S wrapper means unconnected = SPI (not JTAG)  */
+    assign debug_is_jtag = ~debug_sel_sync; /* invert logic since pull-up default on ULX3S wrapper means unconnected = SPI (not JTAG)  */
 
     /* TODO: what happens with unconnected TT pim? */
 
