@@ -133,6 +133,12 @@ module tt_um_main
         wire       jtag_reg_wr_en;
         wire [7:0] jtag_reg_addr;
         wire [7:0] jtag_reg_wdata;
+        wire       spi_reg_wr_en_mux;
+        wire [2:0] spi_reg_addr_mux;
+        wire [7:0] spi_reg_wdata_mux;
+        reg        spi_reg_wr_en_r;
+        reg  [2:0] spi_reg_addr_r;
+        reg  [7:0] spi_reg_wdata_r;
         wire _unused_jtag_reg_addr = &{1'b0, jtag_reg_addr[7:3]};
     `endif
 `endif /* SPI_REG_ACCESS */
@@ -259,6 +265,29 @@ module tt_um_main
     end
 `endif
 
+`ifdef SPI_REG_ACCESS
+    `ifdef JTAG_ENABLED
+    /*
+     * Register the selected SPI/JTAG register access bus.
+     *
+     * This breaks the long same-cycle path from debug_sel_sync through
+     * the SPI/JTAG mux and into the configuration register write decode.
+     * Register/debug writes gain one clk cycle of latency.
+     */
+    always @(posedge clk) begin
+        if (!rst_sync_n) begin
+            spi_reg_wr_en_r <= 1'b0;
+            spi_reg_addr_r  <= 3'b000;
+            spi_reg_wdata_r <= 8'h00;
+        end else begin
+            spi_reg_wr_en_r <= spi_reg_wr_en_mux;
+            spi_reg_addr_r  <= spi_reg_addr_mux;
+            spi_reg_wdata_r <= spi_reg_wdata_mux;
+        end
+    end
+    `endif
+`endif
+
 `ifdef PIN_DIAG
     /*
      * Pin-ID diagnostic control reuses the existing UART/SPI register bank:
@@ -378,9 +407,13 @@ module tt_um_main
 
 `ifdef SPI_REG_ACCESS
     `ifdef JTAG_ENABLED
-        assign spi_reg_wr_en = debug_is_jtag ? jtag_reg_wr_en : spi_slave_reg_wr_en;
-        assign spi_reg_addr  = debug_is_jtag ? jtag_reg_addr[2:0] : spi_slave_reg_addr;
-        assign spi_reg_wdata = debug_is_jtag ? jtag_reg_wdata : spi_slave_reg_wdata;
+        assign spi_reg_wr_en_mux = debug_is_jtag ? jtag_reg_wr_en : spi_slave_reg_wr_en;
+        assign spi_reg_addr_mux  = debug_is_jtag ? jtag_reg_addr[2:0] : spi_slave_reg_addr;
+        assign spi_reg_wdata_mux = debug_is_jtag ? jtag_reg_wdata : spi_slave_reg_wdata;
+
+        assign spi_reg_wr_en = spi_reg_wr_en_r;
+        assign spi_reg_addr  = spi_reg_addr_r;
+        assign spi_reg_wdata = spi_reg_wdata_r;
     `else
         assign spi_reg_wr_en = spi_slave_reg_wr_en;
         assign spi_reg_addr  = spi_slave_reg_addr;
