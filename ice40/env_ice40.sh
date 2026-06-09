@@ -6,6 +6,10 @@
 # file: ice40/run_tests.sh
 #
 
+echo "**************************************************************************"
+echo "**  Begin ${BASH_SOURCE[0]} from ${PWD}"
+echo "**************************************************************************"
+
 MY_TT_PORT="/dev/ttyS6"
 MY_WORKSPACE="/mnt/c/workspace"
 MY_PROJECT_NAME="ttsky-UART-FSM-TRNG-Lab"

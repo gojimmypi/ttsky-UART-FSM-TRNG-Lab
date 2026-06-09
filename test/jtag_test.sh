@@ -9,6 +9,10 @@
 # Stop on all failed commands
 set -e
 
+echo "**************************************************************************"
+echo "**  Begin ${BASH_SOURCE[0]} from ${PWD}"
+echo "**************************************************************************"
+
 # Run shell check to ensure this a good script.
 # Specify the executable shell checker you want to use:
 MY_SHELLCHECK="shellcheck"

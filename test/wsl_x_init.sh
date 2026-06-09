@@ -10,6 +10,10 @@
 
 set -euo pipefail
 
+echo "**************************************************************************"
+echo "**  Begin ${BASH_SOURCE[0]} from ${PWD}"
+echo "**************************************************************************"
+
 if [ -z "${WSL_DISTRO_NAME:-}" ]; then
     echo "Not WSL; no Cygwin/X setup needed."
     exit 0
