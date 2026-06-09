@@ -39,8 +39,8 @@ These changes have been applied / added to `src\config.json`:
   "RUN_POST_GRT_DESIGN_REPAIR": "true",
   "RUN_POST_GPL_DESIGN_REPAIR": "true",
 
-  "DESIGN_REPAIR_MAX_SLEW_PCT": 30,
-  "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 30,
+  "DESIGN_REPAIR_MAX_SLEW_PCT": 40,
+  "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 40,
 ```
 
 First GDS Post Design Repair log in GF180: [GRT / GPL Design Repair Test #49](https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/27211329394/job/80340895326) 
