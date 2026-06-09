@@ -12,15 +12,17 @@ See companions projects:
 
 ## Files and Directories
 
- - `.devcontainer` - TT VS Code devcontainer configuration for easy setup and development. Edit with caution.
- - `.github/workflows` - see the CI [workflows](.github/workflows)
- - `docs` - documentation for the project, which is used to generate the project page on the Tiny Tapeout website. 
- - `info.yaml` - metadata for the project, which is used to generate the project page on the Tiny Tapeout website.
- - `scripts` - scripts for building, testing, and flashing the project.
- - `src` - the main source files for the project, including the Verilog code for the design and any necessary configuration files.
- - `test` - testbenches and scripts for testing the project using simulation.  
- - `test-hw` - test scripts and files for testing the project on hardware. Only the ULX3S FPGA board at this time.
- - `ulx3s` - files for testing the project on the ULX3S FPGA board, including a wrapper module and scripts for building and flashing the board.
+- `.devcontainer` - TT VS Code devcontainer configuration for easy setup and development. Edit with caution.
+- `.github/workflows` - see the CI [workflows](.github/workflows)
+- `docs` - documentation for the project, which is used to generate the project page on the Tiny Tapeout website. 
+- `info.yaml` - metadata for the project, which is used to generate the project page on the Tiny Tapeout website.
+- `ice40` - contains build scripts for testing this project on the TT Lattice iCE40 FPGA [Demoboard](https://store.tinytapeout.com/products/FPGA-Development-Kit-p813805747).
+- `scripts` - scripts for building, testing, and flashing the project.
+- `src` - the main source files for the project, including the Verilog code for the design and any necessary configuration files.
+- `test` - testbenches and scripts for testing the project using simulation.  
+- `test-hw` - test scripts and files for testing the project on hardware. Only the ULX3S FPGA board at this time.
+- `ulx3s` - files for testing the project on the ULX3S FPGA board, including a wrapper module and scripts for building and flashing the board.
+- `ulx3s/ESP32` - an app for the ULX3S on-board ESP32 to test the SPI communications with this TT project.
 
 ## What is Tiny Tapeout?
 
