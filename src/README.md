@@ -46,12 +46,33 @@ These changes have been applied / added to `src\config.json`:
 First GDS Post Design Repair log in GF180: [GRT / GPL Design Repair Test #49](https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/27211329394/job/80340895326) 
 in [Commit d3155f9](https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/commit/d3155f9d3418fc884a32badff31be2cce4a5a792).
 
-Second Max Slew Rate 30% Percent log in GF190: [Add REPAIR_MAX_SLEW_PCT 30% #50](https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/27216708803)
+Second Max Slew Rate 30% Percent log in GF180: [Add REPAIR_MAX_SLEW_PCT 30% #50](https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/27216708803)
 in [commit b7862a0](https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/commit/b7862a07a85e2058a95b6d6190a75b42c49837e5).
+
+
+GF180 failure: [Increase slew repair to 40 percent #52](https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/27223337383)
+
+GF180 was not better at 35/40: [Decrease DESIGN_REPAIR_MAX_SLEW_PCT to 35 #53](https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/27225823087/job/80392609949)
+
+GF180 mixed result at 30/35: [Decrease Design/GRT to 30/35 #54](https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/27226761526/job/80395909787)
+
+GF180 mixed result at 32/32: [Test Design/GRT repairs to 32/32 #55](https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/27228008872/job/80400293219)
+
+```text
+30/30 = best balanced GF180 result
+32/32 = better slew count, slightly worse setup
+30/35 = slightly better slew, worse timing/cap
+35/40 = much worse timing
+40/40 = flow failure
+```
+
+---------
 
 SKY130 JTAG-enabled build: setup/hold clean at 50 MHz, DRC/LVS/antenna/lint clean, with remaining slow-corner max-slew and CTS clock-leaf fanout violations.
 
+SKY130 success: [Increase slew repair to 40 percent #191](https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27223286366)
 
+----------
 
 References:
 

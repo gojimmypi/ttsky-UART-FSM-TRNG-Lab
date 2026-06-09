@@ -62,6 +62,7 @@
         // `define PIN_DIAG
     
     `elsif IS_MY_IVERILOG_SIMULATION 
+        /* This is used by the [project]/test/my_test.sh simulation test script */
         // `define PIN_DIAG
 
     `else
