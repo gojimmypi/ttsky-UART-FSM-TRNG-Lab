@@ -28,6 +28,10 @@ cd ice40
 ./run_tests.sh
 ```
 
+Note the difference between [`tt_tool.py --harden`](https://github.com/TinyTapeout/tt-support-tools/blob/main/tt_tool.py) and [`tt_fpga.py harden`](https://github.com/TinyTapeout/tt-support-tools/blob/main/tt_fpga.py) harden parameter options.
+
+
+
 ## Ensure nextpnr is built for iCE40
 
 ```bash

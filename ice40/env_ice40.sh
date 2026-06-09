@@ -12,7 +12,9 @@ echo "**************************************************************************
 
 MY_TT_PORT="/dev/ttyS6"
 MY_WORKSPACE="/mnt/c/workspace"
-MY_PROJECT_NAME="ttsky-UART-FSM-TRNG-Lab"
+
+# For example: "ttsky-UART-FSM-TRNG-Lab"
+MY_PROJECT_NAME="$(basename "$(dirname "$PWD")")"
 
 # Run shell check to ensure this a good script.
 # Specify the executable shell checker you want to use:

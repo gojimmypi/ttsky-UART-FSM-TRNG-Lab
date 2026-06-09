@@ -32,6 +32,17 @@ echo "**************************************************************************
 # Build
 echo "Change to parent directory:"
 pushd ../   || exit 1
+
+# tt_tool.py not working locally
+#
+# yes, there's an inconsistency between `tt_tool.py --harden` and `tt_fpga.py harden`
+#
+
+#echo "**************************************************************************"
+#echo "Running ${TT_TOOLS}/tt_tool.py harden from $(pwd)"
+#echo "**************************************************************************"
+#"$TT_TOOLS"/tt_tool.py --harden || exit 1
+
 echo "**************************************************************************"
 echo "Running ${TT_TOOLS}/tt_fpga.py harden from $(pwd)"
 echo "**************************************************************************"
@@ -43,5 +54,6 @@ echo "**************************************************************************
 
 # Flash
 "$TT_TOOLS/tt_fpga.py" configure --port /dev/ttyS6 --upload --name "$TT_TOP_NAME" --set-default
+
 popd        || exit 1
 
