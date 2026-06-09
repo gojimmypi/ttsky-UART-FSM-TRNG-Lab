@@ -97,6 +97,38 @@ module uart_trng_ascii_core
     wire       uart_tx_raw;
 
     /*
+     * Locally replicate the incoming reset inside this integration block.
+     *
+     * The outer TT wrapper already synchronizes the external reset. These local
+     * reset flops split the high-fanout reset tree so the physical tools do not
+     * need to drive every UART/config/TRNG flop from one large reset net.
+     */
+    (* keep = "true" *) reg rst_uart_meta_n;
+    (* keep = "true" *) reg rst_uart_sync_n;
+    (* keep = "true" *) reg rst_cfg_meta_n;
+    (* keep = "true" *) reg rst_cfg_sync_n;
+    (* keep = "true" *) reg rst_trng_meta_n;
+    (* keep = "true" *) reg rst_trng_sync_n;
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            rst_uart_meta_n <= 1'b0;
+            rst_uart_sync_n <= 1'b0;
+            rst_cfg_meta_n  <= 1'b0;
+            rst_cfg_sync_n  <= 1'b0;
+            rst_trng_meta_n <= 1'b0;
+            rst_trng_sync_n <= 1'b0;
+        end else begin
+            rst_uart_meta_n <= 1'b1;
+            rst_uart_sync_n <= rst_uart_meta_n;
+            rst_cfg_meta_n  <= 1'b1;
+            rst_cfg_sync_n  <= rst_cfg_meta_n;
+            rst_trng_meta_n <= 1'b1;
+            rst_trng_sync_n <= rst_trng_meta_n;
+        end
+    end
+
+    /*
      * The external UART TX line must idle high whenever the transmitter is not busy.
      * Writing this as OR logic also masks gate-level simulation X values on the
      * raw TX flop while the transmitter is idle. In normal 2-state hardware logic,
@@ -121,7 +153,7 @@ module uart_trng_ascii_core
     u_rx
     (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(rst_uart_sync_n),
         .rx(uart_rx_i),
         .data_out(rx_byte),
         .data_valid(rx_valid)
@@ -135,7 +167,7 @@ module uart_trng_ascii_core
     u_tx
     (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(rst_uart_sync_n),
         .data_in(tx_byte),
         .start(tx_start),
         .tx(uart_tx_raw),
@@ -207,7 +239,7 @@ module uart_trng_ascii_core
 `endif
 
     always @(posedge clk) begin
-        if (!rst_n) begin
+        if (!rst_cfg_sync_n) begin
             rx_valid_d      <= 1'b0;
             tx_byte_r       <= 8'h00;
             tx_start_r      <= 1'b0;
@@ -289,7 +321,7 @@ module uart_trng_ascii_core
     trng_cfg_ascii_core u_cfg
     (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(rst_cfg_sync_n),
 
         .rx_byte(rx_byte),
         .rx_valid(rx_valid),
@@ -325,7 +357,7 @@ module uart_trng_ascii_core
     trng_lab_core u_trng
     (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(rst_trng_sync_n),
         .reg_ctrl(reg_ctrl),
         .reg_src(reg_src),
         .reg_div(reg_div),
@@ -341,7 +373,7 @@ module uart_trng_ascii_core
     trng_stub u_trng
     (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(rst_trng_sync_n),
         .reg_ctrl(reg_ctrl),
         .reg_src(reg_src),
         .reg_div(reg_div),
