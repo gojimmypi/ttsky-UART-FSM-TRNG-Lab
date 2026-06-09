@@ -54,7 +54,7 @@
     `define SPI_ENABLED
     `define SPI_REG_ACCESS
     `define TRNG_ENABLED
-    `define JTAG_ENABLED
+    // `define JTAG_ENABLED
 
     /* Note that with all UART_ENABLED, SPI_ENABLED, SPI_REG_ACCESS, TRNG_ENABLED, JTAG_ENABLED
      * also enabling PIN_DIAG pushes design over 80% of 1x2 tiles. GDS aborted after 90 minute run. */
