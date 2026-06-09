@@ -84,10 +84,11 @@ module trng_lab_core
     reg         selected_bit;
 
     reg         trng_step_d;
+    reg         sample_tick_q;
+    reg         do_sample_q;
 
     wire        trng_step;
     wire        trng_step_pulse;
-    wire        do_sample;
 
     wire        trng_enable;
     wire        sample_tick;
@@ -114,8 +115,6 @@ module trng_lab_core
     assign source_select = reg_src[1:0];
 
     assign sample_tick = sample_ctr >= {8'h00, reg_div};
-
-    assign do_sample = (trng_enable && sample_tick) || trng_step_pulse;
 
     assign lfsr_next_bit = lfsr[15] ^ lfsr[13] ^ lfsr[12] ^ lfsr[10];
 
@@ -204,6 +203,8 @@ module trng_lab_core
     always @(posedge clk) begin
         if (!rst_n || trng_reset) begin
             trng_step_d     <= 1'b0;
+            sample_tick_q   <= 1'b0;
+            do_sample_q     <= 1'b0;
 
             sample_ctr      <= 16'h0000;
             lfsr            <= 16'h1ACE;
@@ -217,6 +218,8 @@ module trng_lab_core
             reg_rawhi       <= 8'h00;
         end else begin
             trng_step_d     <= trng_step;
+            sample_tick_q   <= sample_tick;
+            do_sample_q     <= (trng_enable && sample_tick) || trng_step_pulse;
 
             ro0_sample_meta <= ro_raw[0];
             ro0_sample_sync <= ro0_sample_meta;
@@ -225,12 +228,12 @@ module trng_lab_core
             rox_sample_sync <= rox_sample_meta;
 
             reg_status[0]   <= trng_enable;
-            reg_status[1]   <= sample_tick;
+            reg_status[1]   <= sample_tick_q;
             reg_status[2]   <= |reg_oscen;
             reg_status[4:3] <= source_select;
             reg_status[7:5] <= reg_mode[2:0];
 
-            if (do_sample) begin
+            if (do_sample_q) begin
                 sample_ctr   <= 16'h0000;
                 lfsr         <= {lfsr[14:0], lfsr_next_bit};
                 sample_shift <= {sample_shift[14:0], selected_bit};
