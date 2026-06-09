@@ -110,7 +110,7 @@ module uart_trng_ascii_core
     (* keep = "true" *) reg rst_trng_meta_n;
     (* keep = "true" *) reg rst_trng_sync_n;
 
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             rst_uart_meta_n <= 1'b0;
             rst_uart_sync_n <= 1'b0;
