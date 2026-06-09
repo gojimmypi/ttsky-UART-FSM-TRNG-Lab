@@ -65,7 +65,12 @@ module trng_cfg_ascii_core
     input  wire       spi_reg_wr_en,
     input  wire [2:0] spi_reg_addr,
     input  wire [7:0] spi_reg_wdata,
+
+`ifdef JTAG_ENABLED
+    output reg  [7:0] spi_reg_rdata
+`else
     output wire [7:0] spi_reg_rdata
+`endif
 );
 
     /*
@@ -188,7 +193,23 @@ module trng_cfg_ascii_core
         end
     endfunction
 
+`ifdef JTAG_ENABLED
+    always @(*) begin
+        case (spi_reg_addr)
+            3'd0: spi_reg_rdata = reg_ctrl;
+            3'd1: spi_reg_rdata = reg_src;
+            3'd2: spi_reg_rdata = reg_div;
+            3'd3: spi_reg_rdata = reg_mode;
+            3'd4: spi_reg_rdata = reg_oscen;
+            3'd5: spi_reg_rdata = reg_status;
+            3'd6: spi_reg_rdata = reg_rawlo;
+            3'd7: spi_reg_rdata = reg_rawhi;
+            default: spi_reg_rdata = 8'h00;
+        endcase
+    end
+`else
     assign spi_reg_rdata = read_reg(spi_reg_addr);
+`endif
 
     /* Convert a nibble to ASCII hex for readback replies. */
     function [7:0] to_hex_ascii;

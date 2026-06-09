@@ -71,6 +71,16 @@ task jtag_reset;
     end
 endtask
 
+task jtag_idle;
+    input integer count;
+    integer i;
+    begin
+        for (i = 0; i < count; i = i + 1) begin
+            jtag_clock(1'b0, 1'b0);
+        end
+    end
+endtask
+
 task shift_ir;
     input [3:0] value;
     integer i;
@@ -196,7 +206,9 @@ initial begin
 
     #1000;
 
+    /******************************************************************************/
     $display("Test 1: tt_um_main JTAG select and UIO direction");
+    /******************************************************************************/
     if (uio_oe !== 8'hF4) begin
         $display("FAIL: uio_oe got 0x%02X expected 0xF4", uio_oe);
         errors = errors + 1;
@@ -204,30 +216,37 @@ initial begin
         $display("PASS: uio_oe got 0x%02X", uio_oe);
     end
 
+    /******************************************************************************/
     $display("Test 2: IDCODE through tt_um_main uio pins");
+    /******************************************************************************/
     jtag_reset();
     shift_dr_32(32'h00000000, data);
     expect32(data, 32'h54544A31);
 
+    /******************************************************************************/
     $display("Test 3: write R2 through JTAG");
     jtag_reset();
 
     shift_ir(4'h2);              /* REG_ADDR */
     shift_dr_32(32'h00000002, data);
+    jtag_idle(2);
 
     shift_ir(4'h4);              /* REG_WRITE */
     shift_dr_32(32'h000000A5, data);
+    jtag_idle(4);
 
     #2000;
 
     expect8(dut.reg_div, 8'hA5);
 
+    /******************************************************************************/
     $display("Test 3A: read R2 through JTAG");
+    /******************************************************************************/
     shift_ir(4'h2);              /* REG_ADDR */
     shift_dr_32(32'h00000002, data);
+    jtag_idle(4);
 
-    #2000;
-
+`ifdef JTAG_TB_DEBUG
     $display("DEBUG: dut.reg_div       = 0x%02X", dut.reg_div);
     $display("DEBUG: dut.spi_reg_addr  = 0x%01X", dut.spi_reg_addr);
     $display("DEBUG: dut.spi_reg_rdata = 0x%02X", dut.spi_reg_rdata);
@@ -245,38 +264,47 @@ initial begin
 
     shift_ir(4'h2);
     shift_dr_32(32'h00000000, data);
-    #2000;
+    jtag_idle(2);
     $display("DEBUG: addr 0 rdata 0x%02X", dut.spi_reg_rdata);
 
     shift_ir(4'h2);
     shift_dr_32(32'h00000001, data);
-    #2000;
+    jtag_idle(2);
     $display("DEBUG: addr 1 rdata 0x%02X", dut.spi_reg_rdata);
 
     shift_ir(4'h2);
     shift_dr_32(32'h00000002, data);
-    #2000;
+    jtag_idle(2);
     $display("DEBUG: addr 2 rdata 0x%02X", dut.spi_reg_rdata);
 
     shift_ir(4'h2);
     shift_dr_32(32'h00000003, data);
-    #2000;
+    jtag_idle(2);
     $display("DEBUG: addr 3 rdata 0x%02X", dut.spi_reg_rdata);
 
     shift_ir(4'h2);
     shift_dr_32(32'h00000004, data);
-    #2000;
+    jtag_idle(2);
     $display("DEBUG: addr 4 rdata 0x%02X", dut.spi_reg_rdata);
 
+    /*
+     * Restore R2 because the sweep leaves address 4 selected.
+     */
     shift_ir(4'h2);              /* REG_ADDR */
     shift_dr_32(32'h00000002, data);
+    jtag_idle(4);
+`endif
 
     shift_ir(4'h3);              /* REG_READ */
+    jtag_idle(2);
     shift_dr_32(32'h00000000, data);
+    jtag_idle(2);
 
     expect8(data[7:0], 8'hA5);
 
+    /******************************************************************************/
     $display("Test 4: switch to SPI mode disables JTAG TDO path");
+    /******************************************************************************/
     ui_in[4] = 1'b1;             /* SPI mode, not JTAG */
     #2000;
 

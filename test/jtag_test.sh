@@ -21,6 +21,9 @@ else
     echo "$MY_SHELLCHECK is not installed. Please install it if changes to this script have been made."
 fi
 
+echo "**************************************************************************"
+echo "Initial tb_jtag_core test"
+echo "**************************************************************************"
 iverilog -g2012 -Wall -DSIM_JTAG_CORE_TB -o tb_jtag_core.vvp \
     tb_jtag_core.v \
     ../src/JTAG/jtag_core.v
@@ -28,13 +31,11 @@ iverilog -g2012 -Wall -DSIM_JTAG_CORE_TB -o tb_jtag_core.vvp \
 vvp tb_jtag_core.vvp
 
 
+echo "**************************************************************************"
+echo "tb_tt_um_main_jtag test"
+echo "**************************************************************************"
 iverilog -g2012 -Wall \
     -DSIM_JTAG_CORE_TB \
-    -DUART_ENABLED \
-    -DSPI_ENABLED \
-    -DSPI_REG_ACCESS \
-    -DJTAG_ENABLED \
-    -DTRNG_ENABLED \
     -I ../src \
     -o tb_tt_um_main_jtag.vvp \
     tb_tt_um_main_jtag.v \
