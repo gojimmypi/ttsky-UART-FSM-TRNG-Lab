@@ -106,6 +106,10 @@ module tt_um_main
     wire       pin_id_invalid_sel;
 `endif /* PIN_DIAG */
 
+    /* don't use raw reset rst_n */
+    reg        rst_meta_n;
+    reg        rst_sync_n;
+
     reg        uart_rx_meta;
     reg        uart_rx_sync;
 
@@ -194,6 +198,20 @@ module tt_um_main
         assign unused_ok = &{ena, uio_in};
     `endif
 `endif
+    
+    /*
+     * Synchronize global reset, rst_n wire to rst_sync_n reg.
+     */
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            rst_meta_n <= 1'b0;
+            rst_sync_n <= 1'b0;
+        end else begin
+            rst_meta_n <= 1'b1;
+            rst_sync_n <= rst_meta_n;
+        end
+    end /* reset sync */
+
 
     /* 
      * Synchronize asynchronous UART RX input to the local clock domain.
@@ -235,7 +253,7 @@ module tt_um_main
     u_core
     (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(rst_sync_n),
         .uart_rx_i(uart_rx_sync),
         .uart_tx_o(uart_tx),
         .reg_ctrl_o(reg_ctrl),
@@ -265,7 +283,7 @@ module tt_um_main
     u_pin_id_core
     (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(rst_sync_n),
         .enable(pin_id_enable),
         .mode(pin_id_mode),
         .pin_sel(pin_id_sel),
@@ -306,7 +324,7 @@ module tt_um_main
     jtag_core u_jtag_core
     (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(rst_sync_n),
         .ena(ena & debug_is_jtag),
         .tck_i(jtag_tck),
         .tms_i(jtag_tms),
@@ -351,7 +369,7 @@ module tt_um_main
     tt_spi_slave u_spi_slave
     (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(rst_sync_n),
         .spi_sck(spi_sck),
         .spi_cs_n(spi_cs_n),
         .spi_mosi(spi_mosi),
