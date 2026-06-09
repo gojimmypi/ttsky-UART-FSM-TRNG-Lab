@@ -223,7 +223,7 @@ module tt_um_main
      * X propagation/glitches observed during GF180 gate-level simulation.
      */
     always @(posedge clk) begin
-        if (!rst_n) begin
+        if (!rst_sync_n) begin
             uart_rx_meta <= 1'b1;
             uart_rx_sync <= 1'b1;
         end else begin
