@@ -49,6 +49,10 @@ in [Commit d3155f9](https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/commit/d
 Second Max Slew Rate 30% Percent log in GF190: [Add REPAIR_MAX_SLEW_PCT 30% #50](https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/27216708803)
 in [commit b7862a0](https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/commit/b7862a07a85e2058a95b6d6190a75b42c49837e5).
 
+SKY130 JTAG-enabled build: setup/hold clean at 50 MHz, DRC/LVS/antenna/lint clean, with remaining slow-corner max-slew and CTS clock-leaf fanout violations.
+
+
+
 References:
 
 - [LibreLane Option 1 — Macro-First Hardening strategy](https://librelane.readthedocs.io/en/stable/additional_material/caravel/macro_first_hardening/index.html)
