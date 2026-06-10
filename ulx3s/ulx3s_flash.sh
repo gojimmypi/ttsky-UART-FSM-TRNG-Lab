@@ -21,7 +21,8 @@ else
     echo "$MY_SHELLCHECK is not installed. Please install it if changes to this script have been made."
 fi
 
-# Default bitstream file if not provided
+# Default bitstream file named `ulx3s.bit` if not provided in first argument
+# printf 'First parameter: <%s>\n' "${1-}"
 BITFILE="${1:-ulx3s.bit}"
 
 # Optional: verify file exists (recommended)
