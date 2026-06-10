@@ -16,6 +16,8 @@ SETTLE_TIME_NS = 2
 UART_RX_BIT = 3
 UART_TX_BIT = 4
 
+UI_IDLE_VALUE = 0x18
+
 EXPECTED_VERSION_PREFIX = b"Version "
 
 
@@ -29,7 +31,7 @@ def set_bit(value: int, bit_index: int, bit_value: int) -> int:
 async def uart_send_byte(dut, byte_value: int) -> None:
     bit_time_ns = CLK_PERIOD_NS * CLKS_PER_BIT
 
-    current_ui = int(dut.ui_in.value)
+    current_ui = UI_IDLE_VALUE
 
     current_ui = set_bit(current_ui, UART_RX_BIT, 1)
     dut.ui_in.value = current_ui
@@ -132,7 +134,7 @@ async def test_version_command_or_absent(dut):
     cocotb.start_soon(Clock(dut.clk, CLK_PERIOD_NS, unit="ns").start())
 
     dut.ena.value = 1
-    dut.ui_in.value = 0
+    dut.ui_in.value = UI_IDLE_VALUE
     dut.uio_in.value = 0
     dut.rst_n.value = 0
 
