@@ -23,17 +23,21 @@
     `define USE_LONG_STRINGS
 
     `ifdef USE_LONG_STRINGS
-        `define VERSION_STRING_LEN 23 /* 123456789012345678901234 */   
-        `define VERSION_STRING          "Version 0.1.7a 6/8/2026"   
+        `define VERSION_STRING_LEN 24 /* 123456789012345678901234 */   
+        `define VERSION_STRING          "Version 0.1.7b 6/10/2026"   
     `else
         /* no long strings */
     `endif
 
+    /* For TT ASIC, command are only upper case, with both of the following
+     * case insensitive options NOT ENABLED due to decreases slew and setup. */
+
     /* Add some logic to make UART interactive commands case insensitive */
     // `define CASE_INSENSITIVE
 
-    /* Add additional alternative compares for case sensitivity */
-    `define CASE_INSENSITIVE_ALT
+    /* Add additional alternative compares for case insensitive command chars */
+    // `define CASE_INSENSITIVE_ALT
+
 
     /* Optionally Perform a blinky test on led[0] to confirm we have a working clock */
     // `define ULX3S_CLOCK_TEST

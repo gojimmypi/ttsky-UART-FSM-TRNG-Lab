@@ -6,7 +6,7 @@
 
 Set the `TT_PROJECT_ROOT` and other environment variables before running the tests or other scripts.
 
-See the [env_ice40.sh](./env_ice40.sh) script and edit as needed for your environment. For example:
+See the [. ./env_ice40.sh](./env_ice40.sh) script and edit as needed for your environment. For example:
 
 ```text
 TT_PORT:              /dev/ttyS6

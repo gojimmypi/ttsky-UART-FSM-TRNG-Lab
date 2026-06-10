@@ -23,7 +23,7 @@ export TT_PROJECT_ROOT="/mnt/c/workspace/$TT_PROJECT_NAME"
  - `ulx3s\ulx3s_v20.lpf` (older version 2.0 boards)
  - `ulx3s\ulx3s_v314.lpf` (older 3.14 boards; ESP32 pinout changed more generally)
  - `ulx3s\ulx3s_v316.lpf` GPIO0 routed to FPGA clock-capable pin; EN and GPIO22 changed
- - `ulx3s\verilator_lint.sh`
+ - `scripts\verilator_lint.sh`
 
 For v3.0.7 boards, use the `ulx3s_v20.lpf`.
 

@@ -26,6 +26,6 @@ fi
 pushd ../src || exit 1
     echo "Calling verilator to lint the Verilog project..."
     verilator --lint-only -Wall                                      \
-              --top-module tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab   \
+              --top-module tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab   \
               project.v
 popd || exit 1
