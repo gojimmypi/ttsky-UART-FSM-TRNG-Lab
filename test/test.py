@@ -70,21 +70,26 @@ async def uart_recv_byte(dut, idle_timeout_ns: int | None = None) -> int:
     bit_time_ns = CLK_PERIOD_NS * CLKS_PER_BIT
     half_bit_time_ns = bit_time_ns // 2
 
-    prev_tx = get_uart_tx_bit(dut)
     waited_ns = 0
 
     while True:
         await Timer(CLK_PERIOD_NS, unit="ns")
         await Timer(SETTLE_TIME_NS, unit="ns")
-        curr_tx = get_uart_tx_bit(dut)
 
-        if prev_tx == 1 and curr_tx == 0:
+        uo_value = dut.uo_out.value
+        tx_value = uo_value[UART_TX_BIT]
+        tx_text = str(tx_value)
+
+        if tx_text == "0":
             break
 
-        prev_tx = curr_tx
-        waited_ns += CLK_PERIOD_NS
-        if idle_timeout_ns is not None and waited_ns >= idle_timeout_ns:
-            raise TimeoutError("UART receive timeout waiting for start bit")
+        if tx_text == "1" or tx_text.upper() == "X":
+            waited_ns += CLK_PERIOD_NS
+            if idle_timeout_ns is not None and waited_ns >= idle_timeout_ns:
+                raise TimeoutError("UART receive timeout waiting for start bit")
+            continue
+
+        raise ValueError(f"UART TX bit is not 0 or 1: {tx_text}")
 
     await Timer(half_bit_time_ns, unit="ns")
     await Timer(SETTLE_TIME_NS, unit="ns")
@@ -106,7 +111,6 @@ async def uart_recv_byte(dut, idle_timeout_ns: int | None = None) -> int:
     assert stop_bit == 1, f"Expected UART stop bit 1, got {stop_bit}"
 
     return result
-
 
 async def uart_recv_until_timeout(dut, max_bytes: int = 64, idle_timeout_bits: int = 20) -> bytes:
     bit_time_ns = CLK_PERIOD_NS * CLKS_PER_BIT
@@ -135,19 +139,20 @@ async def test_version_command_or_absent(dut):
     await Timer(100, unit="ns")
     dut.rst_n.value = 1
 
-    await Timer(1000, unit="ns")
+    # Gate-level simulation can leave outputs as X until reset has settled
+    # through the synthesized netlist and a few clocks have completed.
+    await Timer(100_000, unit="ns")
     await Timer(SETTLE_TIME_NS, unit="ns")
 
     tx_idle = get_uart_tx_bit(dut)
     assert tx_idle == 1, f"UART TX should idle high after reset, got {tx_idle}"
 
-    recv_task = cocotb.start_soon(
-        uart_recv_until_timeout(dut, max_bytes=64, idle_timeout_bits=200)
-    )
-
     await Timer(CLK_PERIOD_NS // 2, unit="ns")
     await uart_send_bytes(dut, b"V\r")
-    response = await recv_task
+
+    response = await uart_recv_until_timeout(
+        dut, max_bytes=64, idle_timeout_bits=200
+    )
 
     assert response, "No UART response received for V command"
 

@@ -119,14 +119,14 @@ module trng_cfg_ascii_core
     wire [3:0] decoded_hex;
     wire _unused_decoded_hex = decoded_hex[3];
 
-    /* Optionally add logic for case insensitive UART commands */
+    /* Optionally make UART command letters case-insensitive. */
     wire [7:0] rx_cmd;
 `ifdef CASE_INSENSITIVE
-    assign rx_cmd = ((rx_byte >= "a") && (rx_byte <= "z")) ? (rx_byte - 8'd32) : rx_byte;
+    assign rx_cmd = ((rx_byte >= "a") && (rx_byte <= "z")) ? {rx_byte[7:6], 1'b0, rx_byte[4:0]} : rx_byte;
 `else
     assign rx_cmd = rx_byte;
 `endif
-    assign decoded_hex = hex_value(rx_cmd);
+    assign decoded_hex = hex_value(rx_byte);
 
     /*
      * One-byte transmit queue.
@@ -157,6 +157,10 @@ module trng_cfg_ascii_core
                 is_hex = 1'b1;
             end else if ((c >= "A") && (c <= "F")) begin
                 is_hex = 1'b1;
+`ifdef CASE_INSENSITIVE
+            end else if ((c >= "a") && (c <= "f")) begin
+                is_hex = 1'b1;
+`endif
             end else begin
                 is_hex = 1'b0;
             end
@@ -174,6 +178,10 @@ module trng_cfg_ascii_core
                 // hex_value = c - "A" + 4'd10;
                 // hex_value = (c - 8'd65 + 4'd10) & 8'h0F;  // "A" = 65
                 hex_value = c[3:0] + 4'd9;
+`ifdef CASE_INSENSITIVE
+            end else if ((c >= "a") && (c <= "f")) begin
+                hex_value = c[3:0] + 4'd9;
+`endif
             end else begin
                 hex_value = 4'h0;
             end
@@ -413,12 +421,12 @@ module trng_cfg_ascii_core
                                 state <= ST_Q_ERR;/* */
                             `endif
 
-                        end else if (is_hex(rx_cmd)) begin
-                            hex1 <= hex_value(rx_cmd);
+                        end else if (is_hex(rx_byte)) begin
+                            hex1 <= hex_value(rx_byte);
 
                             if (cmd == "R") begin
                                 /* Only registers 0..7 are addressable. */
-                                if (hex_value(rx_cmd) < 4'd8) begin
+                                if (hex_value(rx_byte) < 4'd8) begin
                                     // Passes Verilator, not GDS:
                                     // read_addr <= hex_value(rx_byte)[2:0];
                                     // So:
@@ -441,8 +449,8 @@ module trng_cfg_ascii_core
 
                 ST_ARG2: begin
                     if (rx_valid) begin
-                        if (is_hex(rx_cmd)) begin
-                            hex2  <= hex_value(rx_cmd);
+                        if (is_hex(rx_byte)) begin
+                            hex2  <= hex_value(rx_byte);
                             state <= ST_WAIT_CR;
                         end else begin
                             state <= ST_Q_ERR;
