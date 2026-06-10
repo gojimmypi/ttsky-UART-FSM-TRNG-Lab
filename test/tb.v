@@ -71,7 +71,10 @@ module tb ();
 
   initial begin
     $display("tb.v simulation started");
+  end
 
+`ifndef COCOTB
+  initial begin
     clk    = 1'b0;
     rst_n  = 1'b0;
     ena    = 1'b1;
@@ -101,11 +104,12 @@ module tb ();
   end
 
   initial begin
-    // Safety timeout only. Cocotb should normally end the test.
+    // Safety timeout only.
     #10000000;  // 10 ms
     $display("tb.v simulation finished at t=%0t", $time);
     $finish;
   end
+`endif /* COCOTB check */
 endmodule
 
 `default_nettype wire
