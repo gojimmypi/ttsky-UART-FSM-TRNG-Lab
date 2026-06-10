@@ -29,6 +29,9 @@
         /* no long strings */
     `endif
 
+    /* Add some logic to make UART interactive commands case insensitive */
+    `define CASE_INSENSITIVE
+
     /* Optionally Perform a blinky test on led[0] to confirm we have a working clock */
     // `define ULX3S_CLOCK_TEST
 
