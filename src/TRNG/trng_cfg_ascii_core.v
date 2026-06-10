@@ -161,6 +161,10 @@ module trng_cfg_ascii_core
             end else if ((c >= "a") && (c <= "f")) begin
                 is_hex = 1'b1;
 `endif
+`ifdef CASE_INSENSITIVE_ALT
+            end else if ((c >= "a") && (c <= "f")) begin
+                is_hex = 1'b1;
+`endif
             end else begin
                 is_hex = 1'b0;
             end
@@ -179,6 +183,10 @@ module trng_cfg_ascii_core
                 // hex_value = (c - 8'd65 + 4'd10) & 8'h0F;  // "A" = 65
                 hex_value = c[3:0] + 4'd9;
 `ifdef CASE_INSENSITIVE
+            end else if ((c >= "a") && (c <= "f")) begin
+                hex_value = c[3:0] + 4'd9;
+`endif
+`ifdef CASE_INSENSITIVE_ALT
             end else if ((c >= "a") && (c <= "f")) begin
                 hex_value = c[3:0] + 4'd9;
 `endif
@@ -280,6 +288,15 @@ module trng_cfg_ascii_core
                 "W": reg_ctrl[2]   <= value[0];
                 "M": reg_mode      <= value;
                 "O": reg_oscen     <= value;
+`ifdef CASE_INSENSITIVE_ALT
+                "e": reg_ctrl[0]   <= value[0];
+                "s": reg_src[1:0]  <= value[1:0];
+                "d": reg_div       <= value;
+                "v": reg_ctrl[1]   <= value[0];
+                "w": reg_ctrl[2]   <= value[0];
+                "m": reg_mode      <= value;
+                "o": reg_oscen     <= value;
+`endif
                 default: begin end
             endcase
         end
@@ -382,23 +399,43 @@ module trng_cfg_ascii_core
                         /* Ignore LF so terminals sending CRLF still work. */
                         if (rx_byte == 8'h0A) begin
                             state <= ST_IDLE;
-                        end else if ((rx_cmd  == "E") ||
-                                     (rx_cmd  == "S") ||
-                                     (rx_cmd  == "V") ||
-                                     (rx_cmd  == "W")) begin
+`ifdef CASE_INSENSITIVE_ALT
+                        end else if ((rx_cmd == "E") || (rx_cmd == "e") ||
+                                     (rx_cmd == "S") || (rx_cmd == "s") ||
+                                     (rx_cmd == "V") || (rx_cmd == "v") ||
+                                     (rx_cmd == "W") || (rx_cmd == "w")) begin
                             cmd             <= rx_cmd;
                             need_two_digits <= 1'b0;
                             state           <= ST_ARG1;
-                        end else if ((rx_cmd  == "D") ||
-                                     (rx_cmd  == "M") ||
-                                     (rx_cmd  == "O")) begin
+                        end else if ((rx_cmd == "D") || (rx_cmd == "d") ||
+                                     (rx_cmd == "M") || (rx_cmd == "m") ||
+                                     (rx_cmd == "O") || (rx_cmd == "o")) begin
                             cmd             <= rx_cmd;
                             need_two_digits <= 1'b1;
                             state           <= ST_ARG1;
-                        end else if (rx_cmd  == "R") begin
+                        end else if ((rx_cmd == "R") || (rx_cmd == "r")) begin
                             cmd             <= rx_cmd;
                             need_two_digits <= 1'b0;
                             state           <= ST_ARG1;
+`else
+                        end else if ((rx_cmd == "E") ||
+                                     (rx_cmd == "S") ||
+                                     (rx_cmd == "V") ||
+                                     (rx_cmd == "W")) begin
+                            cmd             <= rx_cmd;
+                            need_two_digits <= 1'b0;
+                            state           <= ST_ARG1;
+                        end else if ((rx_cmd == "D") ||
+                                     (rx_cmd == "M") ||
+                                     (rx_cmd == "O")) begin
+                            cmd             <= rx_cmd;
+                            need_two_digits <= 1'b1;
+                            state           <= ST_ARG1;
+                        end else if (rx_cmd == "R") begin
+                            cmd             <= rx_cmd;
+                            need_two_digits <= 1'b0;
+                            state           <= ST_ARG1;
+`endif
                         end else begin
                             state <= ST_Q_ERR;
                         end
@@ -414,6 +451,18 @@ module trng_cfg_ascii_core
                          */
                         if ((cmd == "V") && (rx_byte == 8'h0A)) begin
                             state <= ST_ARG1;
+
+`ifdef CASE_INSENSITIVE_ALT
+                        end else if ((cmd == "v") && (rx_byte == 8'h0A)) begin
+                            state <= ST_ARG1;
+
+                        end else if ((cmd == "v") && (rx_byte == 8'h0D)) begin
+                            `ifdef USE_LONG_STRINGS
+                                start_string(VERSION_STR, VERSION_LEN[5:0]);
+                            `else
+                                state <= ST_Q_ERR;/* */
+                            `endif
+`endif
                         end else if ((cmd == "V") && (rx_byte == 8'h0D)) begin
                             `ifdef USE_LONG_STRINGS
                                 start_string(VERSION_STR, VERSION_LEN[5:0]);
@@ -424,7 +473,11 @@ module trng_cfg_ascii_core
                         end else if (is_hex(rx_byte)) begin
                             hex1 <= hex_value(rx_byte);
 
+`ifdef CASE_INSENSITIVE_ALT
+                            if ((cmd == "R") || (cmd == "r")) begin
+`else
                             if (cmd == "R") begin
+`endif
                                 /* Only registers 0..7 are addressable. */
                                 if (hex_value(rx_byte) < 4'd8) begin
                                     // Passes Verilator, not GDS:
@@ -464,7 +517,11 @@ module trng_cfg_ascii_core
                         if (rx_byte == 8'h0A) begin
                             state <= ST_WAIT_CR;
                         end else if (rx_byte == 8'h0D) begin
+`ifdef CASE_INSENSITIVE_ALT
+                            if ((cmd == "R") || (cmd == "r")) begin
+`else
                             if (cmd == "R") begin
+`endif
                                 reply_value <= read_reg(read_addr);
                                 state <= ST_Q_R;
                             end else begin

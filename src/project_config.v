@@ -32,6 +32,9 @@
     /* Add some logic to make UART interactive commands case insensitive */
     // `define CASE_INSENSITIVE
 
+    /* Add additional alternative compares for case sensitivity */
+    `define CASE_INSENSITIVE_ALT
+
     /* Optionally Perform a blinky test on led[0] to confirm we have a working clock */
     // `define ULX3S_CLOCK_TEST
 
@@ -78,6 +81,20 @@
     /* Pick zero or one of these SPI tests. Leave both disabled for register access. */
     // `define SPI_TEST_FIXED
     // `define SPI_TEST_ECHO
+
+
+    /* Some final config sanity checks */
+    `ifdef CASE_INSENSITIVE
+        `ifdef CASE_INSENSITIVE_ALT
+            PROJECT_MUST_PICK_ZERO_OR_ONE_CASE_INSENSITIVE_ALT u_stop (); /* Cannot use both CASE_INSENSITIVE and CASE_INSENSITIVE_ALT */
+        `endif
+    `endif
+
+    `ifdef CASE_INSENSITIVE_ALT
+        `ifdef CASE_INSENSITIVE
+            PROJECT_MUST_PICK_ZERO_OR_ONE_CASE_INSENSITIVE u_stop ();  /* Cannot use both CASE_INSENSITIVE and CASE_INSENSITIVE_ALT */
+        `endif
+    `endif
 
 `endif /* PROJECT_CONFIG_V */
 
