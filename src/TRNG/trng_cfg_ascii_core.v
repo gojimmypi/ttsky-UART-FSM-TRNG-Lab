@@ -139,6 +139,7 @@ module trng_cfg_ascii_core
     reg [5:0] str_index;
     reg [5:0] str_len;
 `else
+    /* no long strings */
 `endif
 
     function is_hex;
@@ -244,6 +245,7 @@ module trng_cfg_ascii_core
         end
     endfunction
 `else
+    /* no long strings */
 `endif
 
     /*
@@ -307,6 +309,7 @@ module trng_cfg_ascii_core
         end
     endtask
 `else
+    /* no long strings */
 `endif
 
     always @(posedge clk) begin
@@ -325,12 +328,13 @@ module trng_cfg_ascii_core
             tx_byte               <= 8'h00;
             tx_start              <= 1'b0;
 
-`ifdef USE_LONG_STRINGS
+        `ifdef USE_LONG_STRINGS
             active_str            <= {(8 * VERSION_LEN){1'b0}};
             str_index             <= 6'd0;
             str_len               <= 6'd0;
-`else
-`endif
+        `else
+            /* no long strings */
+        `endif
 
             /* Default power-on register values for bring-up. */
             reg_ctrl              <= 8'h00;
@@ -395,11 +399,12 @@ module trng_cfg_ascii_core
                         if ((cmd == "V") && (rx_byte == 8'h0A)) begin
                             state <= ST_ARG1;
                         end else if ((cmd == "V") && (rx_byte == 8'h0D)) begin
-`ifdef USE_LONG_STRINGS
-                            start_string(VERSION_STR, VERSION_LEN[5:0]);
-`else
-    state <= ST_Q_ERR;/* */
-`endif
+                            `ifdef USE_LONG_STRINGS
+                                start_string(VERSION_STR, VERSION_LEN[5:0]);
+                            `else
+                                state <= ST_Q_ERR;/* */
+                            `endif
+
                         end else if (is_hex(rx_byte)) begin
                             hex1 <= hex_value(rx_byte);
 
@@ -535,7 +540,7 @@ module trng_cfg_ascii_core
                     end
                 end
 
-`ifdef USE_LONG_STRINGS
+            `ifdef USE_LONG_STRINGS
                 /*
                  * Generic packed-string sender.
                  * Characters are emitted one at a time through the normal queue
@@ -555,8 +560,9 @@ module trng_cfg_ascii_core
                         end
                     end
                 end
-`else
-`endif
+            `else
+                /* no long strings */
+            `endif
 
                 /*
                  * Stay here until the queued byte has been accepted and the UART
@@ -576,6 +582,6 @@ module trng_cfg_ascii_core
         end
     end
 
-endmodule
+endmodule /* trng_cfg_ascii_core */
 
 `default_nettype wire
