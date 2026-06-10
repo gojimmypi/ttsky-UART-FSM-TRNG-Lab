@@ -303,3 +303,5 @@ else
 
     python ./tt_ulx3s_trng_repro_test.py --port  "$PORT"            || exit 1
 fi
+
+echo "Port used: $PORT"
