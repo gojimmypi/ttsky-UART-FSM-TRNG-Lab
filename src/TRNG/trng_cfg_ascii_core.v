@@ -115,9 +115,12 @@ module trng_cfg_ascii_core
     reg [2:0] read_addr;
     reg [7:0] reply_value;
 
+    wire [7:0] rx_upper;
+    assign rx_upper = ((rx_byte >= "a") && (rx_byte <= "z")) ? (rx_byte - 8'd32) : rx_byte;
+    
     /* This is a GDC linting hack */
     wire [3:0] decoded_hex;
-    assign decoded_hex = hex_value(rx_byte);
+    assign decoded_hex = hex_value(rx_upper);
     wire _unused_decoded_hex = decoded_hex[3];
 
     /*
@@ -366,21 +369,21 @@ module trng_cfg_ascii_core
                         /* Ignore LF so terminals sending CRLF still work. */
                         if (rx_byte == 8'h0A) begin
                             state <= ST_IDLE;
-                        end else if ((rx_byte == "E") ||
-                                     (rx_byte == "S") ||
-                                     (rx_byte == "V") ||
-                                     (rx_byte == "W")) begin
-                            cmd             <= rx_byte;
+                        end else if ((rx_upper  == "E") ||
+                                     (rx_upper  == "S") ||
+                                     (rx_upper  == "V") ||
+                                     (rx_upper  == "W")) begin
+                            cmd             <= rx_upper ;
                             need_two_digits <= 1'b0;
                             state           <= ST_ARG1;
-                        end else if ((rx_byte == "D") ||
-                                     (rx_byte == "M") ||
-                                     (rx_byte == "O")) begin
-                            cmd             <= rx_byte;
+                        end else if ((rx_upper  == "D") ||
+                                     (rx_upper  == "M") ||
+                                     (rx_upper  == "O")) begin
+                            cmd             <= rx_upper ;
                             need_two_digits <= 1'b1;
                             state           <= ST_ARG1;
-                        end else if (rx_byte == "R") begin
-                            cmd             <= rx_byte;
+                        end else if (rx_upper  == "R") begin
+                            cmd             <= rx_upper ;
                             need_two_digits <= 1'b0;
                             state           <= ST_ARG1;
                         end else begin
@@ -405,12 +408,12 @@ module trng_cfg_ascii_core
                                 state <= ST_Q_ERR;/* */
                             `endif
 
-                        end else if (is_hex(rx_byte)) begin
-                            hex1 <= hex_value(rx_byte);
+                        end else if (is_hex(rx_upper)) begin
+                            hex1 <= hex_value(rx_upper);
 
                             if (cmd == "R") begin
                                 /* Only registers 0..7 are addressable. */
-                                if (hex_value(rx_byte) < 4'd8) begin
+                                if (hex_value(rx_upper) < 4'd8) begin
                                     // Passes Verilator, not GDS:
                                     // read_addr <= hex_value(rx_byte)[2:0];
                                     // So:
@@ -433,8 +436,8 @@ module trng_cfg_ascii_core
 
                 ST_ARG2: begin
                     if (rx_valid) begin
-                        if (is_hex(rx_byte)) begin
-                            hex2  <= hex_value(rx_byte);
+                        if (is_hex(rx_upper)) begin
+                            hex2  <= hex_value(rx_upper);
                             state <= ST_WAIT_CR;
                         end else begin
                             state <= ST_Q_ERR;
