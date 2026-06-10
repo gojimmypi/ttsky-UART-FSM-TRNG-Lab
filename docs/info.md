@@ -282,23 +282,8 @@ For the ULX3S FPGA, the UART is connected to pins `gp0` and `gp1` The default ba
 
 See the [default reference ULX3S ulx3s_v20.lpf restraint file](https://github.com/emard/ulx3s/blob/master/doc/constraints/ulx3s_v20.lpf).
 
-Disabled:
-
-```
-# FREQUENCY PORT "gn[12]" 50 MHZ;
-# FREQUENCY PORT "gn12" 50 MHZ;
-```
-
-Previously:
-
-The `B11` and `A10` pins were updated with new names:
-
-```
-LOCATE COMP "gp[0]" SITE "B11"; # J1_5+  GP0 PCLK
-LOCATE COMP "gp[1]" SITE "A10"; # J1_7+  GP1 PCLK
-```
-
-These
+The `B11` (aka `gp[0]` or `gp0`) is Rx, to UART Tx. 
+The `A10` (aka `gp[1]` or `gp1`) is Tx, to UART Rx. 
 
 ```
 # UART pins for testing
