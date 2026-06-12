@@ -54,6 +54,16 @@ if [ ! -d "$RESULTS_DIR" ]; then
     exit 1
 fi
 
+list_results_dir() {
+    local dir="$1"
+
+    if [ -d "$dir" ]; then
+        find "$dir" -type f | sort
+    else
+        echo "Directory does not exist: $dir"
+    fi
+}
+
 reset_results_dir() {
     local dir="$1"
 
@@ -113,8 +123,19 @@ run_assess() {
 
     cd "$worker_dir"
 
+    echo "Deleting old saved STS results directory for run $x"
+    echo "Before rm -rf $run_results_dir:"
+    list_results_dir "$run_results_dir"
+    rm -rf "$run_results_dir"
+    echo "After rm -rf $run_results_dir:"
+    list_results_dir "$run_results_dir"
+
     echo "Initializing worker STS results directory for run $x"
+    echo "Before reset_results_dir $worker_results_dir:"
+    list_results_dir "$worker_results_dir"
     reset_results_dir "$worker_results_dir"
+    echo "After reset_results_dir $worker_results_dir:"
+    list_results_dir "$worker_results_dir"
 
     echo "Checking file $capture_file"
 
@@ -132,7 +153,6 @@ EOF_ASSESS
 
     echo "assess exit code for run $x: $assess_rc"
 
-    rm -rf "$run_results_dir"
     cp -a "$worker_results_dir" "$run_results_dir"
 
     echo "Saved full results directory: $run_results_dir"
