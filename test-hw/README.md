@@ -1,6 +1,6 @@
 # Hardware Testing
 
-<!--- Revert Design/GPT repair 20/20 to test Galois V2 size --->
+<!--- Revert Galois V1 --->
 
 This directory contains supplementary files for testing the Tiny Tapeout project on hardware, 
 specifically the ULX3S FPGA board.

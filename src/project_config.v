@@ -121,6 +121,8 @@
      * config.json fails:
      *   "DESIGN_REPAIR_MAX_SLEW_PCT": 40,
      *   "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 40,
+     * 
+     * Current (default): 20/20
      */
      `define TRNG_CONDITIONED_STREAM_GALOIS
 
