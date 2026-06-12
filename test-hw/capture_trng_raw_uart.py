@@ -6,6 +6,7 @@
 # file: test-hw/capture_trng_raw_uart.py
 
 import argparse
+import os
 import sys
 import time
 
@@ -21,15 +22,24 @@ def write_cmd(ser, cmd):
     ser.flush()
 
 
-def read_exact(ser, count):
+def read_exact(ser, count, timeout_retries):
     data = bytearray()
+    empty_reads = 0
 
     while len(data) < count:
         chunk = ser.read(count - len(data))
 
         if not chunk:
-            raise TimeoutError(f"timeout after {len(data)} of {count} bytes")
+            if empty_reads >= timeout_retries:
+                raise TimeoutError(
+                    f"timeout after {len(data)} of {count} bytes "
+                    f"after {empty_reads + 1} read timeouts"
+                )
 
+            empty_reads += 1
+            continue
+
+        empty_reads = 0
         data.extend(chunk)
 
     return bytes(data)
@@ -91,7 +101,7 @@ def configure_trng(ser):
         send_ascii_cmd(ser, cmd, b"OK\r")
 
 
-def capture_binary_stream(ser, byte_count, out_path, conditioned):
+def capture_binary_stream(ser, byte_count, out_path, conditioned, timeout_retries):
     remaining = byte_count
     stream_cmd = "C" if conditioned else "B"
 
@@ -102,10 +112,61 @@ def capture_binary_stream(ser, byte_count, out_path, conditioned):
 
             write_cmd(ser, cmd)
 
-            data = read_exact(ser, chunk_len)
+            data = read_exact(ser, chunk_len, timeout_retries)
             f.write(data)
 
             remaining -= chunk_len
+
+
+def remove_file_quietly(path):
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        pass
+
+
+def capture_with_retries(ser, args):
+    out_tmp = f"{args.out}.tmp"
+    fast_baud_active = False
+
+    for attempt in range(1, args.capture_retries + 1):
+        if attempt > 1:
+            print(
+                f"retrying capture attempt {attempt} of {args.capture_retries}",
+                file=sys.stderr,
+            )
+
+        ser.reset_input_buffer()
+        ser.reset_output_buffer()
+
+        time.sleep(0.1)
+
+        configure_trng(ser)
+
+        if args.fast_baud and not fast_baud_active:
+            set_uart_baud(ser, 3, FAST_BAUD)
+            fast_baud_active = True
+
+        try:
+            capture_binary_stream(
+                ser,
+                args.bytes,
+                out_tmp,
+                args.conditioned,
+                args.read_timeout_retries,
+            )
+            os.replace(out_tmp, args.out)
+            return fast_baud_active
+        except TimeoutError as exc:
+            remove_file_quietly(out_tmp)
+
+            if attempt >= args.capture_retries:
+                raise
+
+            print(f"warning: capture attempt {attempt} failed: {exc}", file=sys.stderr)
+            time.sleep(1.0)
+
+    return fast_baud_active
 
 
 def main():
@@ -119,10 +180,22 @@ def main():
     parser.add_argument("--bytes", type=int, default=1024)
     parser.add_argument("--out", required=True)
     parser.add_argument("--timeout", type=float, default=2.0)
+    parser.add_argument("--read-timeout-retries", type=int, default=3,
+                        help="additional serial read timeouts before failing a chunk")
+    parser.add_argument("--capture-retries", type=int, default=3,
+                        help="retry the whole capture from byte zero after a timeout")
     args = parser.parse_args()
 
     if args.bytes < 1:
         print("error: --bytes must be at least 1", file=sys.stderr)
+        return 1
+
+    if args.read_timeout_retries < 0:
+        print("error: --read-timeout-retries must be at least 0", file=sys.stderr)
+        return 1
+
+    if args.capture_retries < 1:
+        print("error: --capture-retries must be at least 1", file=sys.stderr)
         return 1
 
     original_baud = args.baud
@@ -135,13 +208,7 @@ def main():
         time.sleep(0.1)
 
         try:
-            configure_trng(ser)
-
-            if args.fast_baud:
-                set_uart_baud(ser, 3, FAST_BAUD)
-                fast_baud_active = True
-
-            capture_binary_stream(ser, args.bytes, args.out, args.conditioned)
+            fast_baud_active = capture_with_retries(ser, args)
 
         finally:
             if fast_baud_active:

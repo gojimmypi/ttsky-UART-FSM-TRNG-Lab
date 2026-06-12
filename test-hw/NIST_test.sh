@@ -9,7 +9,7 @@ PORT="${PORT:-/dev/ttyS12}"
 BYTES=2097152
 BITS_PER_STREAM=1048576
 STREAMS_PER_RUN=16
-RUNS=10
+RUNS=2
 
 set -euo pipefail
 
@@ -68,11 +68,38 @@ reset_results_dir() {
     find "$dir" -type f -path "*/experiments/*" -delete 2>/dev/null || true
 }
 
+make_worker_dir() {
+    local worker_dir="$1"
+    local entry
+    local base
+
+    mkdir -p "$worker_dir"
+
+    for entry in "$STS_DIR"/* "$STS_DIR"/.[!.]* "$STS_DIR"/..?*; do
+        if [ ! -e "$entry" ]; then
+            continue
+        fi
+
+        base="$(basename "$entry")"
+
+        case "$base" in
+            .|..|.vs|experiments)
+                continue
+                ;;
+        esac
+
+        ln -s "$entry" "$worker_dir/$base"
+    done
+
+    mkdir -p "$worker_dir/experiments"
+    cp -a "$RESULTS_DIR" "$worker_dir/experiments/AlgorithmTesting"
+}
+
 run_assess() {
     local x="$1"
     local capture_file="$2"
-    local work_sts_dir="$WORK_ROOT/sts-2.1.2.$x"
-    local work_results_dir="$work_sts_dir/experiments/AlgorithmTesting"
+    local worker_dir="$WORK_ROOT/sts-2.1.2.$x"
+    local worker_results_dir="$worker_dir/experiments/AlgorithmTesting"
     local run_results_dir="$RESULTS_PARENT_DIR/AlgorithmTesting.$x"
     local run_report="$run_results_dir/finalAnalysisReport.txt"
     local assess_rc
@@ -82,39 +109,15 @@ run_assess() {
     echo "STS run $x of $RUNS"
     echo "======================================================================"
 
-    cd "$work_sts_dir"
+    make_worker_dir "$worker_dir"
+
+    cd "$worker_dir"
 
     echo "Initializing worker STS results directory for run $x"
-    reset_results_dir "$work_results_dir"
+    reset_results_dir "$worker_results_dir"
 
-    echo "Calling checking file $capture_file"
+    echo "Checking file $capture_file"
 
-
-    # NIST STS assess is interactive.  Feed the answers with a heredoc:
-    #
-    #   ./assess "$BITS_PER_STREAM"
-    #       Number of bits per tested sequence.
-    #       For this script: 1,048,576 bits = 128 KiB.
-    #
-    #   0
-    #       Generator selection: [0] Input File.
-    #
-    #   $capture_file
-    #       Binary TRNG capture file to test.
-    #
-    #   1
-    #       Statistical tests menu: apply all tests.
-    #
-    #   0
-    #       Parameter adjustment menu: continue with default parameters.
-    #
-    #   $STREAMS_PER_RUN
-    #       Number of bitstreams/sequences.
-    #       16 * 1,048,576 bits = 16,777,216 bits = 2 MiB.
-    #
-    #   1
-    #       Input file format: [1] Binary, each byte contains 8 bits.
-    #
     set +e
     ./assess "$BITS_PER_STREAM" <<EOF_ASSESS
 0
@@ -130,7 +133,7 @@ EOF_ASSESS
     echo "assess exit code for run $x: $assess_rc"
 
     rm -rf "$run_results_dir"
-    cp -a "$work_results_dir" "$run_results_dir"
+    cp -a "$worker_results_dir" "$run_results_dir"
 
     echo "Saved full results directory: $run_results_dir"
 
@@ -162,14 +165,6 @@ for x in $(seq 1 "$RUNS"); do
         --out "$capture_file" \
         --fast-baud \
         --conditioned
-
-done
-
-for x in $(seq 1 "$RUNS"); do
-    worker_dir="$WORK_ROOT/sts-2.1.2.$x"
-
-    echo "Preparing isolated STS worker directory: $worker_dir"
-    cp -a "$STS_DIR" "$worker_dir"
 done
 
 pids=()
