@@ -24,7 +24,7 @@
 
     `ifdef USE_LONG_STRINGS
         `define VERSION_STRING_LEN 24 /* 123456789012345678901234 */   
-        `define VERSION_STRING          "Version 0.1.7d 6/11/2026"
+        `define VERSION_STRING          "Version 0.1.7e 6/11/2026"
     `else
         /* no long strings */
     `endif
@@ -67,9 +67,24 @@
     `define SPI_REG_ACCESS
     `define TRNG_ENABLED
     `define TRNG_BINARY_STREAM
+    
+    /* 
+     * --------------------------------------------------------------------------------------------
+     * See trng_lab_core.v for various conditioning options
+     *
+     * With unlimited cell space (or an FPGA!) one could test each of the conditioning options
+     * with a runtime selection. This is not implemented at this time here.
+     *
+     * Pick one of the macros, below. If non are selected there's a 16 
+     * --------------------------------------------------------------------------------------------
+     */
     `define TRNG_CONDITIONED_STREAM
 
-    /* Enabling TRNG_CONDITIONED_STREAM_64_XOR on sky130, repair 20/20
+    /* 
+     * --------------------------------------------------------------------------------------------
+     * Optional 64 bit XOR stream whitening conditioner: TRNG_CONDITIONED_STREAM_64_XOR
+     * --------------------------------------------------------------------------------------------
+     * Enabling TRNG_CONDITIONED_STREAM_64_XOR on sky130, repair 20/20
      * increases 1x2 cell utilization from 71% to 88% 
      * See #206 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27421859298
      *  vs
@@ -77,15 +92,17 @@
      */
     // `define TRNG_CONDITIONED_STREAM_64_XOR
 
-    /* TODO: WIP 
+    /* 
+     * --------------------------------------------------------------------------------------------
+     * Optional 16 bit CRC whitening conditioner: TRNG_CONDITIONED_STREAM_CRC
+     * --------------------------------------------------------------------------------------------
      * See #206 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27421859298 reference 71.200%
      *    vs
      * Update #207 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27429304557 (in place, not enabled: 71.200%)
      *    vs
-     * Enable: #208 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27431458941 (smaller!?, 66.358%)
-     *
-     **/
-    `define TRNG_CONDITIONED_STREAM_CRC
+     * Enable: #208 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27431458941 (smaller!, 66.358%, but fails NIST Rank)
+     */
+    // `define TRNG_CONDITIONED_STREAM_CRC
 
     /* TODO: */
     // `define TRNG_CONDITIONED_STREAM_GALOIS
