@@ -69,7 +69,9 @@
     `define TRNG_BINARY_STREAM
     `define TRNG_CONDITIONED_STREAM
     `define TRNG_CONDITIONED_STREAM_64_XOR
-    `define JTAG_ENABLED
+
+    /* With all the above featured enabled, there's not enough room on 1x2 SKY130 to enable JTAG */
+    // `define JTAG_ENABLED
 
     /* Note that with all UART_ENABLED, SPI_ENABLED, SPI_REG_ACCESS, TRNG_ENABLED, JTAG_ENABLED
      * also enabling PIN_DIAG pushes design over 80% of 1x2 tiles. GDS aborted after 90 minute run. */
