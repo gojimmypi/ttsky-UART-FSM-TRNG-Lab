@@ -24,7 +24,7 @@
 
     `ifdef USE_LONG_STRINGS
         `define VERSION_STRING_LEN 24 /* 123456789012345678901234 */   
-        `define VERSION_STRING          "Version 0.1.7d 6/11/2026"
+        `define VERSION_STRING          "Version 0.1.7e 6/11/2026"
     `else
         /* no long strings */
     `endif
@@ -77,8 +77,14 @@
      */
     // `define TRNG_CONDITIONED_STREAM_64_XOR
 
-    /* TODO: WIP */
-    // `define TRNG_CONDITIONED_STREAM_CRC
+    /* TODO: WIP 
+     * See #206 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27421859298 reference 71.200%
+     *    vs
+     * Update #207 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27429304557 (in place, not enabled: 71.200%)
+     *    vs
+     * Enable:
+     **/
+    `define TRNG_CONDITIONED_STREAM_CRC
 
     /* TODO: */
     // `define TRNG_CONDITIONED_STREAM_GALOIS
