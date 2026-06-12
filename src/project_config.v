@@ -98,7 +98,7 @@
      * --------------------------------------------------------------------------------------------
      * See #206 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27421859298 reference 71.200%
      *    vs
-     * Update #207 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27429304557 (in place, not enabled: 71.200%)
+     * Update: #207 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27429304557 (in place, not enabled: 71.200%)
      *    vs
      * Enable: #208 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27431458941 (smaller!, 66.358%, but fails NIST Rank)
      */
@@ -107,9 +107,12 @@
     /* 
      * --------------------------------------------------------------------------------------------
      * Optional 32 bit Galois whitening conditioner: TRNG_CONDITIONED_STREAM_GALOIS
+     * Baseline default: 71.4% in GDS #212: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27436129291
+     *    vs
+     * Enable: TBD
      * --------------------------------------------------------------------------------------------
      */
-    // `define TRNG_CONDITIONED_STREAM_GALOIS
+    `define TRNG_CONDITIONED_STREAM_GALOIS
 
     /* TODO: */
     // `define TRNG_CONDITIONED_STREAM_VON_NEUMANN
