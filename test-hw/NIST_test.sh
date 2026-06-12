@@ -161,5 +161,14 @@ EOF
     fi
 done
 
+# Redisplay final result
+for report in "$STS_DIR"/experiments/AlgorithmTesting.*/finalAnalysisReport.txt; do
+    echo
+    echo "======================================================================"
+    echo "$report"
+    echo "======================================================================"
+    grep '\*' "$report" || echo "No starred lines"
+done
+
 echo
 echo "done"
