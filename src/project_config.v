@@ -122,7 +122,14 @@
      *   "DESIGN_REPAIR_MAX_SLEW_PCT": 40,
      *   "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 40,
      */
-    `define TRNG_CONDITIONED_STREAM_GALOIS
+    // `define TRNG_CONDITIONED_STREAM_GALOIS
+
+    /* 
+     * --------------------------------------------------------------------------------------------
+     * Optional 64 bit Galois whitening conditioner: TRNG_CONDITIONED_STREAM_GALOIS
+     * --------------------------------------------------------------------------------------------
+     */
+    `define TRNG_CONDITIONED_STREAM_GALOIS_64
 
     /* TODO: */
     // `define TRNG_CONDITIONED_STREAM_VON_NEUMANN
