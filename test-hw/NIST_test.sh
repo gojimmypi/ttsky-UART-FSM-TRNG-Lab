@@ -146,7 +146,9 @@ EOF_ASSESS
     fi
 
     return "$assess_rc"
-}
+} # Run assess
+
+./show_effective_defines.sh
 
 for x in $(seq 1 "$RUNS"); do
     capture_file="$TEST_HW_DIR/$THE_FILE_BASE.$x.bin"
