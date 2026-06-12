@@ -260,8 +260,17 @@ module trng_lab_core
         stream_feedback
     };
 
-    assign reg_condlo = stream_mix[7:0]  ^ stream_mix[23:16] ^ {stream_mix[3:0],  stream_mix[31:28]};
-    assign reg_condhi = stream_mix[15:8] ^ stream_mix[31:24] ^ {stream_mix[11:8], stream_mix[27:24]};
+    assign reg_condlo =
+        stream_mix[7:0] ^
+        stream_mix[23:16] ^
+        {stream_mix[3:0],
+        stream_mix[31:28]};
+
+    assign reg_condhi =
+        stream_mix[15:8] ^
+        stream_mix[31:24] ^
+        {stream_mix[11:8], stream_mix[27:24]};
+
 `else
     assign stream_feedback =
         stream_mix[31] ^
