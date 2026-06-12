@@ -68,7 +68,23 @@
     `define TRNG_ENABLED
     `define TRNG_BINARY_STREAM
     `define TRNG_CONDITIONED_STREAM
+
+    /* Enabling TRNG_CONDITIONED_STREAM_64_XOR on sky130, repair 20/20
+     * increases 1x2 cell utilization from 71% to 88% 
+     * See #206 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27421859298
+     *  vs
+     * #205: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27393236624
+     */
     // `define TRNG_CONDITIONED_STREAM_64_XOR
+
+    /* TODO: WIP */
+    // `define TRNG_CONDITIONED_STREAM_CRC
+
+    /* TODO: */
+    // `define TRNG_CONDITIONED_STREAM_GALOIS
+
+    /* TODO: */
+    // `define TRNG_CONDITIONED_STREAM_VON_NEUMANN
 
     /* With all the above featured enabled, there's not enough room on 1x2 SKY130 to enable JTAG */
     // `define JTAG_ENABLED

@@ -96,6 +96,8 @@ module trng_lab_core
 `ifdef TRNG_CONDITIONED_STREAM
     `ifdef TRNG_CONDITIONED_STREAM_64_XOR
     reg  [63:0] stream_mix;
+    `elsif TRNG_CONDITIONED_STREAM_CRC
+    reg  [15:0] stream_mix;
     `else
     reg  [31:0] stream_mix;
     `endif
@@ -122,7 +124,12 @@ module trng_lab_core
     wire        ro_xor;
     wire        lfsr_next_bit;
 `ifdef TRNG_CONDITIONED_STREAM
+    `ifdef TRNG_CONDITIONED_STREAM_CRC
+    wire        cond_in_bit;
+    wire        feedback;
+    `else
     wire        stream_feedback;
+    `endif
     `ifdef TRNG_CONDITIONED_STREAM_64_XOR
     wire [63:0] stream_scrambled;
     `endif
@@ -183,6 +190,18 @@ module trng_lab_core
     assign reg_cond5 = stream_scrambled[47:40] ^ stream_scrambled[15:8]  ^ stream_scrambled[31:24];
     assign reg_cond6 = stream_scrambled[55:48] ^ stream_scrambled[23:16] ^ stream_scrambled[39:32];
     assign reg_cond7 = stream_scrambled[63:56] ^ stream_scrambled[31:24] ^ stream_scrambled[47:40];
+`elsif TRNG_CONDITIONED_STREAM_CRC
+    assign cond_in_bit =
+        selected_bit ^
+        ro0_sample_sync ^
+        rox_sample_sync ^
+        lfsr[0] ^
+        sample_shift[3];
+
+    assign feedback = stream_mix[15] ^ cond_in_bit;
+
+    assign reg_condlo = stream_mix[7:0];
+    assign reg_condhi = stream_mix[15:8];
 `else
     assign stream_feedback =
         stream_mix[31] ^
@@ -291,6 +310,8 @@ module trng_lab_core
              * provide entropy. It only prevents the conditioner from starting at zero. 
              * ASCII "gojimmy!" makes the value traceable and intentional. */
             stream_mix <= 64'h676F_6A69_6D6D_7921; // "gojimmy!"
+    `elsif TRNG_CONDITIONED_STREAM_CRC
+            stream_mix      <= 16'hA5C3;
     `else
             stream_mix      <= 32'hA5C3_1F2D;
     `endif
@@ -339,6 +360,25 @@ module trng_lab_core
                     lfsr[7:0],
                     ro_raw,
                     {7'b0000000, selected_bit}
+                };
+`elsif TRNG_CONDITIONED_STREAM_CRC
+                stream_mix   <= {
+                    stream_mix[14] ^ feedback,
+                    stream_mix[13],
+                    stream_mix[12],
+                    stream_mix[11],
+                    stream_mix[10],
+                    stream_mix[9],
+                    stream_mix[8],
+                    stream_mix[7],
+                    stream_mix[6],
+                    stream_mix[5],
+                    stream_mix[4],
+                    stream_mix[3],
+                    stream_mix[2],
+                    stream_mix[1] ^ feedback,
+                    stream_mix[0],
+                    feedback
                 };
 `else
                 stream_mix   <= {
