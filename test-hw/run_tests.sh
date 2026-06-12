@@ -304,4 +304,7 @@ else
     python ./tt_ulx3s_trng_repro_test.py --port  "$PORT"            || exit 1
 fi
 
+# Generate a bin file of random data to be analyzed
+./capture_trng_raw_uart.py  --port "$PORT"  --bytes 16777216  --out trng_conditioned.bin  --fast-baud  --conditioned
+
 echo "Port used: $PORT"
