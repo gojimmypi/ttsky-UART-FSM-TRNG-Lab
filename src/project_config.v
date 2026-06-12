@@ -68,7 +68,7 @@
     `define TRNG_ENABLED
     `define TRNG_BINARY_STREAM
     `define TRNG_CONDITIONED_STREAM
-    `define TRNG_CONDITIONED_STREAM_64_XOR
+    // `define TRNG_CONDITIONED_STREAM_64_XOR
 
     /* With all the above featured enabled, there's not enough room on 1x2 SKY130 to enable JTAG */
     // `define JTAG_ENABLED
