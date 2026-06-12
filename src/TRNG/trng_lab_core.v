@@ -4,7 +4,7 @@
  *
  * See ATTRIBUTION.md for third-party sources and credits.
  *
- * file: src/TRNG/trng_lab_core.v
+ * file: trng_lab_core.v
  *
  * Experimental TRNG lab core.
  *
@@ -98,14 +98,8 @@ module trng_lab_core
     reg  [63:0] stream_mix;
     `elsif TRNG_CONDITIONED_STREAM_CRC
     reg  [15:0] stream_mix;
-    `elsif TRNG_CONDITIONED_STREAM_GALOIS_64
-    reg  [63:0] stream_mix;
-    reg  [7:0]  condlo_mix;
-    reg  [7:0]  condhi_mix;
     `elsif TRNG_CONDITIONED_STREAM_GALOIS
     reg  [31:0] stream_mix;
-    reg  [7:0]  condlo_mix;
-    reg  [7:0]  condhi_mix;
     `else
     reg  [31:0] stream_mix;
     `endif
@@ -135,24 +129,10 @@ module trng_lab_core
     `ifdef TRNG_CONDITIONED_STREAM_CRC
     wire        cond_in_bit;
     wire        feedback;
-    `elsif TRNG_CONDITIONED_STREAM_GALOIS_64
-    wire        cond_in_bit;
-    wire        stream_feedback;
-    wire [63:0] galois_mix_next;
-    wire [63:0] galois_mix_scrambled;
-    wire [7:0]  galois_foldlo;
-    wire [7:0]  galois_foldhi;
-    wire [7:0]  condlo_mix_next;
-    wire [7:0]  condhi_mix_next;
     `elsif TRNG_CONDITIONED_STREAM_GALOIS
     wire        cond_in_bit;
     wire        stream_feedback;
     wire [31:0] galois_mix_next;
-    wire [31:0] galois_mix_scrambled;
-    wire [7:0]  galois_foldlo;
-    wire [7:0]  galois_foldhi;
-    wire [7:0]  condlo_mix_next;
-    wire [7:0]  condhi_mix_next;
     `else
     wire        stream_feedback;
     `endif
@@ -228,103 +208,17 @@ module trng_lab_core
 
     assign reg_condlo = stream_mix[7:0];
     assign reg_condhi = stream_mix[15:8];
-`elsif TRNG_CONDITIONED_STREAM_GALOIS_64
-    assign cond_in_bit =
-        selected_bit ^
-        ro0_sample_sync ^
-        rox_sample_sync ^
-        ro_raw[0] ^
-        ro_raw[2] ^
-        ro_raw[5] ^
-        ro_raw[7] ^
-        lfsr[0] ^
-        lfsr[5] ^
-        lfsr[9] ^
-        lfsr[15] ^
-        sample_shift[1] ^
-        sample_shift[6] ^
-        sample_shift[10] ^
-        sample_shift[13];
-
-    assign stream_feedback =
-        stream_mix[63] ^
-        stream_mix[62] ^
-        stream_mix[60] ^
-        stream_mix[59] ^
-        cond_in_bit;
-
-    /* 64-bit Galois-style conditioner.  The wider state and nonlinear
-     * output fold are intended to break the repeated-template structure
-     * that showed up in NIST NonOverlappingTemplate runs.  This is still
-     * not a cryptographic DRBG. */
-    assign galois_mix_next = {
-        stream_mix[62] ^ stream_feedback,
-        stream_mix[61],
-        stream_mix[60] ^ stream_feedback,
-        stream_mix[59] ^ stream_feedback,
-        stream_mix[58:0],
-        stream_feedback
-    };
-
-    assign galois_mix_scrambled =
-        stream_mix ^
-        {stream_mix[18:0], stream_mix[63:19]} ^
-        {stream_mix[40:0], stream_mix[63:41]} ^
-        {stream_mix[54:0], stream_mix[63:55]};
-
-    assign galois_foldlo =
-        galois_mix_scrambled[7:0] ^
-        galois_mix_scrambled[23:16] ^
-        galois_mix_scrambled[39:32] ^
-        galois_mix_scrambled[55:48] ^
-        (galois_mix_scrambled[15:8] & galois_mix_scrambled[47:40]) ^
-        (galois_mix_scrambled[31:24] | galois_mix_scrambled[63:56]) ^
-        ro_raw ^
-        sample_shift[7:0] ^
-        lfsr[7:0];
-
-    assign galois_foldhi =
-        galois_mix_scrambled[15:8] ^
-        galois_mix_scrambled[31:24] ^
-        galois_mix_scrambled[47:40] ^
-        galois_mix_scrambled[63:56] ^
-        (galois_mix_scrambled[7:0] & galois_mix_scrambled[39:32]) ^
-        (galois_mix_scrambled[23:16] | galois_mix_scrambled[55:48]) ^
-        {ro_raw[3:0], ro_raw[7:4]} ^
-        sample_shift[15:8] ^
-        lfsr[15:8];
-
-    assign condlo_mix_next =
-        galois_foldlo ^
-        condhi_mix ^
-        {condlo_mix[6:0], condlo_mix[7]} ^
-        ((condlo_mix & galois_foldhi) ^ (condhi_mix | {7'b0000000, selected_bit}));
-
-    assign condhi_mix_next =
-        galois_foldhi ^
-        condlo_mix ^
-        {condhi_mix[6:0], condhi_mix[7]} ^
-        ((condhi_mix & galois_foldlo) ^ (condlo_mix | {7'b0000000, rox_sample_sync}));
-
-    assign reg_condlo = condlo_mix;
-    assign reg_condhi = condhi_mix;
 `elsif TRNG_CONDITIONED_STREAM_GALOIS
     assign cond_in_bit =
         selected_bit ^
         ro0_sample_sync ^
         rox_sample_sync ^
-        ro_raw[1] ^
-        ro_raw[3] ^
-        ro_raw[5] ^
-        ro_raw[7] ^
         lfsr[0] ^
         lfsr[5] ^
         lfsr[9] ^
         lfsr[15] ^
-        sample_shift[2] ^
-        sample_shift[7] ^
-        sample_shift[11] ^
-        sample_shift[14];
+        sample_shift[3] ^
+        sample_shift[11];
 
     assign stream_feedback = stream_mix[31] ^ cond_in_bit;
 
@@ -366,42 +260,8 @@ module trng_lab_core
         stream_feedback
     };
 
-    assign galois_mix_scrambled =
-        stream_mix ^
-        {stream_mix[14:0], stream_mix[31:15]} ^
-        {stream_mix[6:0], stream_mix[31:7]} ^
-        {stream_mix[24:0], stream_mix[31:25]};
-
-    assign galois_foldlo =
-        galois_mix_scrambled[7:0] ^
-        galois_mix_scrambled[23:16] ^
-        {galois_mix_scrambled[3:0], galois_mix_scrambled[31:28]} ^
-        ((galois_mix_scrambled[15:8] & galois_mix_scrambled[31:24]) ^ {stream_mix[0], stream_mix[7:1]}) ^
-        ro_raw ^
-        sample_shift[7:0];
-
-    assign galois_foldhi =
-        galois_mix_scrambled[15:8] ^
-        galois_mix_scrambled[31:24] ^
-        {galois_mix_scrambled[11:8], galois_mix_scrambled[27:24]} ^
-        ((galois_mix_scrambled[7:0] | galois_mix_scrambled[23:16]) ^ {stream_mix[8], stream_mix[15:9]}) ^
-        {ro_raw[3:0], ro_raw[7:4]} ^
-        sample_shift[15:8];
-
-    assign condlo_mix_next =
-        galois_foldlo ^
-        condhi_mix ^
-        {condlo_mix[6:0], condlo_mix[7]} ^
-        ((condlo_mix & galois_foldhi) ^ (condhi_mix | {7'b0000000, selected_bit}));
-
-    assign condhi_mix_next =
-        galois_foldhi ^
-        condlo_mix ^
-        {condhi_mix[6:0], condhi_mix[7]} ^
-        ((condhi_mix & galois_foldlo) ^ (condlo_mix | {7'b0000000, rox_sample_sync}));
-
-    assign reg_condlo = condlo_mix;
-    assign reg_condhi = condhi_mix;
+    assign reg_condlo = stream_mix[7:0]  ^ stream_mix[23:16] ^ {stream_mix[3:0],  stream_mix[31:28]};
+    assign reg_condhi = stream_mix[15:8] ^ stream_mix[31:24] ^ {stream_mix[11:8], stream_mix[27:24]};
 `else
     assign stream_feedback =
         stream_mix[31] ^
@@ -512,14 +372,8 @@ module trng_lab_core
             stream_mix <= 64'h676F_6A69_6D6D_7921; // "gojimmy!"
     `elsif TRNG_CONDITIONED_STREAM_CRC
             stream_mix      <= 16'hA5C3;
-    `elsif TRNG_CONDITIONED_STREAM_GALOIS_64
-            stream_mix      <= 64'h676F_6A69_6D6D_7921; // "gojimmy!"
-            condlo_mix      <= 8'hA5;
-            condhi_mix      <= 8'h3C;
     `elsif TRNG_CONDITIONED_STREAM_GALOIS
             stream_mix      <= 32'h676F_6A69; // "goji"
-            condlo_mix      <= 8'hA5;
-            condhi_mix      <= 8'h3C;
     `else
             stream_mix      <= 32'hA5C3_1F2D;
     `endif
@@ -588,19 +442,6 @@ module trng_lab_core
                     stream_mix[0],
                     feedback
                 };
-`elsif TRNG_CONDITIONED_STREAM_GALOIS_64
-                stream_mix   <= galois_mix_next ^ {
-                    reg_rawhi ^ lfsr[15:8],
-                    reg_rawlo ^ lfsr[7:0],
-                    sample_shift[15:8] ^ ro_raw,
-                    sample_shift[7:0] ^ {7'b0000000, selected_bit},
-                    {ro_raw[3:0], ro_raw[7:4]} ^ sample_shift[11:4],
-                    ro_raw ^ sample_shift[15:8],
-                    lfsr[15:8] ^ {7'b0000000, ro0_sample_sync},
-                    lfsr[7:0] ^ {7'b0000000, rox_sample_sync}
-                };
-                condlo_mix   <= condlo_mix_next;
-                condhi_mix   <= condhi_mix_next;
 `elsif TRNG_CONDITIONED_STREAM_GALOIS
                 stream_mix   <= galois_mix_next ^ {
                     reg_rawhi ^ lfsr[15:8],
@@ -608,8 +449,6 @@ module trng_lab_core
                     sample_shift[15:8] ^ ro_raw,
                     sample_shift[7:0] ^ {7'b0000000, selected_bit}
                 };
-                condlo_mix   <= condlo_mix_next;
-                condhi_mix   <= condhi_mix_next;
 `else
                 stream_mix   <= {
                     stream_mix[30:0],

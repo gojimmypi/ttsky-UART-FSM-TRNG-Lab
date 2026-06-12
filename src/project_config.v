@@ -116,20 +116,21 @@
      *    vs
      * Galois V2: 75.708% in GDS #216 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27443295824 
      *    vs
-     * Galois V3: TBD
+     * Galois V3: 84.278% in GDS #217 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27444743537
      * --------------------------------------------------------------------------------------------
      * config.json fails:
      *   "DESIGN_REPAIR_MAX_SLEW_PCT": 40,
      *   "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 40,
      */
-    // `define TRNG_CONDITIONED_STREAM_GALOIS
+     `define TRNG_CONDITIONED_STREAM_GALOIS
 
     /* 
      * --------------------------------------------------------------------------------------------
      * Optional 64 bit Galois whitening conditioner: TRNG_CONDITIONED_STREAM_GALOIS
      * --------------------------------------------------------------------------------------------
+     * Too large for 1x2. See #218 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27445643164
      */
-    `define TRNG_CONDITIONED_STREAM_GALOIS_64
+    // `define TRNG_CONDITIONED_STREAM_GALOIS_64
 
     /* TODO: */
     // `define TRNG_CONDITIONED_STREAM_VON_NEUMANN
