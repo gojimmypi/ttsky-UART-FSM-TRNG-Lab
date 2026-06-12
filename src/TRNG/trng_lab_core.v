@@ -439,7 +439,11 @@ module trng_lab_core
             end
 
             SRC_MIX: begin
+            `ifdef TRNG_RAW_CLEAN_MIX
+                selected_bit = rox_sample_sync;
+            `else
                 selected_bit = rox_sample_sync ^ lfsr[0] ^ lfsr[5] ^ sample_shift[3];
+            `endif
             end
 
             default: begin

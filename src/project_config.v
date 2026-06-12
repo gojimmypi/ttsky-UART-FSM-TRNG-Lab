@@ -124,6 +124,7 @@
      * 
      * Current (default): 20/20
      */
+     `define TRNG_RAW_CLEAN_MIX
      `define TRNG_CONDITIONED_STREAM_GALOIS
 
     /* 
