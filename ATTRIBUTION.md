@@ -3,6 +3,12 @@
 This project builds upon open-source tools, templates, and publicly available reference designs.  
 The author gratefully acknowledges the following sources.
 
+## Matt Venn
+
+ASIC Rock Star!
+
+https://www.zerotoasiccourse.com/matt_venn/
+
 ---
 
 ## TinyTapeout Templates
@@ -11,6 +17,7 @@ This project is derived from TinyTapeout reference templates:
 
 - https://github.com/TinyTapeout/ttsky-analog-template
 - https://github.com/TinyTapeout/ttsky-verilog-template
+- https://github.com/TinyTapeout/ttgf-verilog-template
 
 These templates define the standard TinyTapeout interface, project structure, and CI flow.
 
@@ -77,12 +84,32 @@ but all final code and design decisions were made by the author.
 
 ---
 
+## NIST Online Resources
+
+See https://csrc.nist.gov/projects/random-bit-generation and more.
+
+---
+
 ## Community Acknowledgment
 
 Thanks to the TinyTapeout community, FPGA developers, and open-source contributors
 whose shared knowledge and examples made this project possible.
 
+---
+
+## Help with timing / setup / slew / fanout violations
+
+> Nonzero max slew violation / fanout / cap - really problems?
+
+Extra thanks `Essen`, `Luke - HRAOUBG`, `toivoh`, `RebelMike`, `tnt`, `namibj` for the [help in Discord thread](https://discord.com/channels/1009193568256135208/1513299711975489566/1513299711975489566).
+
+A lot was learned about the toolchain, GDS log files in the GH action, configuration fine tuning, and more.
+
+---
+
 ## All the TT RNG Projects that came before
+
+ChaptGPT was asked to find all the TT related TRNG projects. This is the generated list:
 
 | Shuttle | Address | Project title | Author | Full link |
 |---|---:|---|---|---|
@@ -137,3 +164,23 @@ whose shared knowledge and examples made this project possible.
 | TTSKY26b | 323 | 16 bit Galois LFSR based Random number generator-IEEE | Subir Maity, Jitendra Kr. Das | https://tinytapeout.com/chips/ttsky26b/tt_um_galois_lfsr16 |
 | TTSKY26b | 460 | C0haotic RNG | onrkrts | https://tinytapeout.com/chips/ttsky26b/tt_um_chaotic_rng |
 
+Of the above projects, ChatGPT was asked which are similar to this project. This is the response:
+
+| Similarity           | Project                                                                               | Why it is similar                                                                                                                                                                                                                                         | Main difference                                                                                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Very close**       | **TTSKY26a 515 — Sky26a Advanced TRNG**                                               | It is explicitly a “research-grade” TRNG based on phase jitter from an **8-oscillator RO bank**, with characterization and debug features. That overlaps strongly with your RO-bank/TRNG/debug direction. ([tinytapeout.com][1])                          | It sounds more narrowly focused on an advanced TRNG, while yours is broader: UART/SPI lab interface, register map, raw/conditioned modes, and hardware entropy explorer framing. |
+| **Very close**       | **TTSKY26a 454 — Ring Oscillator PVT Sensor & TRNG**                                  | It uses **gatable ring oscillators**, frequency counters, CDC synchronization, prescaler, XOR-jitter TRNG, health monitor, and PVT/fault/aging characterization. That is highly adjacent to your RO entropy + observability goals. ([tinytapeout.com][2]) | It is more PVT/frequency-characterization oriented; your project is more UART/SPI-accessible TRNG/PUF/FSM lab oriented.                                                          |
+| **Close**            | **TTIHP26a 242 — True(er) Random Number Generator (TRNG)**                            | It is a fully digital TRNG harvesting entropy from **phase noise/jitter of free-running ring oscillators**, then sampling and whitening into 8-bit words. ([tinytapeout.com][3])                                                                          | It appears simpler: direct TRNG output path, not the broader multi-interface exploration/test platform you are building.                                                         |
+| **Close**            | **TTIHP25a 746 — TRNG**                                                               | It has raw entropy and hashed output modes, UART output, health tests, and randomness/statistical-test framing. ([tinytapeout.com][4])                                                                                                                    | It uses SHA-256 conditioning and UART output; your project’s current direction is more lightweight hardware conditioning/register access, with SPI and UART control.             |
+| **Moderately close** | **TTSKY26a 522 — Current-Starved Ring Oscillator Based True Random Number Generator** | The title alone makes it clearly RO/TRNG-related, and specifically analog-ish/current-starved RO based. The chip page lists it as a true random number generator. ([tinytapeout.com][5])                                                                  | Likely more custom/analog oscillator focused; your current design is standard-cell RO/TRNG plus digital lab/control infrastructure.                                              |
+| **Moderately close** | **TTIHP26a — RO-based security primitives / `tt_um_ro_puf_trng`**                     | The slug strongly suggests the same conceptual family: **ring oscillator + PUF + TRNG**. That is very close to your “TRNG PUF Explorer” idea.                                                                                                             | I could not reliably open the project page contents from TinyTapeout, so I would treat this as a strong lead but not a confirmed detailed match.                                 |
+| **Somewhat close**   | **TTIHP26a 561 — VGA multiplex with TRNG**                                            | It uses a TRNG from **sampling a ring oscillator** to randomly select among VGA projects. ([tinytapeout.com][6])                                                                                                                                          | The TRNG is a subcomponent for a VGA demo, not the project’s core research/control/debug target.                                                                                 |
+| **Somewhat close**   | **TTSKY26b 460 — C0haotic RNG**                                                       | It is an RNG, but based on a programmable nonlinear chaotic map with 32-bit state variables and arithmetic feedback. ([tinytapeout.com][7])                                                                                                               | Algorithmic/chaotic deterministic-ish generator style, not RO jitter entropy. Much less similar architecturally.                                                                 |
+
+[1]: https://www.tinytapeout.com/chips/ttsky26a/tt_um_chicagojones_sky26a_trng "515 Sky26a Advanced TRNG :: Quicker, easier and cheaper to make your own chip!"
+[2]: https://www.tinytapeout.com/chips/ttsky26a/454 "454 Ring Oscillator PVT Sensor & TRNG :: Quicker, easier and cheaper to make your own chip!"
+[3]: https://tinytapeout.com/chips/ttihp26a/242 "242 True(er) Random Number Generator (TRNG) :: Quicker, easier and cheaper to make your own chip!"
+[4]: https://tinytapeout.com/chips/ttihp25a/tt_um_bilal_trng "746 TRNG :: Quicker, easier and cheaper to make your own chip!"
+[5]: https://tinytapeout.com/chips/ttsky26a/ "Tiny Tapeout SKY 26a :: Quicker, easier and cheaper to make your own chip!"
+[6]: https://tinytapeout.com/chips/ttihp26a/561 "561 VGA multiplex with TRNG :: Quicker, easier and cheaper to make your own chip!"
+[7]: https://tinytapeout.com/chips/ttsky26b/tt_um_chaotic_rng "460 C0haotic RNG :: Quicker, easier and cheaper to make your own chip!"
