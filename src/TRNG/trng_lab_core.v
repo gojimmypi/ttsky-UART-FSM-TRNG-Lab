@@ -4,7 +4,7 @@
  *
  * See ATTRIBUTION.md for third-party sources and credits.
  *
- * file: trng_lab_core.v
+ * file: src/TRNG/trng_lab_core.v
  *
  * Experimental TRNG lab core.
  *

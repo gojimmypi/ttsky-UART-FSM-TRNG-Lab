@@ -89,6 +89,7 @@
      * See #206 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27421859298
      *  vs
      * #205: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27393236624
+     * --------------------------------------------------------------------------------------------
      */
     // `define TRNG_CONDITIONED_STREAM_64_XOR
 
@@ -101,16 +102,21 @@
      * Update: #207 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27429304557 (in place, not enabled: 71.200%)
      *    vs
      * Enable: #208 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27431458941 (smaller!, 66.358%, but fails NIST Rank)
+     * --------------------------------------------------------------------------------------------
      */
     // `define TRNG_CONDITIONED_STREAM_CRC
 
     /* 
      * --------------------------------------------------------------------------------------------
      * Optional 32 bit Galois whitening conditioner: TRNG_CONDITIONED_STREAM_GALOIS
+     * --------------------------------------------------------------------------------------------
      * Baseline default: 71.4% in GDS #212: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27436129291
      *    vs
-     * Enable: TBD
+     * Enable: 73.4% in GDS #213 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27437193873
      * --------------------------------------------------------------------------------------------
+     * config.json fails:
+     *   "DESIGN_REPAIR_MAX_SLEW_PCT": 40,
+     *   "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 40,
      */
     `define TRNG_CONDITIONED_STREAM_GALOIS
 
@@ -155,6 +161,36 @@
     `ifdef TRNG_CONDITIONED_STREAM_64_XOR
         `ifndef TRNG_CONDITIONED_STREAM
             PROJECT_TRNG_CONDITIONED_STREAM_64_XOR_REQUIRES_CONDITIONED_STREAM u_stop (); /* TRNG_CONDITIONED_STREAM_64_XOR requires TRNG_CONDITIONED_STREAM */
+        `endif
+    `endif
+
+    `ifdef TRNG_CONDITIONED_STREAM_CRC
+        `ifndef TRNG_CONDITIONED_STREAM
+            PROJECT_TRNG_CONDITIONED_STREAM_CRC_REQUIRES_CONDITIONED_STREAM u_stop (); /* TRNG_CONDITIONED_STREAM_CRC requires TRNG_CONDITIONED_STREAM */
+        `endif
+    `endif
+
+    `ifdef TRNG_CONDITIONED_STREAM_GALOIS
+        `ifndef TRNG_CONDITIONED_STREAM
+            PROJECT_TRNG_CONDITIONED_STREAM_GALOIS_REQUIRES_CONDITIONED_STREAM u_stop (); /* TRNG_CONDITIONED_STREAM_GALOIS requires TRNG_CONDITIONED_STREAM */
+        `endif
+    `endif
+
+    `ifdef TRNG_CONDITIONED_STREAM_64_XOR
+        `ifdef TRNG_CONDITIONED_STREAM_CRC
+            PROJECT_TRNG_CONDITIONED_STREAM_64_XOR_AND_TRNG_CONDITIONED_STREAM_CRC u_stop ();  /* both TRNG_CONDITIONED_STREAM_64_XOR and TRNG_CONDITIONED_STREAM_CRC enabled. pick one. */
+        `endif
+    `endif
+
+    `ifdef TRNG_CONDITIONED_STREAM_64_XOR
+        `ifdef TRNG_CONDITIONED_STREAM_GALOIS
+            PROJECT_TRNG_CONDITIONED_STREAM_64_XOR_AND_TRNG_CONDITIONED_STREAM_GALOIS u_stop ();  /* both TRNG_CONDITIONED_STREAM_64_XOR and TRNG_CONDITIONED_STREAM_GALOIS enabled. pick one. */
+        `endif
+    `endif
+
+    `ifdef TRNG_CONDITIONED_STREAM_CRC
+        `ifdef TRNG_CONDITIONED_STREAM_GALOIS
+            PROJECT_TRNG_CONDITIONED_STREAM_CRC_AND_TRNG_CONDITIONED_STREAM_GALOIS u_stop ();  /* both TRNG_CONDITIONED_STREAM_CRC and TRNG_CONDITIONED_STREAM_GALOIS enabled. pick one. */
         `endif
     `endif
 
