@@ -113,6 +113,10 @@
      * Baseline default: 71.4% in GDS #212: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27436129291
      *    vs
      * Enable: 73.4% in GDS #213 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27437193873
+     *    vs
+     * Galois V2: 75.708% in GDS #216 https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27443295824 
+     *    vs
+     * Galois V3: TBD
      * --------------------------------------------------------------------------------------------
      * config.json fails:
      *   "DESIGN_REPAIR_MAX_SLEW_PCT": 40,
