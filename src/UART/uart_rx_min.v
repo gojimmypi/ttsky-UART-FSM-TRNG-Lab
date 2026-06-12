@@ -57,6 +57,9 @@ module uart_rx_min
     input  wire       clk,
     input  wire       rst_n,
     input  wire       rx,
+`ifdef ADJUSTABLE_BAUD_ENABLED
+    input  wire [15:0] baud_div,
+`endif
     output reg [7:0]  data_out,
     output reg        data_valid
 );
@@ -75,12 +78,20 @@ module uart_rx_min
         end
     endgenerate
 
-    localparam integer CLKS_PER_BIT = CLOCK_HZ / UART_BAUD;
+`ifdef ADJUSTABLE_BAUD_ENABLED
+    wire [15:0] clks_per_bit_m1;
+    wire [15:0] clks_per_half_m1;
+
+    assign clks_per_bit_m1  = baud_div - 16'd1;
+    assign clks_per_half_m1 = {1'b0, baud_div[15:1]} - 16'd1;
+`else
+    localparam integer CLKS_PER_BIT     = CLOCK_HZ / UART_BAUD;
     localparam integer CLKS_PER_BIT_M1  = CLKS_PER_BIT - 1;
     localparam integer CLKS_PER_HALF_M1 = (CLKS_PER_BIT >> 1) - 1;
  // localparam [15:0] CLKS_PER_BIT_16    = CLKS_PER_BIT[15:0];
     localparam [15:0] CLKS_PER_BIT_M1_16 = CLKS_PER_BIT_M1[15:0];
     localparam [15:0] CLKS_PER_HALF_M1_16 = CLKS_PER_HALF_M1[15:0];
+`endif
 
     localparam [1:0] ST_IDLE  = 2'd0;
     localparam [1:0] ST_START = 2'd1;
@@ -145,7 +156,12 @@ module uart_rx_min
                      * Sample in the middle of the start bit. If the line has
                      * returned high, it was likely just noise or a glitch.
                      */
+`ifdef ADJUSTABLE_BAUD_ENABLED
+                    if (clk_count == clks_per_half_m1) begin
+`else
                     if (clk_count == CLKS_PER_HALF_M1_16) begin
+`endif
+
                         if (rx_sync == 1'b0) begin
                             clk_count <= 16'd0;
                             bit_index <= 3'd0;
@@ -164,7 +180,11 @@ module uart_rx_min
                      * Because UART is LSB-first, bit_index maps directly to the
                      * destination bit position.
                      */
+`ifdef ADJUSTABLE_BAUD_ENABLED
+                    if (clk_count == clks_per_bit_m1) begin
+`else
                     if (clk_count == CLKS_PER_BIT_M1_16) begin
+`endif
                         clk_count <= 16'd0;
                         shift_reg[bit_index] <= rx_sync;
 
@@ -183,7 +203,11 @@ module uart_rx_min
                      * Check for a valid stop bit. Only then is the received byte
                      * presented and data_valid pulsed for one clock.
                      */
+`ifdef ADJUSTABLE_BAUD_ENABLED
+                    if (clk_count == clks_per_bit_m1) begin
+`else
                     if (clk_count == CLKS_PER_BIT_M1_16) begin
+`endif
                         clk_count <= 16'd0;
 
                         if (rx_sync == 1'b1) begin

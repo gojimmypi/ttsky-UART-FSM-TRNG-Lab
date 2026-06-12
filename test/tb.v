@@ -73,7 +73,7 @@ module tb ();
     $display("tb.v simulation started");
   end
 
-`ifndef COCOTB
+`ifndef GL_TEST
   initial begin
     clk    = 1'b0;
     rst_n  = 1'b0;

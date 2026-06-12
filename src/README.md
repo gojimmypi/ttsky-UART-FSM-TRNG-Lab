@@ -66,6 +66,53 @@ GF180 mixed result at 32/32: [Test Design/GRT repairs to 32/32 #55](https://gith
 40/40 = flow failure
 ```
 
+Even with the edits and all the green checks in the GH actions, there are still corner setup and slew violations at 125C.
+
+```
+max_ss_125C_3v00: WNS -1.5718 ns, TNS -13.5390 ns, 25 violations
+nom_ss_125C_3v00: WNS -1.2557 ns, TNS  -6.4502 ns, 13 violations
+min_ss_125C_3v00: WNS -0.9883 ns, TNS  -3.1216 ns,  9 violations
+```
+
+As the target test clock is 25 MHz, the design was also tested at `"CLOCK_PERIOD": 40,` See [CLOCK_PERIOD: 40 #87](https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/27361579885)
+
+The result was _better_ but not perfect.
+
+```
+| Metric                 | GDS 86, 20 ns / 50 MHz | GDS 87, 40 ns / 25 MHz | Result                       |
+| ---------------------- | ---------------------: | ---------------------: | ---------------------------- |
+| Setup WNS              |           `-1.5718 ns` |                 `0 ns` | **fixed**                    |
+| Setup TNS              |          `-13.5390 ns` |                 `0 ns` | **fixed**                    |
+| Setup violations       |                   `47` |                    `0` | **fixed**                    |
+| Hold WNS               |                    `0` |                    `0` | clean                        |
+| Hold violations        |                    `0` |                    `0` | clean                        |
+| Max cap violations     |                    `0` |                    `0` | clean                        |
+| Route DRC errors       |                    `0` |                    `0` | clean                        |
+| Magic DRC errors       |                    `0` |                    `0` | clean                        |
+| Antenna violating nets |                    `0` |                    `0` | clean                        |
+| Instance count         |                 `6081` |                 `6078` | basically same               |
+| Wirelength             |                `67069` |                `67070` | basically same               |
+| Max slew violations    |                    `7` |                   `13` | worse count, but still small |
+| Max fanout violations  |                   `20` |                   `20` | unchanged, clock leaves      |
+```
+
+Corner Summary:
+
+```
+| Corner             | 86 setup vio | 86 setup WS ns | 86 slew | 86 fanout | 86 cap | 87 setup vio | 87 setup WS ns | 87 slew | 87 fanout | 87 cap |
+| ------------------ | -----------: | -------------: | ------: | --------: | -----: | -----------: | -------------: | ------: | --------: | -----: |
+| `max_ss_125C_3v00` |           25 |         -1.572 |       7 |        20 |      0 |            0 |          9.127 |      13 |        20 |      0 |
+| `nom_ss_125C_3v00` |           13 |         -1.256 |       5 |        20 |      0 |            0 |          9.740 |       0 |        20 |      0 |
+| `min_ss_125C_3v00` |            9 |         -0.988 |       0 |        20 |      0 |            0 |         10.250 |       0 |        20 |      0 |
+| `max_tt_025C_3v30` |            0 |          9.125 |       0 |        20 |      0 |            0 |         24.569 |       0 |        20 |      0 |
+| `nom_tt_025C_3v30` |            0 |          9.296 |       0 |        20 |      0 |            0 |         24.893 |       0 |        20 |      0 |
+| `min_tt_025C_3v30` |            0 |          9.441 |       0 |        20 |      0 |            0 |         25.163 |       0 |        20 |      0 |
+| `max_ff_n40C_3v60` |            0 |         12.684 |       0 |        20 |      0 |            0 |         28.704 |       0 |        20 |      0 |
+| `nom_ff_n40C_3v60` |            0 |         12.734 |       0 |        20 |      0 |            0 |         28.750 |       0 |        20 |      0 |
+| `min_ff_n40C_3v60` |            0 |         12.775 |       0 |        20 |      0 |            0 |         28.788 |       0 |        20 |      0 |
+
+```
+
 ---------
 
 SKY130 JTAG-enabled build: setup/hold clean at 50 MHz, DRC/LVS/antenna/lint clean, with remaining slow-corner max-slew and CTS clock-leaf fanout violations.
@@ -78,3 +125,4 @@ References:
 
 - [LibreLane Option 1 — Macro-First Hardening strategy](https://librelane.readthedocs.io/en/stable/additional_material/caravel/macro_first_hardening/index.html)
 - [Module 3: Routing and Physical Optimization](https://silicon-sprint-auc.readthedocs.io/en/latest/MODULE3.html)
+- [GlobalFoundries 180nm MCU 7 track standard cells libraries](https://github.com/google/globalfoundries-pdk-libs-gf180mcu_fd_sc_mcu7t5v0/tree/main/liberty)

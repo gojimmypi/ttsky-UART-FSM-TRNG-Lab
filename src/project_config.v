@@ -24,7 +24,7 @@
 
     `ifdef USE_LONG_STRINGS
         `define VERSION_STRING_LEN 24 /* 123456789012345678901234 */   
-        `define VERSION_STRING          "Version 0.1.7b 6/10/2026"   
+        `define VERSION_STRING          "Version 0.1.7d 6/11/2026"
     `else
         /* no long strings */
     `endif
@@ -57,6 +57,8 @@
         `define PROJECT_UART_BAUD 32'd115_200
     `endif
 
+    `define ADJUSTABLE_BAUD_ENABLED
+
     /* Some project features, typically only changed during development and debugging: */
 
     // `define ANALOG_ENABLED
@@ -64,6 +66,9 @@
     `define SPI_ENABLED
     `define SPI_REG_ACCESS
     `define TRNG_ENABLED
+    `define TRNG_BINARY_STREAM
+    `define TRNG_CONDITIONED_STREAM
+    `define TRNG_CONDITIONED_STREAM_64_XOR
     `define JTAG_ENABLED
 
     /* Note that with all UART_ENABLED, SPI_ENABLED, SPI_REG_ACCESS, TRNG_ENABLED, JTAG_ENABLED
@@ -88,6 +93,18 @@
 
 
     /* Some final config sanity checks */
+    `ifdef TRNG_CONDITIONED_STREAM
+        `ifndef TRNG_BINARY_STREAM
+            PROJECT_TRNG_CONDITIONED_STREAM_REQUIRES_BINARY_STREAM u_stop (); /* TRNG_CONDITIONED_STREAM requires TRNG_BINARY_STREAM */
+        `endif
+    `endif
+
+    `ifdef TRNG_CONDITIONED_STREAM_64_XOR
+        `ifndef TRNG_CONDITIONED_STREAM
+            PROJECT_TRNG_CONDITIONED_STREAM_64_XOR_REQUIRES_CONDITIONED_STREAM u_stop (); /* TRNG_CONDITIONED_STREAM_64_XOR requires TRNG_CONDITIONED_STREAM */
+        `endif
+    `endif
+
     `ifdef CASE_INSENSITIVE
         `ifdef CASE_INSENSITIVE_ALT
             PROJECT_MUST_PICK_ZERO_OR_ONE_CASE_INSENSITIVE_ALT u_stop (); /* Cannot use both CASE_INSENSITIVE and CASE_INSENSITIVE_ALT */
