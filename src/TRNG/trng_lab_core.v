@@ -98,6 +98,8 @@ module trng_lab_core
     reg  [63:0] stream_mix;
     `elsif TRNG_CONDITIONED_STREAM_CRC
     reg  [15:0] stream_mix;
+    `elsif TRNG_CONDITIONED_STREAM_GALOIS
+    reg  [31:0] stream_mix;
     `else
     reg  [31:0] stream_mix;
     `endif
@@ -127,6 +129,10 @@ module trng_lab_core
     `ifdef TRNG_CONDITIONED_STREAM_CRC
     wire        cond_in_bit;
     wire        feedback;
+    `elsif TRNG_CONDITIONED_STREAM_GALOIS
+    wire        cond_in_bit;
+    wire        stream_feedback;
+    wire [31:0] galois_mix_next;
     `else
     wire        stream_feedback;
     `endif
@@ -202,6 +208,60 @@ module trng_lab_core
 
     assign reg_condlo = stream_mix[7:0];
     assign reg_condhi = stream_mix[15:8];
+`elsif TRNG_CONDITIONED_STREAM_GALOIS
+    assign cond_in_bit =
+        selected_bit ^
+        ro0_sample_sync ^
+        rox_sample_sync ^
+        lfsr[0] ^
+        lfsr[5] ^
+        lfsr[9] ^
+        lfsr[15] ^
+        sample_shift[3] ^
+        sample_shift[11];
+
+    assign stream_feedback = stream_mix[31] ^ cond_in_bit;
+
+    /* 32-bit Galois-style conditioner using taps matching
+     * x^32 + x^22 + x^2 + x + 1. This is still a linear conditioner,
+     * not a cryptographic DRBG, but it avoids exposing a tiny 16-bit state. */
+    assign galois_mix_next = {
+        stream_mix[30],
+        stream_mix[29],
+        stream_mix[28],
+        stream_mix[27],
+        stream_mix[26],
+        stream_mix[25],
+        stream_mix[24],
+        stream_mix[23],
+        stream_mix[22],
+        stream_mix[21] ^ stream_feedback,
+        stream_mix[20],
+        stream_mix[19],
+        stream_mix[18],
+        stream_mix[17],
+        stream_mix[16],
+        stream_mix[15],
+        stream_mix[14],
+        stream_mix[13],
+        stream_mix[12],
+        stream_mix[11],
+        stream_mix[10],
+        stream_mix[9],
+        stream_mix[8],
+        stream_mix[7],
+        stream_mix[6],
+        stream_mix[5],
+        stream_mix[4],
+        stream_mix[3],
+        stream_mix[2],
+        stream_mix[1] ^ stream_feedback,
+        stream_mix[0] ^ stream_feedback,
+        stream_feedback
+    };
+
+    assign reg_condlo = stream_mix[7:0]  ^ stream_mix[23:16] ^ {stream_mix[3:0],  stream_mix[31:28]};
+    assign reg_condhi = stream_mix[15:8] ^ stream_mix[31:24] ^ {stream_mix[11:8], stream_mix[27:24]};
 `else
     assign stream_feedback =
         stream_mix[31] ^
@@ -312,6 +372,8 @@ module trng_lab_core
             stream_mix <= 64'h676F_6A69_6D6D_7921; // "gojimmy!"
     `elsif TRNG_CONDITIONED_STREAM_CRC
             stream_mix      <= 16'hA5C3;
+    `elsif TRNG_CONDITIONED_STREAM_GALOIS
+            stream_mix      <= 32'h676F_6A69; // "goji"
     `else
             stream_mix      <= 32'hA5C3_1F2D;
     `endif
@@ -379,6 +441,13 @@ module trng_lab_core
                     stream_mix[1] ^ feedback,
                     stream_mix[0],
                     feedback
+                };
+`elsif TRNG_CONDITIONED_STREAM_GALOIS
+                stream_mix   <= galois_mix_next ^ {
+                    reg_rawhi ^ lfsr[15:8],
+                    reg_rawlo ^ lfsr[7:0],
+                    sample_shift[15:8] ^ ro_raw,
+                    sample_shift[7:0] ^ {7'b0000000, selected_bit}
                 };
 `else
                 stream_mix   <= {

@@ -75,7 +75,7 @@
      * With unlimited cell space (or an FPGA!) one could test each of the conditioning options
      * with a runtime selection. This is not implemented at this time here.
      *
-     * Pick one of the macros, below. If non are selected there's a 16 
+
      * --------------------------------------------------------------------------------------------
      */
     `define TRNG_CONDITIONED_STREAM
@@ -104,13 +104,21 @@
      */
     // `define TRNG_CONDITIONED_STREAM_CRC
 
-    /* TODO: */
+    /* 
+     * --------------------------------------------------------------------------------------------
+     * Optional 32 bit Galois whitening conditioner: TRNG_CONDITIONED_STREAM_GALOIS
+     * --------------------------------------------------------------------------------------------
+     */
     // `define TRNG_CONDITIONED_STREAM_GALOIS
 
     /* TODO: */
     // `define TRNG_CONDITIONED_STREAM_VON_NEUMANN
 
-    /* With all the above featured enabled, there's not enough room on 1x2 SKY130 to enable JTAG */
+    /* 
+     * --------------------------------------------------------------------------------------------
+     *  With all the above features enabled, there's not enough room on 1x2 SKY130 to enable JTAG 
+     * --------------------------------------------------------------------------------------------
+     */
     // `define JTAG_ENABLED
 
     /* Note that with all UART_ENABLED, SPI_ENABLED, SPI_REG_ACCESS, TRNG_ENABLED, JTAG_ENABLED
