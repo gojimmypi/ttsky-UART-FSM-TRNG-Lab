@@ -213,12 +213,18 @@ module trng_lab_core
         selected_bit ^
         ro0_sample_sync ^
         rox_sample_sync ^
+        ro_raw[1] ^
+        ro_raw[3] ^
+        ro_raw[5] ^
+        ro_raw[7] ^
         lfsr[0] ^
         lfsr[5] ^
         lfsr[9] ^
         lfsr[15] ^
-        sample_shift[3] ^
-        sample_shift[11];
+        sample_shift[2] ^
+        sample_shift[7] ^
+        sample_shift[11] ^
+        sample_shift[14];
 
     assign stream_feedback = stream_mix[31] ^ cond_in_bit;
 
@@ -263,14 +269,14 @@ module trng_lab_core
     assign reg_condlo =
         stream_mix[7:0] ^
         stream_mix[23:16] ^
-        {stream_mix[3:0],
-        stream_mix[31:28]};
+        {stream_mix[3:0], stream_mix[31:28]} ^
+        ((stream_mix[15:8] & stream_mix[31:24]) ^ {stream_mix[0], stream_mix[7:1]});
 
     assign reg_condhi =
         stream_mix[15:8] ^
         stream_mix[31:24] ^
-        {stream_mix[11:8], stream_mix[27:24]};
-
+        {stream_mix[11:8], stream_mix[27:24]} ^
+        ((stream_mix[7:0] | stream_mix[23:16]) ^ {stream_mix[8], stream_mix[15:9]});
 `else
     assign stream_feedback =
         stream_mix[31] ^
