@@ -387,10 +387,12 @@ module trng_lab_core
         /* TRNG_USE_RO is not supported for FPGA builds. Please remove TRNG_USE_RO definition. */
         FPGA_TRNG_USE_RO_NOT_SUPPORTED u_stop ();
     `endif
-    `ifdef SYNTH
-        /* TRNG_USE_RO is not supported for FPGA builds. Please remove TRNG_USE_RO definition. */
-        SYNTH_TRNG_USE_RO_NOT_SUPPORTED u_stop ();
-    `endif
+
+    // TODO: why did we have this:
+    //`ifdef SYNTH
+    //    /* TRNG_USE_RO is not supported for FPGA builds. Please remove TRNG_USE_RO definition. */
+    //    SYNTH_TRNG_USE_RO_NOT_SUPPORTED u_stop ();
+    //`endif
 
     `ifdef TRNG_ALLOW_REAL_RO
         /* TRNG_LAB_USE_REAL_RO is used internally to conditionally include the real RO code. 
@@ -400,7 +402,39 @@ module trng_lab_core
 `endif
 
 `ifdef TRNG_LAB_USE_REAL_RO
-    /* Real ring oscillator path. Requires explicit TRNG_ALLOW_REAL_RO. */
+    /* 
+     * --------------------------------------------------------------------------------------------
+     * --------------------------------------------------------------------------------------------
+     * Real ring oscillator path. Requires explicit TRNG_ALLOW_REAL_RO.
+     * --------------------------------------------------------------------------------------------
+     * --------------------------------------------------------------------------------------------
+     *
+     *   f_ro is approximately:  1 / (2 * loop_delay)
+     *
+     * Where:
+     *
+     *   loop_delay is approximately: N * inverter_delay + enable_gate_delay + routing_delay
+     *
+     * 8 separate trng_ro modules, each with a different odd number of inverter stages.
+     * Each has its own enable bit, 
+     *   e.g. reg_oscen[X] -> u_roN
+     *
+     * Each one produces one raw oscillator output bit:
+     *   u_roX -> ro_raw[N] 
+     *
+     */
+`ifdef BASIC_RO_SET
+    /* Legacy/basic RO bank starts at 3 stages.
+     *
+     *   reg_oscen[0] -> 3-inverter RO  -> ro_raw[0]
+     *   reg_oscen[1] -> 5-inverter RO  -> ro_raw[1]
+     *   reg_oscen[2] -> 7-inverter RO  -> ro_raw[2]
+     *   reg_oscen[3] -> 9-inverter RO  -> ro_raw[3]
+     *   reg_oscen[4] -> 11-inverter RO -> ro_raw[4]
+     *   reg_oscen[5] -> 13-inverter RO -> ro_raw[5]
+     *   reg_oscen[6] -> 15-inverter RO -> ro_raw[6]
+     *   reg_oscen[7] -> 17-inverter RO -> ro_raw[7]
+    */
     trng_ro #(.STAGES(3))  u_ro0 (.enable(reg_oscen[0]), .ro_out(ro_raw[0]));
     trng_ro #(.STAGES(5))  u_ro1 (.enable(reg_oscen[1]), .ro_out(ro_raw[1]));
     trng_ro #(.STAGES(7))  u_ro2 (.enable(reg_oscen[2]), .ro_out(ro_raw[2]));
@@ -409,10 +443,32 @@ module trng_lab_core
     trng_ro #(.STAGES(13)) u_ro5 (.enable(reg_oscen[5]), .ro_out(ro_raw[5]));
     trng_ro #(.STAGES(15)) u_ro6 (.enable(reg_oscen[6]), .ro_out(ro_raw[6]));
     trng_ro #(.STAGES(17)) u_ro7 (.enable(reg_oscen[7]), .ro_out(ro_raw[7]));
+`else
+    /* Default RO bank starts at 7 stages to avoid very short 3/5-stage rings. */
+    trng_ro #(.STAGES(7))  u_ro0 (.enable(reg_oscen[0]), .ro_out(ro_raw[0]));
+    trng_ro #(.STAGES(9))  u_ro1 (.enable(reg_oscen[1]), .ro_out(ro_raw[1]));
+    trng_ro #(.STAGES(11)) u_ro2 (.enable(reg_oscen[2]), .ro_out(ro_raw[2]));
+    trng_ro #(.STAGES(13)) u_ro3 (.enable(reg_oscen[3]), .ro_out(ro_raw[3]));
+    trng_ro #(.STAGES(15)) u_ro4 (.enable(reg_oscen[4]), .ro_out(ro_raw[4]));
+    trng_ro #(.STAGES(17)) u_ro5 (.enable(reg_oscen[5]), .ro_out(ro_raw[5]));
+    trng_ro #(.STAGES(19)) u_ro6 (.enable(reg_oscen[6]), .ro_out(ro_raw[6]));
+    trng_ro #(.STAGES(21)) u_ro7 (.enable(reg_oscen[7]), .ro_out(ro_raw[7]));
+`endif /* ~BASIC_RO_SET */
 
 `else
-    /* Typical simulation or FPGA path. The "RO" bits are just taps from the LFSR. */
+    /* 
+     * --------------------------------------------------------------------------------------------
+     * --------------------------------------------------------------------------------------------
+     * Typical simulation or FPGA path.
+     *
+     * The "RO" bits are deterministic LFSR-derived signals, not physical
+     * entropy sources. This path is for functional testing only.
+     * --------------------------------------------------------------------------------------------
+     * --------------------------------------------------------------------------------------------
+     */
 
+`ifdef FPGA_BASIC_LFSR_RO_TAPS
+    /* The "RO" bits are just taps from the LFSR. */
     assign ro_raw[0] = lfsr[0];
     assign ro_raw[1] = lfsr[3];
     assign ro_raw[2] = lfsr[5];
@@ -421,8 +477,19 @@ module trng_lab_core
     assign ro_raw[5] = lfsr[11];
     assign ro_raw[6] = lfsr[13];
     assign ro_raw[7] = lfsr[15];
+`else
+    /* Default FPGA surrogate respects reg_oscen, but is still deterministic. */
+    assign ro_raw[0] = reg_oscen[0] & lfsr[0];
+    assign ro_raw[1] = reg_oscen[1] & lfsr[3];
+    assign ro_raw[2] = reg_oscen[2] & lfsr[5];
+    assign ro_raw[3] = reg_oscen[3] & lfsr[7];
+    assign ro_raw[4] = reg_oscen[4] & lfsr[9];
+    assign ro_raw[5] = reg_oscen[5] & lfsr[11];
+    assign ro_raw[6] = reg_oscen[6] & lfsr[13];
+    assign ro_raw[7] = reg_oscen[7] & lfsr[15];
+`endif /* !FPGA_BASIC_LFSR_RO_TAPS */
 
-`endif
+`endif /* !TRNG_LAB_USE_REAL_RO */
 
     always @(*) begin
         case (source_select)
@@ -626,6 +693,10 @@ module trng_ro_inverter_cell
 
 endmodule /* trng_ro_inverter_cell */
 
+
+/*
+ * Build a gated ring oscillator out of [STAGES] inverter cells.
+ */
 module trng_ro
 #(
     parameter integer STAGES = 3
@@ -643,6 +714,7 @@ module trng_ro
 
     assign ro_out = inv_in[0];
 
+    /* inv_array is an array of inverter cell instances forming one ring */
     (* keep_hierarchy *) trng_ro_inverter_cell inv_array [STAGES-1:0]
     (
         .a(inv_in),
@@ -653,6 +725,7 @@ endmodule /* trng_ro */
 
 `endif /* TRNG_LAB_USE_REAL_RO */
 
+/* Clean up macros created and used only in this file */
 `ifdef TRNG_LAB_USE_REAL_RO
     `undef TRNG_LAB_USE_REAL_RO
 `endif

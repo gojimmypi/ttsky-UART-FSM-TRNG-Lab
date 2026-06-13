@@ -154,6 +154,10 @@
      */
     // `define JTAG_ENABLED
 
+    /* FPGA-only: ignore reg_oscen and expose raw deterministic LFSR taps.
+     * Normally leave disabled so the FPGA surrogate respects oscillator enables. */
+    // `define FPGA_BASIC_LFSR_RO_TAPS
+
     /* Note that with all UART_ENABLED, SPI_ENABLED, SPI_REG_ACCESS, TRNG_ENABLED, JTAG_ENABLED
      * also enabling PIN_DIAG pushes design over 80% of 1x2 tiles. GDS aborted after 90 minute run. */
     `ifdef ULX3S
@@ -228,6 +232,10 @@
         `ifdef CASE_INSENSITIVE
             PROJECT_MUST_PICK_ZERO_OR_ONE_CASE_INSENSITIVE u_stop ();  /* Cannot use both CASE_INSENSITIVE and CASE_INSENSITIVE_ALT */
         `endif
+    `endif
+
+    `ifdef FPGA_BASIC_LSFR_RO_TAPS
+         PROJECT_LSFR_NOT_A_VALID_OPTION u_stop ();  /* It is LFSR not LSFR */
     `endif
 
 `endif /* PROJECT_CONFIG_V */
