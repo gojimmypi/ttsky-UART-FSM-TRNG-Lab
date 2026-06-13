@@ -14,7 +14,7 @@ export TT_PROJECT_ROOT="/mnt/c/workspace/$TT_PROJECT_NAME"
 
  - `test-hw\README.md`
  - `test-hw\run_tests.sh`
- - `test-hw\tt_ulx3s_uart_test.py`
+ - `test-hw\tt_uart_test.py`
 
 ## ULX3S
 
@@ -77,7 +77,7 @@ For `could not open port /dev/ttyS11` such as that shown below, make sure the po
 If the port number has changed, which is common with Windows, pass the correct port number to the test script using the `--port` argument, for example: 
 
 ```
-python ./tt_ulx3s_uart_test.py --port /dev/ttyS3
+python ./tt__uart_test.py --port /dev/ttyS3
 ```
 
 Or edit the default port in `run_tests.sh`
@@ -97,9 +97,9 @@ OSError: [Errno 5] Input/output error: '/dev/ttyS11'
 During handling of the above exception, another exception occurred:
 
 Traceback (most recent call last):
-  File "/mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/test-hw/./tt_ulx3s_uart_test.py", line 397, in <module>
+  File "/mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/test-hw/./tt_uart_test.py", line 397, in <module>
     sys.exit(main())
-  File "/mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/test-hw/./tt_ulx3s_uart_test.py", line 375, in main
+  File "/mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/test-hw/./tt_uart_test.py", line 375, in main
     ser = serial.Serial(args.port, args.baud, timeout=0.01)
   File "/home/gojimmypi/.local/lib/python3.10/site-packages/serial/serialutil.py", line 244, in __init__
     self.open()

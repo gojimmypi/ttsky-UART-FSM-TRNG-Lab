@@ -3,7 +3,7 @@
 # Copyright (c) 2026 gojimmypi
 # SPDX-License-Identifier: Apache-2.0
 #
-# file: tt_ulx3s_trng_repro_test.py
+# file: tt_trng_repro_test.py
 #
 # Reproducibility test for the deterministic LFSR path in trng_lab_core.
 #

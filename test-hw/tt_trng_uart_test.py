@@ -3,7 +3,7 @@
 # Copyright (c) 2026 gojimmypi
 # SPDX-License-Identifier: Apache-2.0
 #
-# file: tt_ulx3s_trng_uart_test.py
+# file: tt_trng_uart_test.py
 
 import argparse
 import re

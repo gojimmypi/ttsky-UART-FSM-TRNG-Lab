@@ -291,17 +291,17 @@ if [ "$IS_LOOPBACK" -eq 1 ]; then
     python ./loopback_test.py --port "$PORT" -b 115200 --bulk           || exit 1
     printf "Test bulk mode most challenging - complete.\n\n"
 else
-    # usage: tt_ulx3s_uart_test.py [-h] --port PORT [--baud BAUD] [--timeout TIMEOUT] [--idle-time IDLE_TIME]
+    # usage: tt_uart_test.py [-h] --port PORT [--baud BAUD] [--timeout TIMEOUT] [--idle-time IDLE_TIME]
     #                              [--repeat REPEAT] [--stop-on-fail]
     #                              [--reset-registers]
 
-    python ./tt_ulx3s_uart_test.py --port "$PORT"                   || exit 1
+    python ./tt_uart_test.py --port "$PORT"                   || exit 1
 
-    python ./tt_ulx3s_uart_test.py --port "$PORT" --reset-registers || exit 1
+    python ./tt_uart_test.py --port "$PORT" --reset-registers || exit 1
 
-    python ./tt_ulx3s_trng_uart_test.py --port "$PORT"              || exit 1
+    python ./tt_trng_uart_test.py --port "$PORT"              || exit 1
 
-    python ./tt_ulx3s_trng_repro_test.py --port  "$PORT"            || exit 1
+    python ./tt_trng_repro_test.py --port  "$PORT"            || exit 1
 fi
 
 # echo "Generating a 16MB trng_conditioned.bin"
