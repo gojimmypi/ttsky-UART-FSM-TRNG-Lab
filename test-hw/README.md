@@ -1,7 +1,5 @@
 # Hardware Testing
 
-<!--- Revert Galois V1 --->
-
 This directory contains supplementary files for testing the Tiny Tapeout project on hardware, 
 specifically the ULX3S FPGA board.
 

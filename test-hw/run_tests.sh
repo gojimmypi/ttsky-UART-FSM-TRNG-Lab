@@ -61,7 +61,7 @@
 
 PORT=/dev/ttyS12
 
-# Run shell check to ensure this a good script.
+# Run shellcheck to ensure this is a good script.
 # Specify the executable shell checker you want to use:
 MY_SHELLCHECK="shellcheck"
 
@@ -304,7 +304,7 @@ else
     python ./tt_ulx3s_trng_repro_test.py --port  "$PORT"            || exit 1
 fi
 
-echo "Generating a 16MB trng_conditioned.bin"
+# echo "Generating a 16MB trng_conditioned.bin"
 
 # Generate a bin file of random data to be analyzed
 # ./capture_trng_raw_uart.py  --port "$PORT"  --bytes 16777216  --out trng_conditioned.bin  --fast-baud  --conditioned

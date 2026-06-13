@@ -72,6 +72,10 @@ module trng_cfg_ascii_core
     input  wire [7:0] reg_rawlo,
     input  wire [7:0] reg_rawhi,
 
+`ifdef TRNG_BINARY_STREAM
+    input  wire [7:0] stream_sample_count,
+`endif
+
 `ifdef TRNG_CONDITIONED_STREAM
     `ifdef TRNG_CONDITIONED_STREAM_64_XOR
     input  wire [7:0] reg_cond0,
@@ -119,16 +123,17 @@ module trng_cfg_ascii_core
     localparam [4:0] ST_Q_ERR      = 5'd12;
     localparam [4:0] ST_WAIT_SEND  = 5'd13;
 
-`ifdef TRNG_BINARY_STREAM
-    localparam [4:0] ST_Q_BIN      = 5'd15;
-`endif
-
 `ifdef USE_LONG_STRINGS
     localparam [4:0] ST_Q_STR      = 5'd14;
     localparam integer                   VERSION_LEN = `VERSION_STRING_LEN; /* Must be defined if USE_LONG_STRINGS is defined.  See project.v */
     localparam [(8 * VERSION_LEN) - 1:0] VERSION_STR = `VERSION_STRING;     /* Must be defined if USE_LONG_STRINGS is defined.  See project.v */
 `else
     /* Version string not implemented */
+`endif
+
+`ifdef TRNG_BINARY_STREAM
+    localparam [4:0] ST_Q_BIN      = 5'd15;
+    localparam [4:0] ST_Q_BIN_WAIT = 5'd16;
 `endif
 
     reg [4:0] state;
@@ -153,6 +158,8 @@ module trng_cfg_ascii_core
 `ifdef TRNG_BINARY_STREAM
     reg [7:0] stream_count;
     reg       stream_hi;
+    reg [7:0] stream_seen_sample_count;
+    reg [7:0] stream_byte;
 `ifdef TRNG_CONDITIONED_STREAM
     reg       stream_conditioned;
     `ifdef TRNG_CONDITIONED_STREAM_64_XOR
@@ -433,6 +440,9 @@ module trng_cfg_ascii_core
             tx_start              <= 1'b0;
 
         `ifdef TRNG_BINARY_STREAM
+            stream_seen_sample_count <= 8'h00;
+            stream_byte              <= 8'h00;
+            
             stream_count          <= 8'h00;
             stream_hi             <= 1'b0;
             `ifdef TRNG_CONDITIONED_STREAM
@@ -659,7 +669,8 @@ module trng_cfg_ascii_core
                                     stream_conditioned <= (cmd == "C");
         `endif /* CASE_INSENSITIVE_ALT */
     `endif /* TRNG_CONDITIONED_STREAM */
-                                    state        <= ST_Q_BIN;
+                                    stream_seen_sample_count <= stream_sample_count;
+                                    state                    <= ST_Q_BIN_WAIT;
                                 end else begin
                                     state <= ST_Q_ERR;
                                 end
@@ -796,54 +807,65 @@ module trng_cfg_ascii_core
 
             /* Optional TRNG Binary Stream feature for ST_Q_BIN state */
             `ifdef TRNG_BINARY_STREAM
-                ST_Q_BIN: begin
-                    if (!queued_tx_valid && !tx_busy) begin
+                ST_Q_BIN_WAIT: begin
+                    if (stream_sample_count != stream_seen_sample_count) begin
+                        stream_seen_sample_count <= stream_sample_count;
+
 `ifdef TRNG_CONDITIONED_STREAM
     `ifdef TRNG_CONDITIONED_STREAM_64_XOR
                         if (stream_conditioned) begin
-                            queue_tx(read_cond_byte(stream_cond_index));
+                            stream_byte       <= read_cond_byte(stream_cond_index);
                             stream_cond_index <= stream_cond_index + 3'd1;
                         end else begin
                             if (stream_hi) begin
-                                queue_tx(reg_rawhi);
+                                stream_byte <= reg_rawhi;
                                 stream_hi <= 1'b0;
                             end else begin
-                                queue_tx(reg_rawlo);
+                                stream_byte <= reg_rawlo;
                                 stream_hi <= 1'b1;
                             end
                         end
     `else
                         if (stream_hi) begin
                             if (stream_conditioned) begin
-                                queue_tx(reg_condhi);
+                                stream_byte <= reg_condhi;
                             end else begin
-                                queue_tx(reg_rawhi);
+                                stream_byte <= reg_rawhi;
                             end
                             stream_hi <= 1'b0;
                         end else begin
                             if (stream_conditioned) begin
-                                queue_tx(reg_condlo);
+                                stream_byte <= reg_condlo;
                             end else begin
-                                queue_tx(reg_rawlo);
+                                stream_byte <= reg_rawlo;
                             end
                             stream_hi <= 1'b1;
                         end
     `endif /* ! TRNG_CONDITIONED_STREAM_64_XOR */
 `else
                         if (stream_hi) begin
-                            queue_tx(reg_rawhi);
+                            stream_byte <= reg_rawhi;
                             stream_hi <= 1'b0;
                         end else begin
-                            queue_tx(reg_rawlo);
+                            stream_byte <= reg_rawlo;
                             stream_hi <= 1'b1;
                         end
 `endif /* ! TRNG_CONDITIONED_STREAM */
 
+                        state <= ST_Q_BIN;
+                    end
+                end
+
+                ST_Q_BIN: begin
+                    if (!queued_tx_valid && !tx_busy) begin
+                        queue_tx(stream_byte);
+
                         if (stream_count == 8'h01) begin
                             stream_count <= 8'h00;
-                            state <= ST_IDLE;
+                            state        <= ST_IDLE;
                         end else begin
                             stream_count <= stream_count - 8'd1;
+                            state        <= ST_Q_BIN_WAIT;
                         end
                     end
                 end

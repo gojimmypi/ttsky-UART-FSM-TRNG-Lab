@@ -82,6 +82,8 @@ Connect a UART terminal (e.g. PuTTY) to the TT Breakout (or Demoboard) I/O pins 
 
 ![PMOD-connector-test1.png](./PMOD-connector-test1.jpg)
 
+Note: `IN3` and `OUT4` are Tiny Tapeout logical signal names, not PMOD physical pin numbers. On the shown PMOD adapter, `in3` is PMOD IO4 / physical pin 4, and `out4` is PMOD IO5 / physical pin 7.
+
 Project config:
 
 - `clock_hz: 25000000` in `info.yaml` 
@@ -1220,7 +1222,7 @@ The TRNG lab core internally resets the LFSR to `0x1ACE`, clears `sample_shift`,
 | Pin | Direction | Function |
 | --- | --- | --- |
 | `ui_in[7:5]` | Input | Reserved / unused |
-| `ui_in[4]`   | Input | SPI/JTAG select, 1 = SPI, 0 = JTAG |
+| `ui_in[4]`   | Input | SPI/JTAG select, 1 = SPI, 0 = JTAG (when JTAG_ENABLED is defined) |
 | `ui_in[3]`   | Input | UART RX |
 | `ui_in[2:0]` | Input | Reserved / unused |
 
@@ -1230,10 +1232,10 @@ The UART RX input is synchronized through a two-stage synchronizer before it ent
 
 | Pin | Direction | Function |
 | --- | --- | --- |
-| `uo_out[0]` | Output | `trng_bit` |
-| `uo_out[1]` | Output | `reg_status[0]` |
-| `uo_out[2]` | Output | `reg_status[1]` |
-| `uo_out[3]` | Output | `reg_status[2]` |
+| `uo_out[0]` | Output | Debug visibility: `trng_bit` |
+| `uo_out[1]` | Output | Debug visibility: `reg_status[0]` |
+| `uo_out[2]` | Output | Debug visibility: `reg_status[1]` |
+| `uo_out[3]` | Output | Debug visibility: `reg_status[2]` |
 | `uo_out[4]` | Output | UART TX |
 | `uo_out[5]` | Output | `reg_rawlo[0]` |
 | `uo_out[6]` | Output | `reg_rawlo[1]` |

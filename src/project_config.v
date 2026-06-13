@@ -24,7 +24,7 @@
 
     `ifdef USE_LONG_STRINGS
         `define VERSION_STRING_LEN 24 /* 123456789012345678901234 */   
-        `define VERSION_STRING          "Version 0.1.7g 6/12/2026"
+        `define VERSION_STRING          "Version 0.1.7j 6/12/2026"
         /* GF26a deadline: June 22, 1:00PM PDT */
     `else
         /* no long strings */
@@ -153,7 +153,11 @@
      *  With all the above features enabled, there's not enough room on 1x2 SKY130 to enable JTAG 
      * --------------------------------------------------------------------------------------------
      */
-    // `define JTAG_ENABLED
+    `ifdef PDK_TARGET_SKY130
+        /* no JTAG at this time */
+    `else
+        `define JTAG_ENABLED
+    `endif
 
     /* FPGA-only: ignore reg_oscen and expose raw deterministic LFSR taps.
      * Normally leave disabled so the FPGA surrogate respects oscillator enables. */
@@ -245,6 +249,12 @@
 
     `ifdef FPGA_BASIC_LSFR_RO_TAPS
          PROJECT_LSFR_NOT_A_VALID_OPTION u_stop ();  /* It is LFSR not LSFR */
+    `endif
+
+    `ifdef SPI_REG_ACCESS
+        `ifndef SPI_ENABLED
+            PROJECT_SPI_REG_ACCESS_REQUIRES_SPI_ENABLED u_stop ();
+        `endif
     `endif
 
 `endif /* PROJECT_CONFIG_V */

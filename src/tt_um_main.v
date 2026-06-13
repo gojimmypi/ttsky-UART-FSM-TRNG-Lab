@@ -16,7 +16,7 @@
  *
  * Pin usage in this wrapper:
  * - ui_in[7:5]   : reserved for future use, currently ignored
- * - ui_in[4]     : SPI/JTAG select, 1 = SPI, 0 = JTAG
+ * - ui_in[4]     : SPI/JTAG select, 1 = SPI, 0 = JTAG (when JTAG_ENABLED defined)
  * - ui_in[3]     : UART RX input to the core
  * - ui_in[2:0]   : reserved for future use, currently ignored
  *
@@ -371,7 +371,7 @@ module tt_um_main
      * ui_in[4] = 0: external JTAG header owns uio[3:0] */
     assign debug_is_jtag = ~debug_sel_sync; /* invert logic since pull-up default on ULX3S wrapper means unconnected = SPI (not JTAG)  */
 
-    /* TODO: what happens with unconnected TT pim? */
+    /* TODO: what happens with unconnected TT pin? */
 
     assign jtag_tms = uio_in[0];
     assign jtag_tdi = uio_in[1];

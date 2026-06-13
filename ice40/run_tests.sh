@@ -30,7 +30,7 @@ else
     echo "TT_PORT:      ${TT_PORT}"
 fi
 
-# Run shell check to ensure this a good script.
+# Run shellcheck to ensure this is a good script.
 # Specify the executable shell checker you want to use:
 MY_SHELLCHECK="shellcheck"
 

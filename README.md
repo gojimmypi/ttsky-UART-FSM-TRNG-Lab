@@ -2,7 +2,7 @@
 
 # Tiny Tapeout Project: ttsky-UART-FSM-TRNG-Lab
 
-- [Read the documentation for project](docs/info.md)
+Details of this project are located in [docs/info.md](./docs/info.md)
 
 
 See companions projects:

@@ -73,6 +73,10 @@ module trng_lab_core
     output reg  [7:0] reg_rawlo,
     output reg  [7:0] reg_rawhi,
 
+`ifdef TRNG_BINARY_STREAM
+    output reg  [7:0] stream_sample_count,
+`endif
+
 `ifdef TRNG_CONDITIONED_STREAM
     `ifdef TRNG_CONDITIONED_STREAM_64_XOR
     output wire [7:0] reg_cond0,
@@ -623,6 +627,7 @@ module trng_lab_core
             sample_ctr      <= 16'h0000;
             lfsr            <= 16'h1ACE;
             sample_shift    <= 16'h0000;
+
 `ifdef TRNG_CONDITIONED_STREAM
     `ifdef TRNG_CONDITIONED_STREAM_64_XOR
             /* Nonzero fixed conditioner seed. This is not a secret key and does not
@@ -640,7 +645,8 @@ module trng_lab_core
     `else
             stream_mix      <= 32'hA5C3_1F2D;
     `endif
-`endif
+`endif /* TRNG_CONDITIONED_STREAM */
+
             ro0_sample_meta <= 1'b0;
             ro0_sample_sync <= 1'b0;
             rox_sample_meta <= 1'b0;
@@ -648,7 +654,13 @@ module trng_lab_core
             reg_status      <= 8'h00;
             reg_rawlo       <= 8'h00;
             reg_rawhi       <= 8'h00;
+`ifdef TRNG_BINARY_STREAM
+            stream_sample_count <= 8'h00;
+`endif
+            /* End main reset */
+
         end else begin
+            /* Main always block */
             trng_step_d     <= trng_step;
             sample_tick_q   <= sample_tick;
             do_sample_q     <= (trng_enable && sample_tick) || trng_step_pulse;
@@ -671,6 +683,10 @@ module trng_lab_core
                 sample_shift <= {sample_shift[14:0], selected_bit};
                 reg_rawlo    <= {sample_shift[6:0], selected_bit};
                 reg_rawhi    <= sample_shift[14:7];
+        `ifdef TRNG_BINARY_STREAM
+                stream_sample_count <= stream_sample_count + 8'h01;
+        `endif
+
 `ifdef TRNG_CONDITIONED_STREAM
 `ifdef TRNG_CONDITIONED_STREAM_64_XOR
                 stream_mix   <= {

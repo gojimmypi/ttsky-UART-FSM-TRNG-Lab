@@ -49,12 +49,13 @@
 `include "../src/project_config.v"
 
 /* Optional SPI and JTAG support - enable by defining ULX3S_SPI_ENABLED and/or ULX3S_JTAG_ENABLED in your project.v
- * This example assumes shared SPI/JTAG pins connected to the ESP32, but you can modify as needed. */
+ * This example assumes shared SPI/JTAG pins connected to the ESP32, but you can modify as needed.
+ * Specific to this file and only used for ULX3S: */
 `ifdef ULX3S_JTAG_ENABLED
-    `define SHARED_SPI_JTAG_IO
+    `define ULX3S_SHARED_SPI_JTAG_IO
 `endif
 `ifdef ULX3S_SPI_ENABLED
-    `define SHARED_SPI_JTAG_IO
+    `define ULX3S_SHARED_SPI_JTAG_IO
 `endif
 
 /*******************************************************************************
@@ -78,7 +79,7 @@ module top_ulx3s (
     input  wire        gp0,
     output wire        gp1,
 
-`ifdef SHARED_SPI_JTAG_IO
+`ifdef ULX3S_SHARED_SPI_JTAG_IO
     /* Header pins used for optional external JTAG access. */
     input  wire        gn2,
     input  wire        gp2,
@@ -185,7 +186,7 @@ module top_ulx3s (
 `endif /* ULX3S_SPI_ENABLED */
 
     wire shared_spi_jtag_select;
-`ifdef SHARED_SPI_JTAG_IO
+`ifdef ULX3S_SHARED_SPI_JTAG_IO
     /* WARNING: don't leave gp4 floating!!! */
     // assign shared_spi_jtag_select = 1'b0;
     assign shared_spi_jtag_select = gp4;
@@ -320,7 +321,7 @@ module top_ulx3s (
 
 `endif /* UART_ENABLED */
 
-`ifdef SHARED_SPI_JTAG_IO
+`ifdef ULX3S_SHARED_SPI_JTAG_IO
     /*
      * shared_spi_jtag_select = 1:
      *     ESP32 SPI pins drive TT uio[3:0].

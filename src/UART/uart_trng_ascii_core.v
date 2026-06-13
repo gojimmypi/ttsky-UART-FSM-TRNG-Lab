@@ -69,7 +69,7 @@ module uart_trng_ascii_core
     input  wire [2:0] spi_reg_addr,
     input  wire [7:0] spi_reg_wdata,
     output wire [7:0] spi_reg_rdata
-`endif
+`endif /* SPI_REG_ACCESS */
 );
     /* Boilerplate parameter checking */
     generate
@@ -104,6 +104,23 @@ module uart_trng_ascii_core
     localparam integer UART_DIV_460800 = CLOCK_HZ / 32'd460_800;
     localparam integer UART_DIV_921600 = CLOCK_HZ / 32'd921_600;
 
+    /* Boilerplate parameter checking */
+    generate
+        if (UART_DIV_115200 == 32'd0) begin : gen_bad_uart_div_115200
+            PROJECT_MUST_NOT_USE_ZERO_UART_DIV_115200 u_stop ();
+        end
+        if (UART_DIV_230400 == 32'd0) begin : gen_bad_uart_div_230400
+            PROJECT_MUST_NOT_USE_ZERO_UART_DIV_230400 u_stop ();
+        end
+        if (UART_DIV_460800 == 32'd0) begin : gen_bad_uart_div_460800
+            PROJECT_MUST_NOT_USE_ZERO_UART_DIV_460800 u_stop ();
+        end
+        if (UART_DIV_921600 == 32'd0) begin : gen_bad_uart_div_921600
+            PROJECT_MUST_NOT_USE_ZERO_UART_DIV_921600 u_stop ();
+        end
+
+    endgenerate
+
     localparam [15:0] UART_DIV_115200_16 = UART_DIV_115200[15:0];
     localparam [15:0] UART_DIV_230400_16 = UART_DIV_230400[15:0];
     localparam [15:0] UART_DIV_460800_16 = UART_DIV_460800[15:0];
@@ -115,7 +132,7 @@ module uart_trng_ascii_core
                            (uart_baud_sel == 2'd2) ? UART_DIV_460800_16 :
                            (uart_baud_sel == 2'd1) ? UART_DIV_230400_16 :
                                                        UART_DIV_115200_16;
-`endif
+`endif /* ADJUSTABLE_BAUD_ENABLED */
 
     /*
      * Locally replicate the incoming reset inside this integration block.
@@ -243,6 +260,10 @@ module uart_trng_ascii_core
     wire [7:0] reg_rawlo;
     wire [7:0] reg_rawhi;
 
+`ifdef TRNG_BINARY_STREAM
+    wire [7:0] stream_sample_count;
+`endif
+
 `ifdef TRNG_CONDITIONED_STREAM
 `ifdef TRNG_CONDITIONED_STREAM_64_XOR
     wire [7:0] reg_cond0;
@@ -359,6 +380,10 @@ module uart_trng_ascii_core
     wire [7:0] reg_rawlo;
     wire [7:0] reg_rawhi;
 
+`ifdef TRNG_BINARY_STREAM
+    wire [7:0] stream_sample_count;
+`endif
+
 `ifdef TRNG_CONDITIONED_STREAM
 `ifdef TRNG_CONDITIONED_STREAM_64_XOR
     wire [7:0] reg_cond0;
@@ -440,6 +465,11 @@ module uart_trng_ascii_core
         .reg_status(reg_status),
         .reg_rawlo(reg_rawlo),
         .reg_rawhi(reg_rawhi),
+
+`ifdef TRNG_BINARY_STREAM
+        .stream_sample_count(stream_sample_count),
+`endif
+
 `ifdef TRNG_CONDITIONED_STREAM
 `ifdef TRNG_CONDITIONED_STREAM_64_XOR
         .reg_cond0(reg_cond0),
@@ -482,6 +512,11 @@ module uart_trng_ascii_core
         .reg_status(reg_status),
         .reg_rawlo(reg_rawlo),
         .reg_rawhi(reg_rawhi),
+
+`ifdef TRNG_BINARY_STREAM
+        .stream_sample_count(stream_sample_count),
+`endif
+
 `ifdef TRNG_CONDITIONED_STREAM
 `ifdef TRNG_CONDITIONED_STREAM_64_XOR
         .reg_cond0(reg_cond0),
@@ -528,6 +563,9 @@ module uart_trng_ascii_core
         .reg_status(reg_status),
         .reg_rawlo(reg_rawlo),
         .reg_rawhi(reg_rawhi),
+    `ifdef TRNG_BINARY_STREAM
+        .stream_sample_count(stream_sample_count),
+    `endif
         .trng_bit(trng_bit)
     );
 `endif /* End of TRNG_ENABLED conditional. */

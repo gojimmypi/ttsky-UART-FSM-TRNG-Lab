@@ -16,7 +16,7 @@ MY_WORKSPACE="/mnt/c/workspace"
 # For example: "ttsky-UART-FSM-TRNG-Lab"
 MY_PROJECT_NAME="$(basename "$(dirname "$PWD")")"
 
-# Run shell check to ensure this a good script.
+# Run shellcheck to ensure this is a good script.
 # Specify the executable shell checker you want to use:
 MY_SHELLCHECK="shellcheck"
 

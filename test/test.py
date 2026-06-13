@@ -9,7 +9,10 @@ import cocotb
 from cocotb.triggers import Timer
 from cocotb.clock import Clock
 
-CLK_PERIOD_NS = 10
+# CLK_PERIOD_NS = 10, for 100 MHz testing
+# CLK_PERIOD_NS = 20, for common TT CLK = 50 MHz
+# CLK_PERIOD_NS = 40, for our target 25 MHz
+CLK_PERIOD_NS = 40
 CLKS_PER_BIT = 217
 SETTLE_TIME_NS = 2
 

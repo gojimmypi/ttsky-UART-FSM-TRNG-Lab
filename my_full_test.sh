@@ -3,10 +3,10 @@
 # Copyright (c) 2026 gojimmypi
 # SPDX-License-Identifier: Apache-2.0
 #
-# file: ice40/run_tests.sh
+# file: my_full_test.sh
 #
 
-# Run shell check to ensure this a good script.
+# Run shellcheck to ensure this is a good script.
 # Specify the executable shell checker you want to use:
 MY_SHELLCHECK="shellcheck"
 

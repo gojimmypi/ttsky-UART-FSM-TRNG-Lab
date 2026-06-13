@@ -167,15 +167,15 @@ module uart_tx_min
 `endif
                         clk_count <= 16'd0;
 
-                        if (bit_index < 4'd8) begin
+                        if (bit_index == 4'd8) begin
+                            /* All eight data bits have completed; drive the stop bit high. */
+                            tx    <= 1'b1;
+                            state <= ST_STOP;
+                        end else begin
                             /* Continue shifting out remaining data bits. */
                             tx        <= shift_reg[0];
                             shift_reg <= {1'b0, shift_reg[7:1]};
                             bit_index <= bit_index + 1'b1;
-                        end else begin
-                            /* After the eighth bit, drive the stop bit high. */
-                            tx    <= 1'b1;
-                            state <= ST_STOP;
                         end
                     end else begin
                         clk_count <= clk_count + 1'b1;

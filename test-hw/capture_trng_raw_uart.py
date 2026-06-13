@@ -210,9 +210,17 @@ def main():
         time.sleep(0.1)
 
         try:
+            print("Begin capture...")
             fast_baud_active = capture_with_retries(ser, args)
 
         finally:
+            print("Disable/freezes TRNG sampling with E0")
+            print("Done!")
+            # TODO: add command-line option: --stop-after-capture
+            ser.reset_input_buffer()
+            ser.reset_output_buffer()
+            send_ascii_cmd(ser, b"E0\r", b"OK\r")
+
             if fast_baud_active:
                 try:
                     # Send U0 at the current fast baud. The RTL replies OK at the

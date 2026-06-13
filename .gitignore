@@ -57,3 +57,6 @@ test/gate_level_netlist.v
 /test-hw/trng_conditioned_2MiB.bin
 /test-hw/trng_conditioned_2MiB.*.bin
 /test-hw/trng_raw_mixed_2MiB.bin
+/test-hw/test_conditioned_fast.bin
+/test-hw/trng_conditioned_115200.bin
+/test-hw/test_conditioned_115200.bin

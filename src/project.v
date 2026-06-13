@@ -9,6 +9,13 @@
  * Top-level wrapper for the Tiny Tapeout project.
  *
  * If the ULX3S FPGA is used, see the /ulx3s/top_ulx3s.v wrapper file and define ULX3S when building. 
+ *
+ *
+ *                              ***** NO USER DEFINES IN THIS FILE *****
+ *
+ *
+ * Any defines here are programmatic based on settings. See project_settings.v for all build configurations.
+ *
  */
 `default_nettype none
 

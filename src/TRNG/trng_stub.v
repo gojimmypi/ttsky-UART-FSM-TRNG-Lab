@@ -35,6 +35,9 @@ module trng_stub
     output reg  [7:0] reg_status,
     output reg  [7:0] reg_rawlo,
     output reg  [7:0] reg_rawhi,
+`ifdef TRNG_BINARY_STREAM
+    output reg  [7:0] stream_sample_count,
+`endif
     output wire       trng_bit
 );
 
@@ -61,6 +64,9 @@ module trng_stub
 
     always @(posedge clk) begin
         if (!rst_n) begin
+`ifdef TRNG_BINARY_STREAM
+            stream_sample_count <= 8'h00;
+`endif
             sample_ctr <= 16'h0000;
             lfsr       <= 16'h1ACE;
             reg_status <= 8'h00;
@@ -83,6 +89,9 @@ module trng_stub
                  * At that point, advance the LFSR and publish a new 16-bit word.
                  */
                 if (sample_ctr >= {8'h00, reg_div}) begin
+`ifdef TRNG_BINARY_STREAM
+                    stream_sample_count <= stream_sample_count + 8'h01;
+`endif
                     sample_ctr <= 16'h0000;
 
                     /*
