@@ -51,6 +51,13 @@
     `endif
 `endif
 
+/* 
+ * --------------------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------
+ *  TRNG Lab Core - the heart of all things random
+ * --------------------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------
+ */
 module trng_lab_core
 (
     input  wire       clk,
@@ -84,7 +91,7 @@ module trng_lab_core
 
     output wire       trng_bit
 );
-
+/* -------------------------------------------------------------------------------------------- */
     localparam [1:0] SRC_LFSR = 2'b00;
     localparam [1:0] SRC_RO0  = 2'b01;
     localparam [1:0] SRC_ROX  = 2'b10;
@@ -93,6 +100,7 @@ module trng_lab_core
     reg  [15:0] sample_ctr;
     reg  [15:0] lfsr;
     reg  [15:0] sample_shift;
+
 `ifdef TRNG_CONDITIONED_STREAM
     `ifdef TRNG_CONDITIONED_STREAM_64_XOR
     reg  [63:0] stream_mix;
@@ -129,6 +137,7 @@ module trng_lab_core
     wire [7:0]  ro_raw;
     wire        ro_xor;
     wire        lfsr_next_bit;
+
 `ifdef TRNG_CONDITIONED_STREAM
     `ifdef TRNG_CONDITIONED_STREAM_CRC
     wire        cond_in_bit;
@@ -209,6 +218,7 @@ module trng_lab_core
     assign reg_cond5 = stream_scrambled[47:40] ^ stream_scrambled[15:8]  ^ stream_scrambled[31:24];
     assign reg_cond6 = stream_scrambled[55:48] ^ stream_scrambled[23:16] ^ stream_scrambled[39:32];
     assign reg_cond7 = stream_scrambled[63:56] ^ stream_scrambled[31:24] ^ stream_scrambled[47:40];
+
 `elsif TRNG_CONDITIONED_STREAM_CRC
     assign cond_in_bit =
         selected_bit ^
@@ -221,6 +231,7 @@ module trng_lab_core
 
     assign reg_condlo = stream_mix[7:0];
     assign reg_condhi = stream_mix[15:8];
+
 `elsif TRNG_CONDITIONED_STREAM_GALOIS_64
     assign cond_in_bit =
         selected_bit ^
@@ -301,6 +312,7 @@ module trng_lab_core
 
     assign reg_condlo = condlo_mix;
     assign reg_condhi = condhi_mix;
+
 `elsif TRNG_CONDITIONED_STREAM_GALOIS
     assign cond_in_bit =
         selected_bit ^
@@ -409,6 +421,24 @@ module trng_lab_core
     `endif
 `endif
 
+
+/* 
+ * --------------------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------
+ * Hardware specific ring oscillators
+ *
+ * TRNG_LAB_USE_REAL_RO should be defined only programmatically:
+ *                      only in this file, when TRNG_USE_RO.
+ *
+ * TRNG_ALLOW_REAL_RO   should be defined only programmatically:
+ *                      see project.v;
+ *
+ * TRNG_USE_RO          should be defined only programmatically:
+ *                      see project.v; when SKY130, GF180 or other ASIC PDK (__pnr__) detected
+ *
+ * --------------------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------
+ */
 `ifdef TRNG_LAB_USE_REAL_RO
     /* 
      * --------------------------------------------------------------------------------------------
@@ -719,6 +749,13 @@ module trng_lab_core
 
 endmodule /* trng_lab_core */
 
+/*
+ * --------------------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------
+ * Hardware specific inverter cell for ring oscillator
+ * --------------------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------
+ */
 `ifdef TRNG_LAB_USE_REAL_RO
 
 module trng_ro_inverter_cell
@@ -760,7 +797,11 @@ endmodule /* trng_ro_inverter_cell */
 
 
 /*
+ * --------------------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------
  * Build a gated ring oscillator out of [STAGES] inverter cells.
+ * --------------------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------
  */
 module trng_ro
 #(
