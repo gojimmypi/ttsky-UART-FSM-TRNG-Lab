@@ -775,6 +775,10 @@ module trng_ro_inverter_cell
             .A(a),
             .Y(y)
         );
+
+        /* SKY130 hard stop breadcrumb. Uncomment to confirm SKY130 build failure: */
+        PROJECT_ASIC_SKY130_BREADCRUMB_FAULT u_stop (); 
+
     `elsif PDK_TARGET_GF180
         /* not a valid GF detector: https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/26855846226/job/79198383591 */
         // `ifdef gf180mcu_fd_sc_mcu7t5v0
