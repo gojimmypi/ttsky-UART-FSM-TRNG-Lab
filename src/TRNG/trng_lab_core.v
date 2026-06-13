@@ -354,10 +354,10 @@ module trng_lab_core
     };
 
 `ifdef FPGA_NIST_PRNG_SOURCE
-    /* FPGA-only NIST plumbing mode. This directly exposes PRNG output bytes.
+    /* FPGA-only NIST plumbing mode. This exposes PRNG output bytes directly.
      * This does not validate the ASIC RO entropy source. */
-    assign reg_condlo = fpga_prng_out[7:0] ^ fpga_prng_out[31:24];
-    assign reg_condhi = fpga_prng_out[15:8] ^ fpga_prng_out[23:16];
+    assign reg_condlo = fpga_prng_half_sel ? fpga_prng_out[23:16] : fpga_prng_out[7:0];
+    assign reg_condhi = fpga_prng_half_sel ? fpga_prng_out[31:24] : fpga_prng_out[15:8];
 `else
     assign reg_condlo = stream_mix[7:0]  ^ stream_mix[23:16] ^ {stream_mix[3:0],  stream_mix[31:28]};
     assign reg_condhi = stream_mix[15:8] ^ stream_mix[31:24] ^ {stream_mix[11:8], stream_mix[27:24]};
@@ -483,6 +483,7 @@ module trng_lab_core
     reg [31:0] fpga_s1;
     reg [31:0] fpga_s2;
     reg [31:0] fpga_s3;
+    reg        fpga_prng_half_sel;
 
     function [31:0] rotl32;
         input [31:0] x;
@@ -519,11 +520,16 @@ module trng_lab_core
             fpga_s1 <= 32'h6d6d_7970;
             fpga_s2 <= 32'h695f_5454;
             fpga_s3 <= 32'h4650_4741;
+            fpga_prng_half_sel <= 1'b0;
         end else if (do_sample_q) begin
-            fpga_s0 <= fpga_s0n;
-            fpga_s1 <= fpga_s1n;
-            fpga_s2 <= fpga_s2n;
-            fpga_s3 <= fpga_s3n;
+            fpga_prng_half_sel <= !fpga_prng_half_sel;
+
+            if (fpga_prng_half_sel) begin
+                fpga_s0 <= fpga_s0n;
+                fpga_s1 <= fpga_s1n;
+                fpga_s2 <= fpga_s2n;
+                fpga_s3 <= fpga_s3n;
+            end
         end
     end
 `elsif FPGA_BASIC_LFSR_RO_TAPS
@@ -784,7 +790,39 @@ endmodule /* trng_ro */
 
 `endif /* TRNG_LAB_USE_REAL_RO */
 
-/* Clean up macros created and used only in this file */
+/* 
+ * --------------------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------
+ * Sanity checks
+ * --------------------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------
+ */
+`ifdef TRNG_LAB_USE_REAL_RO
+    /* Some options prohibited if real ring oscillator detected */
+    `ifdef FPGA_NIST_PRNG_SOURCE
+        PROJECT_TRNG_LAB_USE_REAL_RO_PROHIBIT_FPGA_NIST_PRNG_SOURCE_NOT_A_VALID_OPTION u_stop ();  /* FPGA_NIST_PRNG_SOURCE only for FPGA */
+    `endif
+
+    `ifdef FPGA_NIST_PRNG_SOURCE
+         PROJECT_TRNG_LAB_USE_REAL_RO_PROHIBIT_ULX3S u_stop ();  /* ULX3S only for FPGA */
+    `endif
+
+    `ifdef ULX3S_USE_GN12_50MHZ
+         PROJECT_TRNG_LAB_USE_REAL_RO_PROHIBIT_ULX3S_USE_GN12_50MHZ u_stop ();  /* ULX3S_USE_GN12_50MHZ only for FPGA */
+    `endif
+
+    `ifdef IS_MY_IVERILOG_SIMULATION
+        PROJECT_TRNG_LAB_USE_REAL_RO_PROHIBIT_IS_MY_IVERILOG_SIMULATION u_stop ();  /* IS_MY_IVERILOG_SIMULATION not allowed for real RO */
+    `endif
+`endif
+
+/* 
+ * --------------------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------
+ *  Clean up macros created and used only in this file
+ * --------------------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------
+ */
 `ifdef TRNG_LAB_USE_REAL_RO
     `undef TRNG_LAB_USE_REAL_RO
 `endif
