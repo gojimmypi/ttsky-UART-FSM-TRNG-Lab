@@ -56,11 +56,13 @@ fi
 
 list_results_dir() {
     local dir="$1"
+    local count
 
     if [ -d "$dir" ]; then
-        find "$dir" -type f | sort
+        count="$(find "$dir" -type f | wc -l)"
+        echo "$dir: $count files"
     else
-        echo "Directory does not exist: $dir"
+        echo "$dir: does not exist"
     fi
 }
 

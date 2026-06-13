@@ -24,7 +24,7 @@
 
     `ifdef USE_LONG_STRINGS
         `define VERSION_STRING_LEN 24 /* 123456789012345678901234 */   
-        `define VERSION_STRING          "Version 0.1.7e 6/11/2026"
+        `define VERSION_STRING          "Version 0.1.7f 6/11/2026"
     `else
         /* no long strings */
     `endif
@@ -123,9 +123,18 @@
      *   "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 40,
      * 
      * Current (default): 20/20
+     * last run #220: 72.978% https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27447050050
+     */
+     `define TRNG_CONDITIONED_STREAM_GALOIS
+
+    /* 
+     * --------------------------------------------------------------------------------------------
+     * Optional selected_bit clean or not: TRNG_RAW_CLEAN_MIX
+     * --------------------------------------------------------------------------------------------
+     * When enabled:     selected_bit = rox_sample_sync;
+     * when not enabled: selected_bit = rox_sample_sync ^ lfsr[0] ^ lfsr[5] ^ sample_shift[3];
      */
      `define TRNG_RAW_CLEAN_MIX
-     `define TRNG_CONDITIONED_STREAM_GALOIS
 
     /* 
      * --------------------------------------------------------------------------------------------

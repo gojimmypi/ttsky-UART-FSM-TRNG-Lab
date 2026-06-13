@@ -97,7 +97,7 @@ def configure_trng(ser):
     # OFF: enable all oscillator bits
     # D01: fast sample divider
     # E1: enable free-running sampling
-    for cmd in (b"E0\r", b"S3\r", b"OFF\r", b"D01\r", b"E1\r"):
+    for cmd in (b"E0\r", b"S3\r", b"OFF\r", b"D0F\r", b"E1\r"):
         send_ascii_cmd(ser, cmd, b"OK\r")
 
 
