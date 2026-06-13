@@ -100,6 +100,8 @@ def configure_trng(ser):
     for cmd in (b"E0\r", b"S3\r", b"OFF\r", b"D0F\r", b"E1\r"):
         send_ascii_cmd(ser, cmd, b"OK\r")
 
+    # for cmd in (b"E0\r", b"S3\r", b"OFF\r", b"D1F\r", b"E1\r"):
+    #    send_ascii_cmd(ser, cmd, b"OK\r")
 
 def capture_binary_stream(ser, byte_count, out_path, conditioned, timeout_retries):
     remaining = byte_count
