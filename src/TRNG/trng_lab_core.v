@@ -434,6 +434,8 @@ module trng_lab_core
      *   reg_oscen[5] -> 13-inverter RO -> ro_raw[5]
      *   reg_oscen[6] -> 15-inverter RO -> ro_raw[6]
      *   reg_oscen[7] -> 17-inverter RO -> ro_raw[7]
+     *
+     * Size 73.102% in #221: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27450807079
     */
     trng_ro #(.STAGES(3))  u_ro0 (.enable(reg_oscen[0]), .ro_out(ro_raw[0]));
     trng_ro #(.STAGES(5))  u_ro1 (.enable(reg_oscen[1]), .ro_out(ro_raw[1]));
@@ -444,7 +446,8 @@ module trng_lab_core
     trng_ro #(.STAGES(15)) u_ro6 (.enable(reg_oscen[6]), .ro_out(ro_raw[6]));
     trng_ro #(.STAGES(17)) u_ro7 (.enable(reg_oscen[7]), .ro_out(ro_raw[7]));
 `else
-    /* Default RO bank starts at 7 stages to avoid very short 3/5-stage rings. */
+    /* Default RO bank starts at 7 stages to avoid very short 3/5-stage rings.
+     * Size 73.381% in GDS #223: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27452625395 */ 
     trng_ro #(.STAGES(7))  u_ro0 (.enable(reg_oscen[0]), .ro_out(ro_raw[0]));
     trng_ro #(.STAGES(9))  u_ro1 (.enable(reg_oscen[1]), .ro_out(ro_raw[1]));
     trng_ro #(.STAGES(11)) u_ro2 (.enable(reg_oscen[2]), .ro_out(ro_raw[2]));
@@ -467,7 +470,53 @@ module trng_lab_core
      * --------------------------------------------------------------------------------------------
      */
 
-`ifdef FPGA_BASIC_LFSR_RO_TAPS
+`ifdef FPGA_NIST_PRNG_SOURCE
+    reg [31:0] fpga_s0;
+    reg [31:0] fpga_s1;
+    reg [31:0] fpga_s2;
+    reg [31:0] fpga_s3;
+
+    function [31:0] rotl32;
+        input [31:0] x;
+        input [4:0] k;
+        begin
+            rotl32 = (x << k) | (x >> (32 - k));
+        end
+    endfunction
+
+    wire [31:0] fpga_prng_out = rotl32(fpga_s0 + fpga_s3, 5'd7) + fpga_s0;
+
+    wire [31:0] fpga_t  = fpga_s1 << 9;
+    wire [31:0] fpga_s2a = fpga_s2 ^ fpga_s0;
+    wire [31:0] fpga_s3a = fpga_s3 ^ fpga_s1;
+    wire [31:0] fpga_s1n = fpga_s1 ^ fpga_s2a;
+    wire [31:0] fpga_s0n = fpga_s0 ^ fpga_s3a;
+    wire [31:0] fpga_s2n = fpga_s2a ^ fpga_t;
+    wire [31:0] fpga_s3n = rotl32(fpga_s3a, 5'd11);
+
+    assign ro_raw[0] = reg_oscen[0] & fpga_prng_out[0];
+    assign ro_raw[1] = reg_oscen[1] & fpga_prng_out[4];
+    assign ro_raw[2] = reg_oscen[2] & fpga_prng_out[8];
+    assign ro_raw[3] = reg_oscen[3] & fpga_prng_out[12];
+    assign ro_raw[4] = reg_oscen[4] & fpga_prng_out[16];
+    assign ro_raw[5] = reg_oscen[5] & fpga_prng_out[20];
+    assign ro_raw[6] = reg_oscen[6] & fpga_prng_out[24];
+    assign ro_raw[7] = reg_oscen[7] & fpga_prng_out[28];
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            fpga_s0 <= 32'h676f_6a69;
+            fpga_s1 <= 32'h6d6d_7970;
+            fpga_s2 <= 32'h695f_5454;
+            fpga_s3 <= 32'h4650_4741;
+        end else if (do_sample_q) begin
+            fpga_s0 <= fpga_s0n;
+            fpga_s1 <= fpga_s1n;
+            fpga_s2 <= fpga_s2n;
+            fpga_s3 <= fpga_s3n;
+        end
+    end
+`elsif FPGA_BASIC_LFSR_RO_TAPS
     /* The "RO" bits are just taps from the LFSR. */
     assign ro_raw[0] = lfsr[0];
     assign ro_raw[1] = lfsr[3];

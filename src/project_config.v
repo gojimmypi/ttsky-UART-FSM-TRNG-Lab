@@ -136,7 +136,7 @@
      */
      `define TRNG_RAW_CLEAN_MIX
 
-    /* 
+    /*
      * --------------------------------------------------------------------------------------------
      * Optional 64 bit Galois whitening conditioner: TRNG_CONDITIONED_STREAM_GALOIS
      * --------------------------------------------------------------------------------------------
@@ -157,6 +157,10 @@
     /* FPGA-only: ignore reg_oscen and expose raw deterministic LFSR taps.
      * Normally leave disabled so the FPGA surrogate respects oscillator enables. */
     // `define FPGA_BASIC_LFSR_RO_TAPS
+
+    /* FPGA only: A practical lightweight candidate is a xoshiro-style 128-bit PRNG. 
+     * It is not cryptographic, but it is much more likely to pass STS than the current 16-bit LFSR tap source */
+    `define FPGA_NIST_PRNG_SOURCE
 
     /* Note that with all UART_ENABLED, SPI_ENABLED, SPI_REG_ACCESS, TRNG_ENABLED, JTAG_ENABLED
      * also enabling PIN_DIAG pushes design over 80% of 1x2 tiles. GDS aborted after 90 minute run. */
