@@ -1053,7 +1053,7 @@ cd "$TT_PROJECT_ROOT/test-hw
 
 Generic local hardware operation tests in [/test-hw/](https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/tree/main/test-hw/README.md).
 
-- [tt_ulx3s_uart_test.py](https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/tree/main/test-hw/tt_ulx3s_uart_test.py) - Python script to test the UART functionality of the FSM and TRNG on the ULX3S FPGA. It sends commands to the FPGA and reads the responses to verify correct operation.
+- [tt_uart_test.py](https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/tree/main/test-hw/tt_uart_test.py) - Python script to test the UART functionality of the FSM and TRNG on the ULX3S FPGA. It sends commands to the FPGA and reads the responses to verify correct operation.
 - [run_tests.sh](https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/tree/main/test-hw/test-hw/run_tests.sh) - Shell script to run the hardware tests. It can be configured to build the FPGA bitstream, flash it to the FPGA, and run the Python test script.
 
 ```bash
