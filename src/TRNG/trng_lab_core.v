@@ -138,7 +138,9 @@ module trng_lab_core
     wire        sample_tick;
     wire [1:0]  source_select;
 
+    (* keep, dont_touch *) 
     wire [7:0]  ro_raw;
+
     wire        ro_xor;
     wire        lfsr_next_bit;
 
@@ -774,6 +776,7 @@ endmodule /* trng_lab_core */
  */
 `ifdef TRNG_LAB_USE_REAL_RO
 
+(* keep_hierarchy, keep, dont_touch *)
 module trng_ro_inverter_cell
 (
     input  wire a,
@@ -782,11 +785,15 @@ module trng_ro_inverter_cell
 
     `LINT_OFF_PINMISSING_POWER_PINS
 
-    /* See target.pdk.v included at the top-level project.v for the PDK selection. 
-     * The cells instantiated here must match the selected PDK. */ 
+    /* See target_pdk.v included at the top-level project.v for the PDK selection. 
+     * The cells instantiated here must match the selected PDK.
+     *
+     * sky130_fd_sc_hd__inv_1: Minimum / weaker inverter, Slower, lower drive, likely lower dynamic power
+     * sky130_fd_sc_hd__inv_2: Stronger inverter, roughly 2x drive class, Faster edges, can drive more capacitance, likely more dynamic power
+     */ 
     `ifdef PDK_TARGET_SKY130
         /* See https://sky130-unofficial.readthedocs.io/en/latest/contents/libraries/sky130_fd_sc_hd/cells/inv/README.html */
-        (* keep_hierarchy *) sky130_fd_sc_hd__inv_2 u_inv
+        (* keep_hierarchy, keep, dont_touch *) sky130_fd_sc_hd__inv_2 u_inv
         (
             .A(a),
             .Y(y)
@@ -804,7 +811,7 @@ module trng_ro_inverter_cell
         //    PROJECT_FOUND_PDK u_stop ();
         //`endif
         /* See https://github.com/google/globalfoundries-pdk-libs-gf180mcu_fd_sc_mcu7t5v0/blob/main/cells/inv/gf180mcu_fd_sc_mcu7t5v0__inv_1.functional.v */
-        (* keep_hierarchy *) gf180mcu_fd_sc_mcu7t5v0__inv_1 u_inv
+        (* keep_hierarchy, keep, dont_touch *) gf180mcu_fd_sc_mcu7t5v0__inv_1 u_inv
         (
             .I(a),
             .ZN(y)
@@ -825,6 +832,7 @@ endmodule /* trng_ro_inverter_cell */
  * --------------------------------------------------------------------------------------------
  * --------------------------------------------------------------------------------------------
  */
+(* keep_hierarchy, keep, dont_touch *)
 module trng_ro
 #(
     parameter integer STAGES = 3
@@ -834,16 +842,24 @@ module trng_ro
     output wire ro_out
 );
 
-    wire [STAGES-1:0] inv_in;
-    wire [STAGES-1:0] inv_out;
+/* We need at least 3 stages, hard stop otherwise */
+generate
+    if ((STAGES < 3) || ((STAGES % 2) == 0)) begin : gen_bad_ro_stage_count
+        TRNG_RO_STAGE_COUNT_MUST_BE_ODD_AND_AT_LEAST_3 u_stop ();
+    end
+endgenerate
+
+    (* keep, dont_touch *) wire [STAGES-1:0] inv_in;
+    (* keep, dont_touch *) wire [STAGES-1:0] inv_out;
 
     assign inv_in[STAGES-1:1] = inv_out[STAGES-2:0];
     assign inv_in[0] = inv_out[STAGES-1] & enable;
 
-    assign ro_out = inv_in[0];
+    /* connect output to last stage of the inverter sequence */
+    assign ro_out = inv_out[STAGES-1];
 
     /* inv_array is an array of inverter cell instances forming one ring */
-    (* keep_hierarchy *) trng_ro_inverter_cell inv_array [STAGES-1:0]
+    (* keep_hierarchy, keep, dont_touch *) trng_ro_inverter_cell inv_array [STAGES-1:0]
     (
         .a(inv_in),
         .y(inv_out)
