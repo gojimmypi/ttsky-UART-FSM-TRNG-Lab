@@ -479,7 +479,9 @@ module trng_lab_core
      *   reg_oscen[6] -> 15-inverter RO -> ro_raw[6]
      *   reg_oscen[7] -> 17-inverter RO -> ro_raw[7]
      *
-     * Size 73.102% in #221: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27450807079
+     * Size 73.102% in sky #221: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27450807079
+     *
+     * See trng_ro implementation for keep attributes, do not add them here.
     */
     trng_ro #(.STAGES(3))  u_ro0 (.enable(reg_oscen[0]), .ro_out(ro_raw[0]));
     trng_ro #(.STAGES(5))  u_ro1 (.enable(reg_oscen[1]), .ro_out(ro_raw[1]));
@@ -491,7 +493,10 @@ module trng_lab_core
     trng_ro #(.STAGES(17)) u_ro7 (.enable(reg_oscen[7]), .ro_out(ro_raw[7]));
 `else
     /* Default RO bank starts at 7 stages to avoid very short 3/5-stage rings.
-     * Size 73.381% in GDS #223: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27452625395 */ 
+     * Size 73.381% in GDS #223: https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27452625395 
+     *
+     * See trng_ro implementation for keep attributes, do not add them here.
+     */ 
     trng_ro #(.STAGES(7))  u_ro0 (.enable(reg_oscen[0]), .ro_out(ro_raw[0]));
     trng_ro #(.STAGES(9))  u_ro1 (.enable(reg_oscen[1]), .ro_out(ro_raw[1]));
     trng_ro #(.STAGES(11)) u_ro2 (.enable(reg_oscen[2]), .ro_out(ro_raw[2]));
@@ -810,12 +815,47 @@ module trng_ro_inverter_cell
         //    /* if a macro, we found it, success! for GF180 detection*/
         //    PROJECT_FOUND_PDK u_stop ();
         //`endif
-        /* See https://github.com/google/globalfoundries-pdk-libs-gf180mcu_fd_sc_mcu7t5v0/blob/main/cells/inv/gf180mcu_fd_sc_mcu7t5v0__inv_1.functional.v */
-        (* keep_hierarchy, keep, dont_touch *) gf180mcu_fd_sc_mcu7t5v0__inv_1 u_inv
+
+        /* 
+         * There are several possible inverts to use in GF180. See
+         *    https://github.com/google/globalfoundries-pdk-libs-gf180mcu_fd_sc_mcu7t5v0/tree/main/cells/inv
+         *
+         * Asked ChatGPT to summarize differences. This is the response:
+         *
+         * | Cell    | Drive |        Area | Input cap | Min-load delay, falling output | Min-load delay, rising output |
+         * | ------- | ----: | ----------: | --------: | -----------------------------: | ----------------------------: |
+         * | `inv_1` |    1X |  8.7808 um2 | 0.0047 pF |                      0.0377 ns |                     0.0499 ns |
+         * | `inv_2` |    2X | 13.1712 um2 | 0.0093 pF |                      0.0308 ns |                     0.0387 ns |
+         * | `inv_3` |    3X | 17.5616 um2 | 0.0140 pF |                      0.0309 ns |                     0.0388 ns |
+         * | `inv_4` |    4X | 21.9520 um2 | 0.0185 pF |                      0.0282 ns |                     0.0345 ns |
+         * | `inv_8` |    8X | 39.5136 um2 | 0.0373 pF |                      0.0282 ns |                     0.0344 ns |
+         *
+         *   "The key observation: _inv_2 gives a meaningful speed/drive improvement over _inv_1, but _inv_3 gives almost no 
+         *    further min-load delay improvement over _inv_2. _inv_4 and _inv_8 are only modestly faster in the min-load table, 
+         *     while costing much more input capacitance and area."
+         *
+         * For reference:
+         *
+         * Option 1: gf180mcu_fd_sc_mcu7t5v0__inv_1
+         *    https://github.com/google/globalfoundries-pdk-libs-gf180mcu_fd_sc_mcu7t5v0/blob/main/cells/inv/gf180mcu_fd_sc_mcu7t5v0__inv_1.functional.v
+         *    https://github.com/google/globalfoundries-pdk-libs-gf180mcu_fd_sc_mcu7t5v0/blob/main/cells/inv/gf180mcu_fd_sc_mcu7t5v0__inv_1.rst
+         *
+         * Option 2: gf180mcu_fd_sc_mcu7t5v0__inv_2
+         *    https://github.com/google/globalfoundries-pdk-libs-gf180mcu_fd_sc_mcu7t5v0/blob/main/cells/inv/gf180mcu_fd_sc_mcu7t5v0__inv_2.functional.v
+         *    https://github.com/google/globalfoundries-pdk-libs-gf180mcu_fd_sc_mcu7t5v0/blob/main/cells/inv/gf180mcu_fd_sc_mcu7t5v0__inv_2.rst
+         */
+
+        (* keep_hierarchy, keep, dont_touch *) gf180mcu_fd_sc_mcu7t5v0__inv_2 u_inv
         (
             .I(a),
             .ZN(y)
         );
+
+        /* GF180 hard stop breadcrumb. 
+         * Example: see TBD
+         * Uncomment to confirm GF180 build failure: */
+        // PROJECT_ASIC_GF180_BREADCRUMB_FAULT u_stop (); 
+
     `else
         PROJECT_ASIC_SKY130_OR_GF180_ONLY u_stop (); /* Only SKY130 and GF180 supported at this time */
     `endif
@@ -831,6 +871,12 @@ endmodule /* trng_ro_inverter_cell */
  * Build a gated ring oscillator out of [STAGES] inverter cells.
  * --------------------------------------------------------------------------------------------
  * --------------------------------------------------------------------------------------------
+ * Do not place any keep hierarchy decorators here. See: 
+ *   https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27505094813
+ *   https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/27505061710
+ * Revert only that attribute for success:
+ *   https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab/actions/runs/27505702100
+ *   https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab/actions/runs/27506081181
  */
 module trng_ro
 #(
