@@ -199,6 +199,37 @@ def main():
         "R7",
     ]
 
+    health_status_smoke_test = [
+
+        # Stop sampling before clearing health state.
+        "E0",
+
+        # Assert and release the TRNG reset bit. This also clears
+        # sticky health-monitor state in TRNG_HEALTH_STATUS builds.
+        "W1",
+        "W0",
+
+        # Select the single-oscillator source path.
+        "S1",
+
+        # Enable oscillator 0 only.
+        "O01",
+
+        # Use fast sampling so the 64-sample health window completes quickly.
+        "D01",
+
+        # Enable sampling and then read R5 several times. R5 should progress
+        # from basic enable/oscillator status to health_valid/activity_seen.
+        "E1",
+        "R5",
+        "R5",
+        "R5",
+
+        # Stop sampling and read R5 once more for final manual inspection.
+        "E0",
+        "R5",
+    ]
+
     ser = serial.Serial(args.port, args.baud, timeout=0.01)
 
     try:
@@ -219,6 +250,13 @@ def main():
             args,
             "Test 2: Source-select fallback test",
             source_select_fallback_test,
+        )
+
+        run_command_list(
+            ser,
+            args,
+            "Test 3: Health status smoke test",
+            health_status_smoke_test,
         )
 
     finally:

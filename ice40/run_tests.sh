@@ -66,7 +66,7 @@ python ../test-hw/tt_trng_uart_test.py --port "$TT_UART_PORT"              || ex
 
 python ../test-hw/tt_trng_repro_test.py --port  "$TT_UART_PORT"            || exit 1
 
-python ../test-hw/tt_test.py --port "$TT_UART_PORT" --reset-registers || exit 1
+python ../test-hw/tt_uart_test.py --port "$TT_UART_PORT" --reset-registers || exit 1
 
 echo "**************************************************************************"
 echo "**  Done. Ports used:"

@@ -25,6 +25,26 @@ import serial
 EXPECTED_VERSION_PREFIX = b"Version "
 READ_RE = re.compile(rb"R([0-7])=([0-9A-F]{2})\r")
 
+R5_TRNG_ENABLE = 0x01
+R5_SAMPLE_TICK = 0x02
+R5_ANY_OSC_EN = 0x04
+R5_HEALTH_VALID = 0x08
+R5_ACTIVITY_SEEN = 0x10
+R5_REPETITION_FAIL = 0x20
+R5_STUCK_FAIL = 0x40
+R5_HEALTH_FAIL = 0x80
+
+R5_FLAG_NAMES = (
+    (R5_TRNG_ENABLE, "trng_enable"),
+    (R5_SAMPLE_TICK, "sample_tick"),
+    (R5_ANY_OSC_EN, "any_osc_en"),
+    (R5_HEALTH_VALID, "health_valid"),
+    (R5_ACTIVITY_SEEN, "activity_seen"),
+    (R5_REPETITION_FAIL, "repetition_fail"),
+    (R5_STUCK_FAIL, "stuck_fail"),
+    (R5_HEALTH_FAIL, "health_fail"),
+)
+
 
 COMMANDS_IMPLEMENTED = {
     "E": "Write enable bit",
@@ -155,6 +175,90 @@ def expect_read(name, actual, reg_num, expected_value=None):
     return True
 
 
+def parse_read_value(name, actual, reg_num):
+    expected_prefix = f"R{reg_num}=".encode("ascii")
+
+    if not actual.startswith(expected_prefix):
+        print(f"FAIL: {name}")
+        print(f"  Expected prefix: {expected_prefix!r}")
+        print(f"  Actual:          {actual!r}")
+        return None
+
+    match = READ_RE.fullmatch(actual)
+
+    if not match:
+        print(f"FAIL: {name}")
+        print(f"  Invalid read format: {actual!r}")
+        return None
+
+    return int(match.group(2), 16)
+
+
+def read_reg(ser, args, reg_num):
+    command = f"R{reg_num}\r".encode("ascii")
+    response = send_command(ser, command, args)
+    return parse_read_value(f"R{reg_num} read", response, reg_num)
+
+
+def write_ok(ser, args, name, command):
+    response = send_command(ser, command, args)
+    return expect_exact(name, response, b"OK\r")
+
+
+def format_r5_status(value):
+    flags = []
+
+    for mask, name in R5_FLAG_NAMES:
+        if value & mask:
+            flags.append(name)
+
+    if not flags:
+        return f"0x{value:02X} (no flags set)"
+
+    return f"0x{value:02X} (" + ", ".join(flags) + ")"
+
+
+def wait_for_status_bits(ser, args, name, set_mask=0, clear_mask=0):
+    last_status = None
+
+    for _ in range(args.health_poll_attempts):
+        status = read_reg(ser, args, 5)
+
+        if status is None:
+            return None
+
+        last_status = status
+
+        if (status & set_mask) == set_mask and (status & clear_mask) == 0:
+            print(f"PASS: {name}: {format_r5_status(status)}")
+            return status
+
+        time.sleep(args.health_poll_delay)
+
+    print(f"FAIL: {name}")
+
+    if last_status is None:
+        print("  No R5 status value was read")
+    else:
+        print(f"  Last status: {format_r5_status(last_status)}")
+        if (last_status & set_mask) != set_mask:
+            print(f"  Missing set bits: 0x{set_mask & ~last_status:02X}")
+        if last_status & clear_mask:
+            print(f"  Unexpected bits:  0x{last_status & clear_mask:02X}")
+
+    return None
+
+
+def clear_trng_health_state(ser, args):
+    ok = True
+
+    ok = write_ok(ser, args, "Health clear E0", b"E0\r") and ok
+    ok = write_ok(ser, args, "Health clear W1", b"W1\r") and ok
+    ok = write_ok(ser, args, "Health clear W0", b"W0\r") and ok
+
+    return ok
+
+
 def reset_config_registers(ser, args):
     ok = True
 
@@ -253,6 +357,40 @@ def test_read_only_registers_format(ser, args):
     return ok
 
 
+def test_health_status_register(ser, args):
+    mark_tested("E", "S", "D", "O", "W", "R5")
+
+    ok = True
+
+    ok = reset_config_registers(ser, args) and ok
+    ok = clear_trng_health_state(ser, args) and ok
+
+    ok = write_ok(ser, args, "Health S1 source", b"S1\r") and ok
+    ok = write_ok(ser, args, "Health O01 oscillator", b"O01\r") and ok
+    ok = write_ok(ser, args, "Health D01 divider", b"D01\r") and ok
+    ok = write_ok(ser, args, "Health E1 enable", b"E1\r") and ok
+
+    status = wait_for_status_bits(
+        ser,
+        args,
+        "R5 health status register",
+        set_mask=(
+            R5_TRNG_ENABLE
+            | R5_ANY_OSC_EN
+            | R5_HEALTH_VALID
+            | R5_ACTIVITY_SEEN
+        ),
+        clear_mask=(R5_STUCK_FAIL | R5_HEALTH_FAIL),
+    )
+
+    if status is None:
+        ok = False
+
+    ok = write_ok(ser, args, "Health cleanup E0", b"E0\r") and ok
+
+    return ok
+
+
 def test_crlf_handling(ser, args):
     ok = True
 
@@ -294,6 +432,9 @@ def run_tests(ser, args):
         ("error_cases", test_error_cases),
         ("repeated_reads", test_repeated_reads),
     ]
+
+    if args.health_status:
+        tests.append(("health_status_register", test_health_status_register))
 
     passed = 0
     failed = 0
@@ -364,6 +505,9 @@ def main():
     parser.add_argument("--idle-time", type=float, default=0.05)
     parser.add_argument("--repeat", type=int, default=5)
     parser.add_argument("--stop-on-fail", action="store_true")
+    parser.add_argument("--health-status", action="store_true")
+    parser.add_argument("--health-poll-attempts", type=int, default=20)
+    parser.add_argument("--health-poll-delay", type=float, default=0.005)
     parser.add_argument(
         "--reset-registers",
         action="store_true",

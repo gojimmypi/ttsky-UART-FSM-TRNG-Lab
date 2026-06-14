@@ -77,7 +77,7 @@ For `could not open port /dev/ttyS11` such as that shown below, make sure the po
 If the port number has changed, which is common with Windows, pass the correct port number to the test script using the `--port` argument, for example: 
 
 ```
-python ./tt__uart_test.py --port /dev/ttyS3
+python ./tt_uart_test.py --port /dev/ttyS3
 ```
 
 Or edit the default port in `run_tests.sh`

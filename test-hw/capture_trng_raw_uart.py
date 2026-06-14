@@ -351,12 +351,15 @@ def main():
             fast_baud_active = capture_with_retries(ser, args)
 
         finally:
-            print("Disable/freezes TRNG sampling with E0")
-            print("Done!")
-            # TODO: add command-line option: --stop-after-capture
-            ser.reset_input_buffer()
-            ser.reset_output_buffer()
-            send_ascii_cmd(ser, b"E0\r", b"OK\r")
+            try:
+                print("Disable/freezes TRNG sampling with E0")
+                print("Done!")
+                # TODO: add command-line option: --stop-after-capture
+                ser.reset_input_buffer()
+                ser.reset_output_buffer()
+                send_ascii_cmd(ser, b"E0\r", b"OK\r")
+            except Exception as exc:
+                print(f"warning: failed to stop TRNG after capture: {exc}", file=sys.stderr)
 
             if fast_baud_active:
                 try:

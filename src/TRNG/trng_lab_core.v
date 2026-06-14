@@ -176,6 +176,11 @@ module trng_lab_core
 
     wire        trng_reset;
 
+`ifdef TRNG_HEALTH_STATUS
+    /* Health monitor only drives R5[7:3]. Legacy R5[2:0] is preserved. */
+    wire [7:3]  health_status;
+`endif
+
     assign trng_reset = reg_ctrl[2];
 
     /* reg_ctrl[1], written by V1/V0, is a deterministic single-step request. */
@@ -399,7 +404,13 @@ module trng_lab_core
 
     assign unused_reg_ctrl = &reg_ctrl[7:3];
     assign unused_reg_src  = &reg_src[7:2];
+
+`ifdef TRNG_HEALTH_STATUS
+    assign unused_reg_mode = &reg_mode;
+`else
     assign unused_reg_mode = &reg_mode[7:3];
+`endif
+
     assign unused_sample_shift = sample_shift[15];
 
 /*
@@ -625,6 +636,21 @@ module trng_lab_core
         endcase
     end
 
+`ifdef TRNG_HEALTH_STATUS
+    trng_health_core u_health
+    (
+        .clk(clk),
+        .rst_n(rst_n),
+        .clear_i(trng_reset),
+        .enable_i(trng_enable),
+        .sample_valid_i(do_sample_q),
+        .sample_bit_i(selected_bit),
+        .ro_activity_bit_i(rox_sample_sync),
+        .oscen_i(reg_oscen),
+        .health_status_o(health_status)
+    );
+`endif
+
     always @(posedge clk) begin
         if (!rst_n || trng_reset) begin
             trng_step_d     <= 1'b0;
@@ -681,8 +707,17 @@ module trng_lab_core
             reg_status[0]   <= trng_enable;
             reg_status[1]   <= sample_tick_q;
             reg_status[2]   <= |reg_oscen;
+`ifdef TRNG_HEALTH_STATUS
+            /* Preserve legacy R5[2:0]; use health monitor only for R5[7:3] */
+            reg_status[3]   <= health_status[3]; /* health_valid */
+            reg_status[4]   <= health_status[4]; /* activity_seen */
+            reg_status[5]   <= health_status[5]; /* repetition_fail */
+            reg_status[6]   <= health_status[6]; /* stuck_fail */
+            reg_status[7]   <= health_status[7]; /* health_fail */
+`else
             reg_status[4:3] <= source_select;
             reg_status[7:5] <= reg_mode[2:0];
+`endif
 
             if (do_sample_q) begin
                 sample_ctr   <= 16'h0000;
@@ -772,12 +807,172 @@ module trng_lab_core
 
 endmodule /* trng_lab_core */
 
+
+`ifdef TRNG_HEALTH_STATUS
+/*
+ * --------------------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------
+ * Lightweight TRNG health monitor
+ * --------------------------------------------------------------------------------------------
+ * --------------------------------------------------------------------------------------------
+ * This monitor is intentionally small. It is not a full entropy estimator and
+ * does not replace off-chip NIST or 90B analysis. It only catches obvious
+ * failures such as a stuck selected source or a long repeated-bit run.
+ *
+ * health_status_o bit map:
+ *   [0] enable_i
+ *   [1] sample_seen
+ *   [2] any oscillator enabled
+ *   [3] health_valid: at least one sample window completed
+ *   [4] activity_seen: RO activity bit toggled since the last clear/reset
+ *   [5] repetition_fail: 16 identical sampled bits in a row
+ *   [6] stuck_fail: no RO activity-bit transition in a 64-sample window
+ *   [7] health_fail: fatal health failure, currently same as stuck_fail
+ */
+module trng_health_core
+(
+    input  wire       clk,
+    input  wire       rst_n,
+    input  wire       clear_i,
+    input  wire       enable_i,
+    input  wire       sample_valid_i,
+    input  wire       sample_bit_i,
+    input  wire       ro_activity_bit_i,
+    input  wire [7:0] oscen_i,
+    output wire [7:3] health_status_o /*  Preserves legacy R5[2:0] */
+);
+/* -------------------------------------------------------------------------------------------- */
+    localparam [5:0] HEALTH_WINDOW_MASK = 6'h3F; /* 64 sampled bits */
+    localparam [3:0] HEALTH_REPEAT_MAX  = 4'hF;  /* 16 identical sampled bits */
+
+    reg       sample_seen;
+    reg       last_sample;
+    reg       last_ro_activity;
+    reg       window_transition_seen;
+    reg       activity_seen;
+    reg       health_valid;
+    reg       repetition_fail;
+    reg       stuck_fail;
+    reg [3:0] repeat_count;
+    reg [5:0] window_count;
+
+    wire      sample_toggled;
+    wire      ro_activity_toggled;
+    wire      window_done;
+    wire      next_window_transition_seen;
+
+    assign sample_toggled = sample_seen && (sample_bit_i != last_sample);
+    assign ro_activity_toggled = sample_seen && (ro_activity_bit_i != last_ro_activity);
+    assign window_done = (window_count == HEALTH_WINDOW_MASK);
+    assign next_window_transition_seen = window_transition_seen || ro_activity_toggled;
+
+    wire health_fail = stuck_fail;
+
+    assign health_status_o = {
+        health_fail,     /* [7] fatal health failure, currently same as stuck_fail */
+        stuck_fail,      /* [6] no monitored RO transition seen during a completed health window */
+        repetition_fail, /* [5] diagnostic: 16 identical sampled bits in a row. Not impossible, but unlikely */
+        activity_seen,   /* [4] sticky: at least one monitored RO transition seen since clear */
+        health_valid     /* [3] at least one 64-sample health window completed; just a completed data sample, window_done, nothing more */
+    };
+
+    always @(posedge clk) begin
+        if (!rst_n || clear_i) begin
+            sample_seen            <= 1'b0;
+            last_sample            <= 1'b0;
+            last_ro_activity       <= 1'b0;
+            window_transition_seen <= 1'b0;
+            activity_seen          <= 1'b0;
+            health_valid           <= 1'b0;
+            repetition_fail        <= 1'b0;
+            stuck_fail             <= 1'b0;
+            repeat_count           <= 4'h0;
+            window_count           <= 6'h00;
+        end else if (enable_i && sample_valid_i) begin
+            if (!sample_seen) begin
+                sample_seen            <= 1'b1;
+                last_sample            <= sample_bit_i;
+                last_ro_activity       <= ro_activity_bit_i;
+                window_transition_seen <= 1'b0;
+                repeat_count           <= 4'h0;
+                window_count           <= 6'h01;
+            end else begin
+                last_sample      <= sample_bit_i;
+                last_ro_activity <= ro_activity_bit_i;
+
+                if (ro_activity_toggled) begin
+                    window_transition_seen <= 1'b1;
+                    activity_seen          <= 1'b1;
+                end
+
+                if (sample_toggled) begin
+                    repeat_count <= 4'h0;
+                end else begin
+                    if (repeat_count != HEALTH_REPEAT_MAX) begin
+                        repeat_count <= repeat_count + 4'h1;
+                    end
+
+                    if (repeat_count >= (HEALTH_REPEAT_MAX - 4'h1)) begin
+                        repetition_fail <= 1'b1;
+                    end
+                end
+
+                if (window_done) begin
+                    health_valid <= 1'b1;
+
+                    if ((|oscen_i) && !next_window_transition_seen) begin
+                        stuck_fail <= 1'b1;
+                    end
+
+                    window_transition_seen <= 1'b0;
+                    window_count           <= 6'h00;
+                end else begin
+                    window_count <= window_count + 6'h01;
+                end
+            end
+        end
+    end
+
+endmodule /* trng_health_core */
+
+`endif /* TRNG_HEALTH_STATUS */
+
+
 /*
  * --------------------------------------------------------------------------------------------
  * --------------------------------------------------------------------------------------------
  * Hardware specific inverter cell for ring oscillator
  * --------------------------------------------------------------------------------------------
  * --------------------------------------------------------------------------------------------
+ * Keep:
+ * 
+ *   > The keep attribute on cells and wires is used to mark objects that should never be removed 
+ *     by the optimizer. This is used for example for cells that have hidden connections that are 
+ *     not part of the netlist, such as IO pads. Setting the keep attribute on a module has the 
+ *     same effect as setting it on all instances of the module.
+ *
+ *   > The keep_hierarchy attribute on cells and modules keeps the flatten command from flattening 
+ *     the indicated cells and modules.
+ *
+ * See: https://yosyshq.readthedocs.io/projects/yosys/en/latest/using_yosys/verilog.html
+ *
+ * keep_hierarchy:
+ *   This tells Yosys not to flatten cells/modules marked with keep_hierarchy. Yosys documents
+ *   that keep_hierarchy on cells and modules prevents the flatten command from flattening them.
+ *
+ * See: https://yosyshq.readthedocs.io/projects/yosys/en/latest/cmd/index_passes_hierarchy.html#cmd-keep_hierarchy
+ *
+ * dont_touch:
+ *   This one is less clean in an open-source flow than in vendor FPGA tools.
+ *
+ *   Yosys clearly documents keep and keep_hierarchy; it does not give dont_touch the same central 
+ *   documented meaning in the Yosys Verilog-support page. In practice, tools may carry the attribute 
+ *   along, and some passes may honor it, but for Yosys the load-bearing attribute is keep. 
+ *
+ *   OpenROAD has a separate Tcl command, set_dont_touch, which prevents resizer commands 
+ *   from modifying instances or nets.
+ *
+ * See: https://openroad.readthedocs.io/en/latest/main/src/rsz/README.html#set-dont-touch
  */
 `ifdef TRNG_LAB_USE_REAL_RO
 

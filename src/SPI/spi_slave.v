@@ -40,6 +40,14 @@
  * - 3 reg_mode
  * - 4 reg_oscen
  * - 5 reg_status, read-only
+ *     bit0 trng_enable
+ *     bit1 sample_tick
+ *     bit2 any oscillator enabled
+ *     bit3 health_valid       when TRNG_HEALTH_STATUS is enabled
+ *     bit4 activity_seen      when TRNG_HEALTH_STATUS is enabled
+ *     bit5 repetition_fail    when TRNG_HEALTH_STATUS is enabled
+ *     bit6 stuck_fail         when TRNG_HEALTH_STATUS is enabled
+ *     bit7 health_fail        when TRNG_HEALTH_STATUS is enabled
  * - 6 reg_rawlo, read-only
  * - 7 reg_rawhi, read-only
  */

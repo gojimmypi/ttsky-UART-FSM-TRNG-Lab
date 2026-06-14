@@ -28,16 +28,17 @@
  * Example transactions:
  * - E1<CR>     : set enable bit
  * - D10<CR>    : set divider register to 0x10
+ * - R5<CR>     : read status/health register, replies R5=hh<CR>
  * - R6<CR>     : read register 6, replies R6=hh<CR>
- * - B10<CR>    : stream 16 raw binary bytes from R6/R7
- * - C10<CR>    : stream 16 conditioned binary bytes if TRNG_CONDITIONED_STREAM is enabled
- * - U3<CR>     : select 921600 UART baud after OK<CR> completes
- * - V<CR>      : replies Version 1.2.0 4/23/2026<CR>
+ * - Bxy<CR>    : stream xy raw bytes, waiting for a fresh TRNG sample before each byte.
+ * - Cxy<CR>    : Cxy: stream xy conditioned bytes, waiting for a fresh TRNG sample before each byte.
+ * - U3<CR>     : select 921600 UART baud after OK<CR> completes.
+ * - V<CR>      : replies Version 0.1.7k 6/14/2026<CR>
  *
  * Reply format:
  * - Successful write: OK<CR>
  * - Successful read : Rn=HH<CR>
- * - Version query   : Version 1.2.0 4/23/2026<CR>
+ * - Version query   : Version 0.1.7k 6/14/2026<CR>
  * - Parse/error     : ?<CR>
  */
 `default_nettype none
@@ -253,6 +254,7 @@ module trng_cfg_ascii_core
      * Address map used by the Rn read command.
      * 0..4 are writable configuration registers.
      * 5..7 are read-only status/data registers coming back from the TRNG side.
+     * With TRNG_HEALTH_STATUS enabled, R5 bits 7..3 are health flags.
      */
     function [7:0] read_reg;
         input [2:0] addr;

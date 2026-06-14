@@ -30,23 +30,26 @@ set -euo pipefail
 usage() {
     cat <<EOF_USAGE
 Usage:
-  $0 [capture_file_base]
+  $0 [capture_output_base]
 
 Examples:
   $0
   $0 trng_conditioned_2MiB
-  $0 trng_conditioned_2MiB.bin
   USE_FAST_BAUD=0 $0 trng_conditioned_2MiB
   CAPTURE_PROGRESS=1 $0 trng_conditioned_2MiB
   VERBOSE_CLEANUP=1 $0 trng_conditioned_2MiB
 
 Arguments:
-  capture_file_base
-      Optional base name for captured TRNG files.
+  capture_output_base
+      Optional base name for NEW captured TRNG files.
       Default: trng_conditioned_2MiB
 
-      A trailing .bin is accepted and removed before per-run names are made.
+      This is not an existing input file to test. The script always captures
+      new files before running STS.
 
+      Output files are:
+          <capture_output_base>.1.bin
+          <capture_output_base>.2.bin
 Environment:
   PORT
       UART port to use.
@@ -58,7 +61,7 @@ Environment:
 
   CAPTURE_PROGRESS
       Set to 1 to pass --progress to capture_trng_raw_uart.py.
-      Default: 0
+      Default: 1
 
   CAPTURE_PROGRESS_INTERVAL
       Progress update interval in seconds when CAPTURE_PROGRESS=1.
@@ -67,16 +70,7 @@ Environment:
 
   VERBOSE_CLEANUP
       Set to 1 to show before/after STS cleanup directory counts.
-      Default: 0
-
-Output:
-  Captures:
-      <capture_file_base>.1.bin
-      <capture_file_base>.2.bin
-
-  STS results:
-      ../../sts-2.1.2/experiments/AlgorithmTesting.1
-      ../../sts-2.1.2/experiments/AlgorithmTesting.2
+      Default: 1
 EOF_USAGE
 } # usage()
 
@@ -97,10 +91,18 @@ case "${1:-}" in
 esac
 
 THE_FILE_BASE="${1:-$DEFAULT_FILE_BASE}"
-THE_FILE_BASE="${THE_FILE_BASE%.bin}"
+
+case "$THE_FILE_BASE" in
+    *.bin)
+        echo "ERROR: argument is an output base name, not an existing .bin file."
+        echo "       Use a base name such as: ${THE_FILE_BASE%.bin}"
+        echo "       This script will create: ${THE_FILE_BASE%.bin}.1.bin and ${THE_FILE_BASE%.bin}.2.bin"
+        exit 2
+        ;;
+esac
 
 if [ -z "$THE_FILE_BASE" ]; then
-    echo "ERROR: capture_file_base must not be empty."
+    echo "ERROR: capture_output_base must not be empty."
     exit 2
 fi
 
