@@ -27,7 +27,6 @@ rm -f ./test/results.xml
 rm -f ./test/*.vcd
 rm -f ./test/*.vvp
 rm -f ./test/*.fst
-rm -f ./test/gtkwave_output.jpg
 
 rm -f ./test-hw/*.bin
 
