@@ -6,7 +6,7 @@
 
 Set the `TT_PROJECT_ROOT` and other environment variables before running the tests or other scripts.
 
-See the [. ./env_ice40.sh](./env_ice40.sh) script and edit as needed for your environment. For example:
+See the [source  ./env_ice40.sh](./env_ice40.sh) script and edit as needed for your environment. For example:
 
 ```text
 TT_PORT:              /dev/ttyS6
@@ -18,6 +18,8 @@ TT_TOP_NAME:          tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
 TT_TOOLS:             /mnt/c/workspace/tt-support-tools-gojimmypi
 ```
 
+WSL `/dev/ttyS[n]` == `COM[n]` on Windows, other Linux: `/dev/ttyUSB[n]`, `/dev/ttyACM[n]`, etc.
+
 Run the scripts:
 
 ```bash
@@ -27,6 +29,8 @@ cd ice40
 ./build_and_flash.sh
 ./run_tests.sh
 ```
+
+Seeing the 7-segment display flicker different values is expected. No, the repeated "F" at the end does not mean failure!
 
 Note the difference between [`tt_tool.py --harden`](https://github.com/TinyTapeout/tt-support-tools/blob/main/tt_tool.py) and [`tt_fpga.py harden`](https://github.com/TinyTapeout/tt-support-tools/blob/main/tt_fpga.py) harden parameter options.
 
@@ -90,7 +94,7 @@ Info: Slack histogram:
 ... [snip] ...
 
 Info: Program finished normally.
-2026-06-04 14:08:20,336 - tt_fpga    - INFO     - Bitstream created successfully: /mnt/c/workspace/ttsky-UART-FSM-TRNG-Lab/build/tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab.bin
+2026-06-04 14:08:20,336 - tt_fpga    - INFO     - Bitstream created successfully: /mnt/c/workspace/ttgf-UART-FSM-TRNG-Lab/build/tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab.bin
 ```
 
 ## Upload project to iCE40 FPGA
@@ -100,7 +104,7 @@ More details on manual upload with specific parameters outside of the `build_and
 ```bash
 cd "$TT_PROJECT_ROOT"
 
-# For example: /mnt/c/workspace/tt-support-tools-gojimmypi/tt_fpga.py configure --port /dev/ttyS6 --upload --name ttsky-UART-FSM-TRNG-Lab
+# For example: /mnt/c/workspace/tt-support-tools-gojimmypi/tt_fpga.py configure --port /dev/ttyS6 --upload --name ttgf-UART-FSM-TRNG-Lab
 "$TT_TOOLS/tt_fpga.py" configure --port /dev/ttyS6 --upload --name "$TT_TOP_NAME" --set-default
 ```
 
@@ -108,9 +112,9 @@ Expected output similar to:
 
 ```text
 $ "$TT_TOOLS/tt_fpga.py" configure --port /dev/ttyS6 --upload --name "$TT_TOP_NAME"
-Uploading build/tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab.bin
-cp build/tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab.bin :/bitstreams/tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab.bin
-Up to date: /bitstreams/tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab.bin
+Uploading build/tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab.bin
+cp build/tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab.bin :/bitstreams/tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab.bin
+Up to date: /bitstreams/tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab.bin
 ```
 
 ## Initial Test
@@ -137,7 +141,7 @@ When first powering on, first load image:
 See also the [project_reset.sh](./project_reset.sh) and [project_reset.py](./project_reset.py) scripts.
 
 ```python
-tt.shuttle.tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab.enable()
+tt.shuttle.tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab.enable()
 
 # Set clock to 25MHz
 tt.clock_project_PWM(25000000)
@@ -168,7 +172,7 @@ def b8(x):
     s = bin(x)[2:]
     return "0" * (8 - len(s)) + s
 
-tt.shuttle.tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab.enable()
+tt.shuttle.tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab.enable()
 tt.clock_project_PWM(25000000)
 
 # ui_in[4] = 1 selects SPI/debug-serial mode
@@ -217,8 +221,8 @@ Expected output:
 ...     s = bin(x)[2:]
 ...     return "0" * (8 - len(s)) + s
 ...
->>> tt.shuttle.tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab.enable()
-ttboard.fpga.fpga_mux: Enable design tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab
+>>> tt.shuttle.tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab.enable()
+ttboard.fpga.fpga_mux: Enable design tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab
 Configuring PIO with frequency: 16000000 Hz
 State machine activated
 SS low, starting transmission
@@ -246,7 +250,7 @@ ttboard.demoboard: Changing reset to output mode
 >>> uio = int(tt.uio_out)
 >>>
 >>> print("tt      =", tt)
-tt      = <DemoBoard in ASIC_MANUAL_INPUTS, auto-clocking @ 25000000 FPGA project 'FPGA:tt_um_gojimmypi_ttsky_UART_FSM_TRNG_Lab'>
+tt      = <DemoBoard in ASIC_MANUAL_INPUTS, auto-clocking @ 25000000 FPGA project 'FPGA:tt_um_gojimmypi_ttgf_UART_FSM_TRNG_Lab'>
 >>> print("ui_in   = 0x18  00011000")
 ui_in   = 0x18  00011000
 >>> print("uo_out  = 0x%02x  %s" % (uo, b8(uo)))

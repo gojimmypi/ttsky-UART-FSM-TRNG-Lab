@@ -3,8 +3,14 @@
 # Copyright (c) 2026 gojimmypi
 # SPDX-License-Identifier: Apache-2.0
 #
-# file: ice40/run_tests.sh
+# file: ice40/build_and_flash.sh
 #
+
+# Windows: PORT=COM5
+# WSL:     PORT=/dev/ttyS5
+# Linux:   PORT=/dev/ttyUSB5 or /dev/ttyACM5
+# macOS:   PORT=/dev/tty.usbserial-0005
+
 
 echo "**************************************************************************"
 echo "**  Begin ${BASH_SOURCE[0]} from ${PWD}"
@@ -26,8 +32,7 @@ fi
 echo "**************************************************************************"
 echo " Setup environment"
 echo "**************************************************************************"
-. ./env_ice40.sh
-
+source ./env_ice40.sh
 
 # Build
 echo "Change to parent directory:"
@@ -56,4 +61,3 @@ echo "**************************************************************************
 "$TT_TOOLS/tt_fpga.py" configure --port /dev/ttyS6 --upload --name "$TT_TOP_NAME" --set-default
 
 popd        || exit 1
-

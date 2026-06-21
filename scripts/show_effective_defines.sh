@@ -1,5 +1,23 @@
 #!/usr/bin/env bash
+#
+# Copyright (c) 2026 gojimmypi
+# SPDX-License-Identifier: Apache-2.0
+#
+# file: show_effective_defines.sh
+
 set -euo pipefail
+
+# Run shellcheck to ensure this is a good script.
+# Specify the executable shell checker you want to use:
+MY_SHELLCHECK="shellcheck"
+
+# Check if the executable is available in the PATH
+if command -v "$MY_SHELLCHECK" >/dev/null 2>&1; then
+    # Run your command here
+    shellcheck "$0" || exit 1
+else
+    echo "$MY_SHELLCHECK is not installed. Please install it if changes to this script have been made."
+fi
 
 CONFIG="../src/project_config.v"
 
@@ -11,6 +29,8 @@ fi
 if [[ ! -f "$CONFIG" ]]; then
     echo "error: config file not found: $CONFIG" >&2
     exit 1
+else
+    echo "Configuration in: $(realpath -- "$CONFIG")"
 fi
 
 if ! command -v iverilog >/dev/null 2>&1; then

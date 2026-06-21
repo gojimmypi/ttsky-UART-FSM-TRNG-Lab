@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #
 # Copyright (c) 2026 gojimmypi
 # SPDX-License-Identifier: Apache-2.0
@@ -13,15 +14,58 @@
 # python tt_uart_test.py --port $PORT  
 # 
 # python tt_uart_test.py --port $PORT --reset-registers
+#
+# Do not move this file. Referenced by TT 4337 Documentation https://app.tinytapeout.com/projects/4337
 
 import argparse
+from pathlib import Path
 import re
+import subprocess
 import sys
 import time
 
 import serial
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+VERSION_SCRIPT = PROJECT_ROOT / "scripts" / "get_expected_version.sh"
+VERSION_CONFIG = PROJECT_ROOT / "src" / "project_config.v"
+
+
+def get_expected_version():
+    if not VERSION_SCRIPT.is_file():
+        print(f"ERROR: Version helper not found: {VERSION_SCRIPT}", file=sys.stderr)
+        sys.exit(1)
+
+    if not VERSION_CONFIG.is_file():
+        print(f"ERROR: Version config not found: {VERSION_CONFIG}", file=sys.stderr)
+        sys.exit(1)
+
+    result = subprocess.run(
+        ["bash", str(VERSION_SCRIPT), str(VERSION_CONFIG)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    if result.returncode != 0:
+        if result.stderr:
+            print(result.stderr.rstrip(), file=sys.stderr)
+        print("ERROR: Could not extract expected version", file=sys.stderr)
+        sys.exit(result.returncode)
+
+    expected_version = result.stdout.strip()
+
+    if not expected_version:
+        print("ERROR: Version helper returned an empty version string", file=sys.stderr)
+        sys.exit(1)
+
+    return expected_version
+
+
+EXPECTED_VERSION = get_expected_version()
+print(f"Expected version: {EXPECTED_VERSION}")
 EXPECTED_VERSION_PREFIX = b"Version "
 READ_RE = re.compile(rb"R([0-7])=([0-9A-F]{2})\r")
 
@@ -94,6 +138,16 @@ def report_missing_command_tests():
 
     return False
 
+
+
+def print_reset_registers_hint(args):
+    if args.reset_registers:
+        return
+
+    print("")
+    print("Suggestion: this may be stale register state from a previous run.")
+    print("Try again with --reset-registers to start from configured defaults:")
+    print(f"  python {Path(sys.argv[0]).name} --port {args.port} --reset-registers")
 
 def read_until_idle(ser, idle_time, max_time):
     data = bytearray()
@@ -280,9 +334,17 @@ def test_version_if_present(ser, args):
 
     print(f"Version probe response: {response!r}")
 
-    if EXPECTED_VERSION_PREFIX in response:
-        print("PASS: Version command")
+    expected = args.expected_version.encode("ascii") + b"\r"
+
+    if response == expected:
+        print("PASS: Version command exact match")
         return True
+
+    if EXPECTED_VERSION_PREFIX in response:
+        print("FAIL: Version command exact match")
+        print(f"  Expected: {expected!r}")
+        print(f"  Actual:   {response!r}")
+        return False
 
     print("SKIP: Version command not present in this bitstream")
     return None
@@ -505,6 +567,11 @@ def main():
     parser.add_argument("--idle-time", type=float, default=0.05)
     parser.add_argument("--repeat", type=int, default=5)
     parser.add_argument("--stop-on-fail", action="store_true")
+    parser.add_argument(
+        "--expected-version",
+        default=EXPECTED_VERSION,
+        help="Exact V command response text, without the trailing carriage return",
+    )
     parser.add_argument("--health-status", action="store_true")
     parser.add_argument("--health-poll-attempts", type=int, default=20)
     parser.add_argument("--health-poll-delay", type=float, default=0.005)
@@ -528,6 +595,8 @@ def main():
             print("")
             print("PASS")
             return 0
+
+        print_reset_registers_hint(args)
 
         print("")
         print("FAIL")

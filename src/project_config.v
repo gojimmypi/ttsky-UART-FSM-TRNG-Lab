@@ -23,8 +23,8 @@
     `define USE_LONG_STRINGS
 
     `ifdef USE_LONG_STRINGS
-        `define VERSION_STRING_LEN 24 /* 123456789012345678901234 */   
-        `define VERSION_STRING          "Version 0.1.7k 6/14/2026"
+        `define VERSION_STRING_LEN 23 /* 123456789012345678901234 */   
+        `define VERSION_STRING          "Version 1.0.3 6/16/2026"
         /* GF26a deadline: June 22, 1:00PM PDT */
     `else
         /* no long strings */

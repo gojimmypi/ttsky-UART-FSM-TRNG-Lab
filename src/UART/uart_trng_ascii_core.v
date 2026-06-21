@@ -417,7 +417,7 @@ module uart_trng_ascii_core
     reg  [7:0] trng_reg_mode;
     reg  [7:0] trng_reg_oscen;
 
-    always @(posedge clk) begin
+    always @(posedge clk or negedge rst_trng_sync_n) begin
         if (!rst_trng_sync_n) begin
             trng_reg_ctrl  <= 8'h00;
             trng_reg_src   <= 8'h00;

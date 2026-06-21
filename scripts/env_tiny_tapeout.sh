@@ -3,7 +3,8 @@
 # Copyright (c) 2026 gojimmypi
 # SPDX-License-Identifier: Apache-2.0
 #
-# file: ice40/env_ice40.sh
+# file: scripts/env_tiny_tapeout.sh
+#
 
 echo "**************************************************************************"
 echo "**  Begin ${BASH_SOURCE[0]} from ${PWD}"

@@ -13,6 +13,11 @@ echo "**************************************************************************
 echo "**  Begin ${BASH_SOURCE[0]} from ${PWD}"
 echo "**************************************************************************"
 
+# Windows: PORT=COM5
+# WSL:     PORT=/dev/ttyS5
+# Linux:   PORT=/dev/ttyUSB5 or /dev/ttyACM5
+# macOS:   PORT=/dev/tty.usbserial-0005
+#
 # The TT_UART_PORT is the external USB TTY device, typically connected to IN3/Rx and OUT4/Tx.
 MY_TT_UART_PORT=/dev/ttyS5
 
@@ -46,7 +51,7 @@ fi
 echo "**************************************************************************"
 echo "**  Setup environment"
 echo "**************************************************************************"
-. ./env_ice40.sh
+source ./env_ice40.sh
 
 echo "**************************************************************************"
 echo "**  Calling project reset script on port ${TT_PORT}"

@@ -1,4 +1,10 @@
 #!/bin/bash
+#
+# Copyright (c) 2026 gojimmypi
+# SPDX-License-Identifier: Apache-2.0
+#
+# file: scripts/check-nettype.sh
+#
 
 set -euo pipefail
 

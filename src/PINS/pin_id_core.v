@@ -2,6 +2,8 @@
  * Copyright (c) 2026 gojimmypi
  * SPDX-License-Identifier: Apache-2.0
  *
+ * See ATTRIBUTION.md for third-party sources and credits.
+ *
  * file: pin_id_core.v
  *
  * Select-one-pin diagnostic signal generator for Tiny Tapeout-style pins.

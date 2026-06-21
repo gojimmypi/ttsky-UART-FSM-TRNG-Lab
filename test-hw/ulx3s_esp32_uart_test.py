@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+#
+# Copyright (c) 2026 gojimmypi
+# SPDX-License-Identifier: Apache-2.0
+#
+# file: ulx3s_esp32_uart_test.py
+#
 
 import serial
 import time

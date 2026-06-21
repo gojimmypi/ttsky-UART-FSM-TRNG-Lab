@@ -12,6 +12,11 @@ echo "**************************************************************************
 
 set -euo pipefail
 
+# Windows: PORT=COM5
+# WSL:     PORT=/dev/ttyS5
+# Linux:   PORT=/dev/ttyUSB5 or /dev/ttyACM5
+# macOS:   PORT=/dev/tty.usbserial-0005
+
 # TT_PORT=/dev/ttyS6
 BAUD=115200
 

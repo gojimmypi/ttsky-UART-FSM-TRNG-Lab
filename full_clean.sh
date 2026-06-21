@@ -23,6 +23,9 @@ fi
 
 rm -rf ./build
 
+# The FPGA Demobuild generates its own _tt_fpga_top.v file
+rm -f ./src/_tt_fpga_top.v
+
 rm -f ./test/results.xml
 rm -f ./test/*.vcd
 rm -f ./test/*.vvp

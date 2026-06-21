@@ -13,9 +13,14 @@
 #   on large packets it may lose packets. I discovered it when I was using 
 #   it at 3V3 with RP2040 trying different configurations of the Uart api.
 
+# Windows: PORT=COM5
+# WSL:     PORT=/dev/ttyS5
+# Linux:   PORT=/dev/ttyUSB5 or /dev/ttyACM5
+# macOS:   PORT=/dev/tty.usbserial-0005
+
+PORT="${PORT:-/dev/ttyS12}"
 
 DEFAULT_FILE_BASE="trng_conditioned_2MiB"
-PORT="${PORT:-/dev/ttyS12}"
 BYTES=2097152
 BITS_PER_STREAM=1048576
 RUNS=2
@@ -384,7 +389,7 @@ fi
 echo "Verbose cleanup: $VERBOSE_CLEANUP"
 echo
 
-./show_effective_defines.sh
+../scripts/show_effective_defines.sh
 
 for x in $(seq 1 "$RUNS"); do
     capture_file="$TEST_HW_DIR/$THE_FILE_BASE.$x.bin"

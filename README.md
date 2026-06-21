@@ -5,10 +5,10 @@
 Details of this project are located in [docs/info.md](./docs/info.md)
 
 
-See companions projects:
+See companion projects developed in parallel:
 
-- https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab (Global Foundry 180: milestone copy here from dev)
-- This https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab (Sky130: active development here)
+- https://github.com/gojimmypi/ttgf-UART-FSM-TRNG-Lab (Global Foundry 180)
+- This https://github.com/gojimmypi/ttsky-UART-FSM-TRNG-Lab (Sky130, draft [4338](https://app.tinytapeout.com/projects/4338))
 
 ## Files and Directories
 

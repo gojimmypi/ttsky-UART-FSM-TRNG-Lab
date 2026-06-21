@@ -5,19 +5,32 @@
 #
 # file: ice40/project_reset.py
 #
+# Do not move this file. Referenced by TT 4337 Documentation https://app.tinytapeout.com/projects/4337
 
 import os
+import sys
 import time
 import serial
 
-port = "/dev/ttyS6"
+# Windows: PORT=COM5
+# WSL:     PORT=/dev/ttyS5
+# Linux:   PORT=/dev/ttyUSB5 or /dev/ttyACM5
+# macOS:   PORT=/dev/tty.usbserial-0005
+
+MY_PORT = os.environ.get("MY_PORT") or "/dev/ttyS6"
+
+port = MY_PORT
+
+TT_TOP_NAME = os.environ.get("TT_TOP_NAME") or ""
+
+if not TT_TOP_NAME:
+    print("ERROR: TT_TOP_NAME is not set, do you need to run `source env_ice40.sh` ?")
+    sys.exit(1)
 
 cmds = [
-    "tt.shuttle.${TT_TOP_name}.enable()",
-    "",
+    f"tt.shuttle.{TT_TOP_NAME}.enable()",
     "# Set clock to 25MHz",
     "tt.clock_project_PWM(25000000)",
-    "",
     "tt.reset_project(True)",
     "tt.reset_project(False)",
 ]

@@ -3,13 +3,14 @@
 # Copyright (c) 2026 gojimmypi
 # SPDX-License-Identifier: Apache-2.0
 #
-# file: verilator_lint.sh
+# file: scripts/verilator_lint.sh
 #
 # This script is used to lint the Verilog project using Verilator.
 #
 # The /.github/workflows/gds.yaml also does this, but this script is intended to be run locally by developers 
 # to check their changes before pushing them to GitHub, where the CI will also check them.
 #
+# Do not move this file. Referenced by TT 4337 Documentation https://app.tinytapeout.com/projects/4337
 
 # Run shellcheck to ensure this is a good script.
 # Specify the executable shell checker you want to use:

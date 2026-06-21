@@ -18,6 +18,7 @@
 #   - If the target was left at fast baud by an aborted prior run, detect that
 #     at startup, send U0 at fast baud, and verify default baud before capture.
 #
+# Do not move this file. Referenced by TT 4337 Documentation https://app.tinytapeout.com/projects/4337
 
 import argparse
 import os

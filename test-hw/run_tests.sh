@@ -54,10 +54,12 @@
 #   ./run_tests.sh --with-build --ulx3s-board-version v316
 #   ./run_tests.sh --with-build --board-version=v20
 #
-# Windows: PORT=COM8
-# Linux:   PORT=/dev/ttyUSB0
-# macOS:   PORT=/dev/tty.usbserial-0001
-# WSL:     PORT=/dev/ttyS8
+# Windows: PORT=COM5
+# WSL:     PORT=/dev/ttyS5
+# Linux:   PORT=/dev/ttyUSB5 or /dev/ttyACM5
+# macOS:   PORT=/dev/tty.usbserial-0005
+#
+# Do not move this file. Referenced by TT 4337 Documentation https://app.tinytapeout.com/projects/4337
 
 PORT=/dev/ttyS12
 
@@ -82,6 +84,12 @@ EXPECT_BOARD_VERSION_VALUE=0
 PAUSE_FOR_TEST=0
 BUILD_ARGS=""
 
+
+# ------------------------------------------------------------------------------
+# Extract expected version
+# ------------------------------------------------------------------------------
+EXPECTED_VERSION="$(../scripts/get_expected_version.sh)"
+echo "Expected version: $EXPECTED_VERSION"
 # ------------------------------------------------------------------------------
 # Parameter processing
 # ------------------------------------------------------------------------------
@@ -235,7 +243,6 @@ if [ "$EXPECT_BOARD_VERSION_VALUE" -eq 1 ]; then
     exit 1
 fi
 
-
 # ------------------------------------------------------------------------------
 # Optional build
 # ------------------------------------------------------------------------------
@@ -246,6 +253,12 @@ if [ "$WITH_BUILD" -eq 1 ]; then
         # shellcheck disable=SC2206
         BUILD_ARGS_ARRAY=($BUILD_ARGS)
     fi
+
+    # ------------------------------------------------------------------------------
+    # Show the current configuration from src/project_config.v
+    # ------------------------------------------------------------------------------
+    ../scripts/show_effective_defines.sh
+
     pushd "$(dirname "$0")"                   || exit 1
     cd ../ulx3s                               || exit 1
     echo "Build..."
@@ -261,6 +274,11 @@ fi
 if [ "$PAUSE_FOR_TEST" -eq 1 ]; then
     read -r -p "Press Enter to continue..."
 fi
+
+# ------------------------------------------------------------------------------
+# Show the current configuration from src/project_config.v
+# ------------------------------------------------------------------------------
+../scripts/show_effective_defines.sh
 
 # ------------------------------------------------------------------------------
 # Run tests
@@ -295,13 +313,21 @@ else
     #                              [--repeat REPEAT] [--stop-on-fail]
     #                              [--reset-registers]
 
-    python ./tt_uart_test.py --port "$PORT"                   || exit 1
+    python ./tt_uart_test.py \
+        --port "$PORT" \
+        --expected-version "$EXPECTED_VERSION"                 || exit 1
 
-    python ./tt_uart_test.py --port "$PORT" --reset-registers || exit 1
+    python ./tt_uart_test.py \
+        --port "$PORT" \
+        --expected-version "$EXPECTED_VERSION" \
+        --reset-registers                                      || exit 1
 
-    python ./tt_trng_uart_test.py --port "$PORT"              || exit 1
+    # Includes health-status smoke, U0/U1/U2/U3 baud transitions,
+    # C10 conditioned stream exact-length, B10 raw stream exact-length,
+    # frozen sample checks, and source-select path checks.
+    python ./tt_trng_uart_test.py --port "$PORT"               || exit 1
 
-    python ./tt_trng_repro_test.py --port  "$PORT"            || exit 1
+    python ./tt_trng_repro_test.py --port "$PORT"              || exit 1
 fi
 
 # echo "Generating a 16MB trng_conditioned.bin"

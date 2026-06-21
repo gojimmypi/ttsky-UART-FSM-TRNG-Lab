@@ -161,6 +161,7 @@ module trng_lab_core
     wire        cond_in_bit;
     wire        stream_feedback;
     wire [31:0] galois_mix_next;
+    wire [7:0]  ro_sync_mix;
     `else
     wire        stream_feedback;
     `endif
@@ -179,6 +180,10 @@ module trng_lab_core
 `ifdef TRNG_HEALTH_STATUS
     /* Health monitor only drives R5[7:3]. Legacy R5[2:0] is preserved. */
     wire [7:3]  health_status;
+    reg         health_sample_valid_q;
+    reg         health_sample_bit_q;
+    reg         health_ro_activity_q;
+    reg         health_any_osc_en_q;
 `endif
 
     assign trng_reset = reg_ctrl[2];
@@ -325,6 +330,8 @@ module trng_lab_core
     assign reg_condhi = condhi_mix;
 
 `elsif TRNG_CONDITIONED_STREAM_GALOIS
+    assign ro_sync_mix = {8{rox_sample_sync}} ^ {7'b0000000, ro0_sample_sync};
+
     assign cond_in_bit =
         selected_bit ^
         ro0_sample_sync ^
@@ -642,17 +649,16 @@ module trng_lab_core
         .clk(clk),
         .rst_n(rst_n),
         .clear_i(trng_reset),
-        .enable_i(trng_enable),
-        .sample_valid_i(do_sample_q),
-        .sample_bit_i(selected_bit),
-        .ro_activity_bit_i(rox_sample_sync),
-        .oscen_i(reg_oscen),
+        .sample_valid_i(health_sample_valid_q),
+        .sample_bit_i(health_sample_bit_q),
+        .ro_activity_bit_i(health_ro_activity_q),
+        .any_osc_en_i(health_any_osc_en_q),
         .health_status_o(health_status)
     );
 `endif
 
-    always @(posedge clk) begin
-        if (!rst_n || trng_reset) begin
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
             trng_step_d     <= 1'b0;
             sample_tick_q   <= 1'b0;
             do_sample_q     <= 1'b0;
@@ -664,7 +670,7 @@ module trng_lab_core
 `ifdef TRNG_CONDITIONED_STREAM
     `ifdef TRNG_CONDITIONED_STREAM_64_XOR
             /* Nonzero fixed conditioner seed. This is not a secret key and does not
-             * provide entropy. It only prevents the conditioner from starting at zero. 
+             * provide entropy. It only prevents the conditioner from starting at zero.
              * ASCII "gojimmy!" makes the value traceable and intentional. */
             stream_mix <= 64'h676F_6A69_6D6D_7921; // "gojimmy!"
     `elsif TRNG_CONDITIONED_STREAM_CRC
@@ -687,10 +693,62 @@ module trng_lab_core
             reg_status      <= 8'h00;
             reg_rawlo       <= 8'h00;
             reg_rawhi       <= 8'h00;
+`ifdef TRNG_HEALTH_STATUS
+            health_sample_valid_q <= 1'b0;
+            health_sample_bit_q   <= 1'b0;
+            health_ro_activity_q  <= 1'b0;
+            health_any_osc_en_q   <= 1'b0;
+`endif
 `ifdef TRNG_BINARY_STREAM
             stream_sample_count <= 8'h00;
 `endif
-            /* End main reset */
+            /* End hardware reset */
+
+        end else if (trng_reset) begin
+            trng_step_d     <= 1'b0;
+            sample_tick_q   <= 1'b0;
+            do_sample_q     <= 1'b0;
+
+            sample_ctr      <= 16'h0000;
+            lfsr            <= 16'h1ACE;
+            sample_shift    <= 16'h0000;
+
+`ifdef TRNG_CONDITIONED_STREAM
+    `ifdef TRNG_CONDITIONED_STREAM_64_XOR
+            /* Nonzero fixed conditioner seed. This is not a secret key and does not
+             * provide entropy. It only prevents the conditioner from starting at zero.
+             * ASCII "gojimmy!" makes the value traceable and intentional. */
+            stream_mix <= 64'h676F_6A69_6D6D_7921; // "gojimmy!"
+    `elsif TRNG_CONDITIONED_STREAM_CRC
+            stream_mix      <= 16'hA5C3;
+    `elsif TRNG_CONDITIONED_STREAM_GALOIS_64
+            stream_mix      <= 64'h676F_6A69_6D6D_7921; // "gojimmy!"
+            condlo_mix      <= 8'hA5;
+            condhi_mix      <= 8'h3C;
+    `elsif TRNG_CONDITIONED_STREAM_GALOIS
+            stream_mix      <= 32'h676F_6A69; // "goji"
+    `else
+            stream_mix      <= 32'hA5C3_1F2D;
+    `endif
+`endif /* TRNG_CONDITIONED_STREAM */
+
+            ro0_sample_meta <= 1'b0;
+            ro0_sample_sync <= 1'b0;
+            rox_sample_meta <= 1'b0;
+            rox_sample_sync <= 1'b0;
+            reg_status      <= 8'h00;
+            reg_rawlo       <= 8'h00;
+            reg_rawhi       <= 8'h00;
+`ifdef TRNG_HEALTH_STATUS
+            health_sample_valid_q <= 1'b0;
+            health_sample_bit_q   <= 1'b0;
+            health_ro_activity_q  <= 1'b0;
+            health_any_osc_en_q   <= 1'b0;
+`endif
+`ifdef TRNG_BINARY_STREAM
+            stream_sample_count <= 8'h00;
+`endif
+            /* End software TRNG reset */
 
         end else begin
             /* Main always block */
@@ -708,6 +766,11 @@ module trng_lab_core
             reg_status[1]   <= sample_tick_q;
             reg_status[2]   <= |reg_oscen;
 `ifdef TRNG_HEALTH_STATUS
+            health_sample_valid_q <= trng_enable && do_sample_q;
+            health_sample_bit_q   <= selected_bit;
+            health_ro_activity_q  <= rox_sample_sync;
+            health_any_osc_en_q   <= |reg_oscen;
+
             /* Preserve legacy R5[2:0]; use health monitor only for R5[7:3] */
             reg_status[3]   <= health_status[3]; /* health_valid */
             reg_status[4]   <= health_status[4]; /* activity_seen */
@@ -780,7 +843,7 @@ module trng_lab_core
                 stream_mix   <= galois_mix_next ^ {
                     reg_rawhi ^ lfsr[15:8],
                     reg_rawlo ^ lfsr[7:0],
-                    sample_shift[15:8] ^ ro_raw,
+                    sample_shift[15:8] ^ ro_sync_mix,
                     sample_shift[7:0] ^ {7'b0000000, selected_bit}
                 };
 `else
@@ -820,9 +883,6 @@ endmodule /* trng_lab_core */
  * failures such as a stuck selected source or a long repeated-bit run.
  *
  * health_status_o bit map:
- *   [0] enable_i
- *   [1] sample_seen
- *   [2] any oscillator enabled
  *   [3] health_valid: at least one sample window completed
  *   [4] activity_seen: RO activity bit toggled since the last clear/reset
  *   [5] repetition_fail: 16 identical sampled bits in a row
@@ -834,11 +894,10 @@ module trng_health_core
     input  wire       clk,
     input  wire       rst_n,
     input  wire       clear_i,
-    input  wire       enable_i,
     input  wire       sample_valid_i,
     input  wire       sample_bit_i,
     input  wire       ro_activity_bit_i,
-    input  wire [7:0] oscen_i,
+    input  wire       any_osc_en_i,
     output wire [7:3] health_status_o /*  Preserves legacy R5[2:0] */
 );
 /* -------------------------------------------------------------------------------------------- */
@@ -876,8 +935,8 @@ module trng_health_core
         health_valid     /* [3] at least one 64-sample health window completed; just a completed data sample, window_done, nothing more */
     };
 
-    always @(posedge clk) begin
-        if (!rst_n || clear_i) begin
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
             sample_seen            <= 1'b0;
             last_sample            <= 1'b0;
             last_ro_activity       <= 1'b0;
@@ -888,7 +947,18 @@ module trng_health_core
             stuck_fail             <= 1'b0;
             repeat_count           <= 4'h0;
             window_count           <= 6'h00;
-        end else if (enable_i && sample_valid_i) begin
+        end else if (clear_i) begin
+            sample_seen            <= 1'b0;
+            last_sample            <= 1'b0;
+            last_ro_activity       <= 1'b0;
+            window_transition_seen <= 1'b0;
+            activity_seen          <= 1'b0;
+            health_valid           <= 1'b0;
+            repetition_fail        <= 1'b0;
+            stuck_fail             <= 1'b0;
+            repeat_count           <= 4'h0;
+            window_count           <= 6'h00;
+        end else if (sample_valid_i) begin
             if (!sample_seen) begin
                 sample_seen            <= 1'b1;
                 last_sample            <= sample_bit_i;
@@ -920,7 +990,7 @@ module trng_health_core
                 if (window_done) begin
                     health_valid <= 1'b1;
 
-                    if ((|oscen_i) && !next_window_transition_seen) begin
+                    if (any_osc_en_i && !next_window_transition_seen) begin
                         stuck_fail <= 1'b1;
                     end
 
@@ -1012,7 +1082,7 @@ module trng_ro_inverter_cell
         //`endif
 
         /* 
-         * There are several possible inverts to use in GF180. See
+         * There are several possible inverters to use in GF180. See
          *    https://github.com/google/globalfoundries-pdk-libs-gf180mcu_fd_sc_mcu7t5v0/tree/main/cells/inv
          *
          * Asked ChatGPT to summarize differences. This is the response:

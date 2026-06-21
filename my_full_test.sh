@@ -5,6 +5,7 @@
 #
 # file: my_full_test.sh
 #
+# FPGA Demoboard test
 
 # Run shellcheck to ensure this is a good script.
 # Specify the executable shell checker you want to use:
@@ -26,7 +27,7 @@ popd || exit 1
 
 pushd ice40 || exit 1
 
-. ./env_ice40.sh
+source ./env_ice40.sh
 ./build_and_flash.sh
 ./project_reset.sh
 ./run_tests.sh

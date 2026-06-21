@@ -8,6 +8,7 @@
 # This script is used to program the ULX3S FPGA board using the fujprog tool. 
 # Optional WSL should be auto-detected
 #
+# Do not move this file. Referenced by TT 4337 Documentation https://app.tinytapeout.com/projects/4337
 
 # Run shellcheck to ensure this is a good script.
 # Specify the executable shell checker you want to use:

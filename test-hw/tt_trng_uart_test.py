@@ -15,6 +15,17 @@ import serial
 
 READ_RE = re.compile(rb"R([0-7])=([0-9A-F]{2})\r")
 
+DEFAULT_BAUD = 115200
+BAUD_SELECTIONS = (
+    (1, 230400),
+    (2, 460800),
+    (3, 921600),
+)
+
+BASIC_BAUD_SELECTIONS = (
+    (1, 230400),
+)
+
 R5_TRNG_ENABLE = 0x01
 R5_SAMPLE_TICK = 0x02
 R5_ANY_OSC_EN = 0x04
@@ -163,6 +174,62 @@ def read_reg(ser, args, reg_num):
 def write_ok(ser, args, name, command):
     response = send_command(ser, command, args)
     return expect_exact(name, response, b"OK\r")
+
+
+def set_device_baud(ser, args, name, baud_sel, new_baud):
+    command = f"U{baud_sel:X}\r".encode("ascii")
+
+    try:
+        ser.reset_input_buffer()
+        ser.reset_output_buffer()
+        ser.write(command)
+        ser.flush()
+    except (OSError, serial.SerialException) as exc:
+        print(f"FAIL: {name}")
+        print(f"  Serial write/setup error: {exc}")
+        return False
+
+    response = read_until_idle(ser, args.idle_time, args.timeout)
+
+    # The target can switch baud before the host sees the final CR. Accept
+    # any response that starts with OK, matching the capture helper behavior.
+    if not response.startswith(b"OK"):
+        print(f"FAIL: {name}")
+        print("  Expected response starting with: b'OK'")
+        print(f"  Actual:   {response!r}")
+        return False
+
+    try:
+        ser.baudrate = new_baud
+        ser.reset_input_buffer()
+        ser.reset_output_buffer()
+    except Exception as exc:
+        print(f"FAIL: {name}")
+        print(f"  Host baud change error: {exc}")
+        return False
+
+    time.sleep(args.baud_settle_time)
+
+    print(f"PASS: {name}: {response!r}")
+    return True
+
+
+def restore_default_baud(ser, args):
+    if ser.baudrate == args.baud:
+        return True
+
+    try:
+        return set_device_baud(
+            ser,
+            args,
+            "Baud restore U0 default",
+            0,
+            args.baud,
+        )
+    except Exception as exc:
+        print("FAIL: Baud restore U0 default")
+        print(f"  Serial restore error: {exc}")
+        return False
 
 
 def format_r5_status(value):
@@ -473,6 +540,108 @@ def test_binary_stream_exact_length(ser, args):
     return ok
 
 
+def test_raw_binary_stream_exact_length(ser, args):
+    ok = True
+
+    print("")
+    print("Running: TRNG raw binary stream exact length")
+
+    # Start from known register defaults before entering binary-stream mode.
+    ok = reset_config_registers(ser, args) and ok
+
+    # Configure the same stream path as the conditioned C10 test, but request
+    # raw Bxx bytes to verify the raw binary plumbing separately.
+    ok = write_ok(ser, args, "Raw stream reset E0", b"E0\r") and ok
+    ok = write_ok(ser, args, "Raw stream S3 mixed source", b"S3\r") and ok
+    ok = write_ok(ser, args, "Raw stream OFF oscillators", b"OFF\r") and ok
+    ok = write_ok(ser, args, "Raw stream D0F divider", b"D0F\r") and ok
+    ok = write_ok(ser, args, "Raw stream E1 enable", b"E1\r") and ok
+
+    data = send_binary_command(ser, b"B10\r", 16, args)
+    ok = expect_length("B10 returns exactly 16 bytes", data, 16) and ok
+
+    extra = read_any_before_timeout(ser, args.extra_timeout)
+    ok = expect_no_extra_byte("B10 has no extra byte", extra) and ok
+
+    ok = write_ok(ser, args, "Raw stream cleanup E0", b"E0\r") and ok
+
+    reg_ctrl = read_reg(ser, args, 0)
+
+    if reg_ctrl is None:
+        ok = False
+    elif reg_ctrl != 0x00:
+        print("FAIL: R0 after raw stream cleanup")
+        print("  Expected: 0x00")
+        print(f"  Actual:   0x{reg_ctrl:02X}")
+        ok = False
+    else:
+        print("PASS: R0 after raw stream cleanup")
+
+    return ok
+
+
+def test_baud_transitions(ser, args):
+    ok = True
+
+    print("")
+    print("Running: UART baud transition smoke")
+
+    if args.baud != DEFAULT_BAUD:
+        print("SKIP: baud transition smoke requires host start baud 115200")
+        return None
+
+    # The regular regression only verifies that the baud command path works
+    # and can return to 115200. Repeated reconfiguration through WSL serial
+    # devices can produce termios I/O errors unrelated to the DUT, so the
+    # higher baud selections are opt-in for manual stress testing.
+    if args.deep_baud_test:
+        baud_selections = BAUD_SELECTIONS
+    else:
+        baud_selections = BASIC_BAUD_SELECTIONS
+
+    try:
+        for baud_sel, baud_value in baud_selections:
+            if not set_device_baud(
+                ser,
+                args,
+                f"Baud U{baud_sel:X} set {baud_value}",
+                baud_sel,
+                baud_value,
+            ):
+                ok = False
+                break
+
+            reg_ctrl = read_reg(ser, args, 0)
+
+            if reg_ctrl is None:
+                ok = False
+            else:
+                print(f"PASS: R0 read at {baud_value} baud")
+
+            if not set_device_baud(
+                ser,
+                args,
+                "Baud U0 restore 115200",
+                0,
+                args.baud,
+            ):
+                ok = False
+                break
+
+            reg_ctrl = read_reg(ser, args, 0)
+
+            if reg_ctrl is None:
+                ok = False
+            else:
+                print("PASS: R0 read after U0 restore")
+
+    finally:
+        if ser.baudrate != args.baud:
+            ok = restore_default_baud(ser, args) and ok
+
+    return ok
+
+
 def test_lfsr_frozen_samples(ser, args):
     return collect_samples(
         ser,
@@ -526,6 +695,22 @@ def main():
     parser.add_argument("--extra-timeout", type=float, default=0.25)
     parser.add_argument("--samples", type=int, default=8)
     parser.add_argument("--skip-health-status", action="store_true")
+    parser.add_argument(
+        "--baud-test",
+        action="store_true",
+        help="run one U1/U0 UART baud transition smoke test",
+    )
+    parser.add_argument(
+        "--deep-baud-test",
+        action="store_true",
+        help="run U1/U2/U3 baud transition stress test; implies --baud-test",
+    )
+    parser.add_argument(
+        "--skip-baud-test",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument("--baud-settle-time", type=float, default=0.1)
     parser.add_argument("--health-poll-attempts", type=int, default=20)
     parser.add_argument("--health-poll-delay", type=float, default=0.005)
     args = parser.parse_args()
@@ -544,7 +729,16 @@ def main():
             ok = test_health_status_reset_clear(ser, args) and ok
             ok = test_health_status_active_oscillator(ser, args) and ok
 
+        if (args.baud_test or args.deep_baud_test) and not args.skip_baud_test:
+            result = test_baud_transitions(ser, args)
+            if result is False:
+                ok = False
+        else:
+            print("")
+            print("Skipping UART baud transition smoke; use --baud-test to enable it")
+
         ok = test_binary_stream_exact_length(ser, args) and ok
+        ok = test_raw_binary_stream_exact_length(ser, args) and ok
         ok = test_lfsr_frozen_samples(ser, args) and ok
         ok = test_source_select_paths(ser, args) and ok
 

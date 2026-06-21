@@ -2,6 +2,8 @@
  * Copyright (c) 2026 gojimmypi
  * SPDX-License-Identifier: Apache-2.0
  *
+ * See ATTRIBUTION.md for third-party sources and credits.
+ *
  * file: spi_slave.v
  *
  * SPI register-access slave for Tiny Tapeout experiments.

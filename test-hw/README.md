@@ -6,7 +6,7 @@ specifically the ULX3S FPGA board.
 Set the `TT_PROJECT_ROOT` environment variable to the root of the project directory before running the tests or other scripts.
 
 ```bash
-export TT_PROJECT_NAME="ttsky-UART-FSM-TRNG-Lab"
+export TT_PROJECT_NAME="ttgf-UART-FSM-TRNG-Lab"
 export TT_PROJECT_ROOT="/mnt/c/workspace/$TT_PROJECT_NAME"
 ```
 

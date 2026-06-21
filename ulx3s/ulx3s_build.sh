@@ -17,6 +17,8 @@
 # ./ulx3s_build.sh --ulx3s-board-version=v20
 # ./ulx3s_build.sh --ulx3s-board-version=v316
 #
+# Do not move this file. Referenced by TT 4337 Documentation https://app.tinytapeout.com/projects/4337
+
 set -e
 set -o pipefail
 
