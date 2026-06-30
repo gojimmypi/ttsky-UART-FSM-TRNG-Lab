@@ -19,9 +19,30 @@ jobs:
         uses: TinyTapeout/tt-gds-action/fpga/ice40up5k@ttsky26c
 
       - name: FPGA bitstream for ULX3S (ECP5)
+        # Set to true to enable this step
+        if: ${{ false }}
+
         uses: ulx3s/tt-gds-action/fpga/ulx3s@experimental
+        continue-on-error: true
+        timeout-minutes: 60
         with:
+          tools-repo: ulx3s/tt-support-tools
+          tools-ref:  experimental
+
+          # ULX3S ECP5 device name options:
+          #
+          # ecp5-device: 12k
+          # ecp5-device: 45k
+          # ecp5-device: 85k
           ecp5-device: 85k
+
+          # ULX3S lpf constraint file options from https://github.com/emard/ulx3s/tree/master/doc/constraints
+          #
+          # lpf: tt/fpga/ulx3s/ulx3s_v316.lpf      # for v3.16, v3.17, v3,18: the most recent PCF file for most ULX3S purchased recently.
+          # lpf: tt/fpga/ulx3s/ulx3s_v314.lpf      # for v3.14
+          # lpf: tt/fpga/ulx3s/ulx3s_v20.lpf       # for versions 2.x .. 3.07
+          # lpf: tt/fpga/ulx3s/ulx3s_v17patch.lpf  # for version 1.7
           lpf: tt/fpga/ulx3s/ulx3s_v20.lpf
+
           artifact-name: fpga_ulx3s_ecp5
           uart-enabled: true
