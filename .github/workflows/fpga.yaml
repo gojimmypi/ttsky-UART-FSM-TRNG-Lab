@@ -50,3 +50,37 @@ jobs:
 
           artifact-name: fpga_ulx3s_ecp5
           uart-enabled: true
+
+      - name: FPGA bitstream for TT ASIC Sim (ULX4M ECP5)
+        # Disabled by default.
+        # To enable this step, change false to true:
+        if: ${{ true }}
+
+        uses: ulx3s/tt-gds-action/fpga/ulx4m@experimental
+        timeout-minutes: 60
+
+        # Optionally continue and ignore errors:
+        # continue-on-error: true
+
+        with:
+          tools-repo: ulx3s/tt-support-tools
+          tools-ref:  experimental
+
+          # ULX4M ECP5 device name options:
+          #
+          # ecp5-device: 12k
+          # ecp5-device: 45k
+          # ecp5-device: 85k
+          ecp5-device: 85k
+
+          # ULX4M lpf constraint file options from https://github.com/intergalaktik/ulx4m/tree/ulx4m-ls/doc/constraints
+          #
+          # lpf: tt/fpga/ulx4m/ulx4m-ld_v001.lpf
+          # lpf: tt/fpga/ulx4m/ulx4m-ld_v002.lpf
+          # lpf: tt/fpga/ulx4m/ulx4m_ls_v003.lpf
+          # lpf: tt/fpga/ulx4m/ulx4m_v002.lpf
+          # lpf: tt/fpga/ulx4m/ulx4m_v01.lpf
+          lpf: tt/fpga/ulx4m/ulx4m_ls_v003.lpf
+
+          artifact-name: fpga_ulx4m_ecp5
+          uart-enabled: true
