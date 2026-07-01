@@ -15,8 +15,21 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Clean oss-cad-suite temp before ICE40
+        shell: bash
+        run: |
+          # setup-oss-cad-suite uses fixed names under RUNNER_TEMP.
+          # Remove stale files from prior attempts or earlier wrapper steps.
+          rm -rf "${RUNNER_TEMP:?}/oss-cad-suite" "${RUNNER_TEMP:?}/oss-cad-suite.tgz"
+
       - name: FPGA bitstream for TT ASIC Sim (ICE40UP5K)
         uses: TinyTapeout/tt-gds-action/fpga/ice40up5k@ttsky26c
+
+      - name: Clean oss-cad-suite temp before ULX3S
+        shell: bash
+        run: |
+          # The previous FPGA action may leave oss-cad-suite.tgz behind.
+          rm -rf "${RUNNER_TEMP:?}/oss-cad-suite" "${RUNNER_TEMP:?}/oss-cad-suite.tgz"
 
       - name: FPGA bitstream for TT ASIC Sim (ULX3S ECP5)
         # Disabled by default.
@@ -50,6 +63,12 @@ jobs:
 
           artifact-name: fpga_ulx3s_ecp5
           uart-enabled: true
+
+      - name: Clean oss-cad-suite temp before ULX4M
+        shell: bash
+        run: |
+          # The previous FPGA action may leave oss-cad-suite.tgz behind.
+          rm -rf "${RUNNER_TEMP:?}/oss-cad-suite" "${RUNNER_TEMP:?}/oss-cad-suite.tgz"
 
       - name: FPGA bitstream for TT ASIC Sim (ULX4M ECP5)
         # Disabled by default.
